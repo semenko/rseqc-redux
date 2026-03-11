@@ -47,11 +47,6 @@ if sys.version_info[0] != 3:
 from optparse import OptionParser
 from time import strftime
 
-# import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.intervals import *
-
 # import my own modules
 from qcmodule import SAM
 

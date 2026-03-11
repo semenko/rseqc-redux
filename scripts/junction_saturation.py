@@ -164,7 +164,7 @@ def main():
         )
         try:
             subprocess.call("Rscript " + options.output_prefix + ".junctionSaturation_plot.r", shell=True)
-        except:
+        except Exception:
             print("Cannot generate pdf file from " + ".junctionSaturation_plot.r", file=sys.stderr)
             pass
     else:

@@ -89,11 +89,11 @@ def main():
             coord = interval[1]
             try:
                 bw_signal1 = bw1.values(chr_name, interval[1], interval[2])
-            except:
+            except Exception:
                 bw_signal1 = numpy.array()
             try:
                 bw_signal2 = bw2.values(chr_name, interval[1], interval[2])
-            except:
+            except Exception:
                 bw_signal2 = numpy.array()
             if bw_signal1 is None and bw_signal2 is None:
                 continue

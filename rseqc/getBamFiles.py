@@ -18,7 +18,7 @@ from os.path import abspath, getsize, join
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"
-__credits__ = []
+__credits__: list[str] = []
 __license__ = "GPL"
 __version__ = "3.0.0"
 __maintainer__ = "Liguo Wang"
@@ -64,7 +64,7 @@ def get_bam_files(input, printit=False):
                     continue
                 if isbamfile(line):
                     bam_files.append(line)
-        except:
+        except Exception:
             pass
     else:
         tmp = input.split(",")

@@ -8,7 +8,7 @@ import re
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"
-__credits__ = []
+__credits__: list[str] = []
 __license__ = "GPL"
 __version__ = "3.0.0"
 __maintainer__ = "Liguo Wang"
@@ -30,11 +30,11 @@ prior_intron = re.compile(r"(.+?)(\d+)N")
 prior_exon = re.compile(r"(.*?)(\d+)M")
 
 
-def fetch_head_clip(chr, st, cigar):
+def fetch_head_clip(chr: str, st: int | str, cigar: str) -> list[list]:
     """return genome coordinate of the head clip part encoded in cigar string
     NOTE: returned coordinates are 0-based.NOTE: st is 0-based"""
 
-    block = []
+    block: list[list] = []
     chrom_end = int(st)
     tmp = head_clip.findall(cigar)
     if len(tmp) == 0:
@@ -45,11 +45,11 @@ def fetch_head_clip(chr, st, cigar):
     return block
 
 
-def fetch_tail_clip(chr, st, cigar):
+def fetch_tail_clip(chr: str, st: int | str, cigar: str) -> list[list]:
     """return genome coordinates of the tail clip part encoded in cigar string
     NOTE: returned coordinates are 0-based .  NOTE: st is 0-based"""
 
-    block = []
+    block: list[list] = []
     h = head_clip.findall(cigar)
     t = tail_clip.findall(cigar)
     if len(t) == 0:
@@ -69,11 +69,11 @@ def fetch_tail_clip(chr, st, cigar):
     return block
 
 
-def fetch_insertion(chr, st, cigar):
+def fetch_insertion(chr: str, st: int | str, cigar: str) -> list[list]:
     """return genome coordinates of the insertion (to reference) encoded in cigar string
     NOTE: returned coordinates are 0-based. Insertion to the reference.  NOTE: st is 0-based"""
 
-    block = []
+    block: list[list] = []
     h = head_clip.findall(cigar)
     if len(h) == 0:
         h_len = 0
@@ -93,11 +93,11 @@ def fetch_insertion(chr, st, cigar):
     return block
 
 
-def fetch_deletion(chr, st, cigar):
+def fetch_deletion(chr: str, st: int | str, cigar: str) -> list[list]:
     """return genome coordinates of the insertion (to reference) encoded in cigar string
     NOTE: returned coordinates are 0-based. Deletion to the reference.  NOTE: st is 0-based"""
 
-    block = []
+    block: list[list] = []
     h = head_clip.findall(cigar)
     if len(h) == 0:
         h_len = 0
@@ -118,12 +118,12 @@ def fetch_deletion(chr, st, cigar):
     return block
 
 
-def fetch_intron(chr, st, cigar):
+def fetch_intron(chr: str, st: int | str, cigar: str) -> list[list]:
     """return genome coordinates of the introns encoded in cigar string
     NOTE: returned coordinates are 0-based. Deletion to the reference NOTE:
     st is 0-based"""
 
-    block = []
+    block: list[list] = []
     h = head_clip.findall(cigar)
     if len(h) == 0:
         h_len = 0
@@ -144,11 +144,11 @@ def fetch_intron(chr, st, cigar):
     return block
 
 
-def fetch_exon(chr, st, cigar):
+def fetch_exon(chr: str, st: int | str, cigar: str) -> list[list]:
     """return genome coordinates of the exon encoded in cigar string
     NOTE: returned coordinates are 0-based. NOTE: st is 0-based"""
 
-    block = []
+    block: list[list] = []
     h = head_clip.findall(cigar)
     if len(h) == 0:
         h_len = 0
@@ -169,7 +169,7 @@ def fetch_exon(chr, st, cigar):
     return block
 
 
-def list2str(lst):
+def list2str(lst: list[tuple[int, int]]) -> str:
     """translate samtools returned cigar_list into cigar_string"""
     code2Char = {"0": "M", "1": "I", "2": "D", "3": "N", "4": "S", "5": "H", "6": "P", "7": "=", "8": "X"}
 

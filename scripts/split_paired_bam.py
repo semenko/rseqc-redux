@@ -23,12 +23,6 @@ from optparse import OptionParser
 
 import pysam
 
-# import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.bitset_utils import *
-from bx.intervals import *
-
 # import my own modules
 
 __author__ = "Liguo Wang"

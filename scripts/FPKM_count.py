@@ -25,9 +25,7 @@ from optparse import OptionParser
 from time import strftime
 
 # import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.intervals import *
+from bx.intervals import Intersecter, Interval
 
 # import my own modules
 from qcmodule import SAM
@@ -78,15 +76,15 @@ def build_range(refgene):
             fields = line.split()
             chrom = fields[0].upper()
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
-            geneName = fields[3]
-            strand = fields[5].replace(" ", "_")
+            int(fields[2])
+            fields[3]
+            fields[5].replace(" ", "_")
 
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
             exon_starts = list(map((lambda x: x + tx_start), exon_starts))
             exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
             exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-        except:
+        except Exception:
             print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
             continue
 
@@ -219,7 +217,7 @@ def main():
                     continue
             try:
                 chrom = obj.samfile.getrname(aligned_read.tid).upper()
-            except:
+            except Exception:
                 continue
             read_st = aligned_read.pos
             read_end = read_st + aligned_read.rlen  # not exactly the end position in case of splicing, insertion,etc
@@ -305,10 +303,9 @@ def main():
         # extract reads mapped gene region
         try:
             alignedReads = obj.samfile.fetch(chrom, tx_start, tx_end)
-        except:
+        except Exception:
             continue
         for aligned_read in alignedReads:
-            flag = 0
             if aligned_read.is_qcfail:
                 continue  # skip low quanlity
             if aligned_read.is_duplicate:

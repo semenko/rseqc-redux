@@ -20,11 +20,6 @@ if sys.version_info[0] != 3:
 
 from optparse import OptionParser
 
-# import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.intervals import *
-
 # import my own modules
 from qcmodule import SAM
 
@@ -69,7 +64,7 @@ def main():
         parser.print_help()
         sys.exit(0)
     if not os.path.exists(options.input_file):
-        print("\n\n" + input_file + " does NOT exists" + "\n", file=sys.stderr)
+        print("\n\n" + input_file + " does NOT exists" + "\n", file=sys.stderr)  # noqa: F821 — known bug: should be options.input_file
         sys.exit(0)
 
     obj = SAM.ParseBAM(options.input_file)

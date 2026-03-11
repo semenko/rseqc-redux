@@ -117,7 +117,7 @@ def main():
 
     try:
         subprocess.call("Rscript " + options.output_prefix + ".deletion_profile.r", shell=True)
-    except:
+    except Exception:
         print("Cannot generate pdf file from " + options.output_prefix + ".deletion_profile.r", file=sys.stderr)
         pass
 

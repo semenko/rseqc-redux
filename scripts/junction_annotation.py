@@ -254,7 +254,7 @@ def main():
         )
         try:
             subprocess.call("Rscript " + options.output_prefix + ".junction_plot.r", shell=True)
-        except:
+        except Exception:
             print("Cannot generate pdf file from " + ".junction_plot.r", file=sys.stderr)
             pass
     else:
@@ -263,12 +263,12 @@ def main():
     try:
         print("Create BED file ...", file=sys.stderr)
         generate_bed12(options.output_prefix + ".junction.xls")
-    except:
+    except Exception:
         pass
     try:
         print("Create Interact file ...", file=sys.stderr)
         generate_interact(options.output_prefix + ".junction.xls", options.input_file)
-    except:
+    except Exception:
         pass
 
 

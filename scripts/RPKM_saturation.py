@@ -29,11 +29,6 @@ from time import strftime
 
 import numpy as np
 
-# import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.intervals import *
-
 # import my own modules
 from qcmodule import SAM
 
@@ -254,7 +249,7 @@ def main():
         )
         try:
             subprocess.call("Rscript " + options.output_prefix + ".saturation.r", shell=True)
-        except:
+        except Exception:
             pass
     else:
         print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)

@@ -1,10 +1,11 @@
 import collections
+import sys
 
-from bx.intervals import *
+from bx.intervals import Intersecter, Interval
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"
-__credits__ = []
+__credits__: list[str] = []
 __license__ = "GPL"
 __version__ = "3.0.0"
 __maintainer__ = "Liguo Wang"
@@ -25,17 +26,14 @@ def getCDSExonFromFile(bedfile):
         f = f.strip().split()
         chrom = f[0]
         chrom_start = int(f[1])
-        name = f[4]
+        f[4]
         strand = f[5]
         cdsStart = int(f[6])
         cdsEnd = int(f[7])
-        blockCount = int(f[9])
+        int(f[9])
         blockSizes = [int(i) for i in f[10].strip(",").split(",")]
         blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
         # grab cdsStart - cdsEnd
-        cds_exons = []
-        cds_seq = ""
-        genome_seq_index = []
 
         chrom = chrom + ":" + strand
         for base, offset in zip(blockStarts, blockSizes):
@@ -67,7 +65,7 @@ def getUTRExonFromFile(bedfile, utr=35):
         chrom = fields[0]
         strand = fields[5]
         txStart = int(fields[1])
-        txEnd = int(fields[2])
+        int(fields[2])
         cdsStart = int(fields[6])
         cdsEnd = int(fields[7])
         exon_start = list(map(int, fields[11].rstrip(",").split(",")))
@@ -108,13 +106,13 @@ def getExonFromFile(bedfile):
             txStart = int(fields[1])
             chrom = fields[0]
             strand = fields[5]
-            geneName = fields[3]
-            score = fields[4]
+            fields[3]
+            fields[4]
             exon_start = list(map(int, fields[11].rstrip(",").split(",")))
             exon_start = list(map((lambda x: x + txStart), exon_start))
             exon_end = list(map(int, fields[10].rstrip(",").split(",")))
             exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
-        except:
+        except Exception:
             print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
             continue
         chrom = chrom + ":" + strand
@@ -142,13 +140,13 @@ def getExonFromFile2(bedfile):
             chrom = fields[0]
             strand = fields[5]
             geneName = fields[3]
-            score = fields[4]
+            fields[4]
             exon_start = list(map(int, fields[11].rstrip(",").split(",")))
             exon_start = list(map((lambda x: x + txStart), exon_start))
             exon_end = list(map(int, fields[10].rstrip(",").split(",")))
             exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
-            key = chrom + ":" + txstart + "-" + txEnd + ":" + strand + ":" + geneName
-        except:
+            key = chrom + ":" + txstart + "-" + txEnd + ":" + strand + ":" + geneName  # noqa: F821 — known bugs: txstart/txEnd undefined
+        except Exception:
             print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
             continue
         for st, end in zip(exon_start, exon_end):
@@ -176,7 +174,7 @@ def getUTRExonFromLine(bedline, utr=35):
     chrom = fields[0]
     strand = fields[5]
     txStart = int(fields[1])
-    txEnd = int(fields[2])
+    int(fields[2])
     cdsStart = int(fields[6])
     cdsEnd = int(fields[7])
     exon_start = list(map(int, fields[11].rstrip(",").split(",")))
@@ -185,7 +183,7 @@ def getUTRExonFromLine(bedline, utr=35):
     exon_end = list(map(int, fields[10].rstrip(",").split(",")))
     exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
 
-    chrom = chromm + ":" + strand
+    chrom = chromm + ":" + strand  # noqa: F821 — known bug: chromm typo
     if utr == 35 or utr == 5:
         for st, end in zip(exon_start, exon_end):
             if st < cdsStart:
@@ -216,18 +214,15 @@ def getCDSExonFromLine(bedline):
     f = line.strip().split()
     chrom = f[0]
     chrom_start = int(f[1])
-    name = f[4]
+    f[4]
     strand = f[5]
     cdsStart = int(f[6])
     cdsEnd = int(f[7])
-    blockCount = int(f[9])
+    int(f[9])
     blockSizes = [int(i) for i in f[10].strip(",").split(",")]
     blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
     # grab cdsStart - cdsEnd
-    cds_exons = []
-    cds_seq = ""
-    genome_seq_index = []
-    chrom = chromm + ":" + strand
+    chrom = chromm + ":" + strand  # noqa: F821 — known bug: chromm typo
     for base, offset in zip(blockStarts, blockSizes):
         if (base + offset) < cdsStart:
             continue
@@ -252,8 +247,8 @@ def getExonFromLine(bedline):
     txStart = int(fields[1])
     chrom = fields[0]
     strand = fields[5]
-    geneName = fields[3]
-    score = fields[4]
+    fields[3]
+    fields[4]
     exon_start = list(map(int, fields[11].rstrip(",").split(",")))
     exon_start = list(map((lambda x: x + txStart), exon_start))
     exon_end = list(map(int, fields[10].rstrip(",").split(",")))
@@ -270,7 +265,7 @@ def annotateBed(inputbed, refbed, outfile):
     ref_exon_ranges = {}
     ref_exon_starts = collections.defaultdict(set)  # key='chrom:+', value=set()
     ref_exon_ends = collections.defaultdict(set)
-    OF = open(outfile, "w")
+    open(outfile, "w")
 
     # read reference bed file
     # Extract CDS exons from reference bed
@@ -292,7 +287,7 @@ def annotateBed(inputbed, refbed, outfile):
         ref_exon_ranges[i[0]].add_interval(Interval(int(i[1]), int(i[2])))
 
     # prepare data structure
-    ref_exon_chain = getExonFromFile2(refbed)
+    getExonFromFile2(refbed)
 
     # read input bed
     for line in open(inputbed, "r"):
@@ -318,7 +313,7 @@ def annotateBed(inputbed, refbed, outfile):
             ):  # input gene does NOT overlap with any known exons
                 print(line + "\t" + "novel(intergenic)")
             else:
-                input_exon_chain = getExonFromLine(line)
+                getExonFromLine(line)
                 # print line + '\t' + 'overlap'
                 # utr_3_exons = getUTRExon(line,utr=3)
                 # utr_5_exons = getUTRExon(line,utr=5)

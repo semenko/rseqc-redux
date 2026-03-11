@@ -140,7 +140,7 @@ def main():
 
     try:
         weight = options.total_wigsum / WIG_SUM
-    except:
+    except Exception:
         "Error, WIG_SUM cannot be 0"
         sys.exit(1)
 

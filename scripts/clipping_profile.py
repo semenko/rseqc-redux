@@ -23,11 +23,6 @@ if sys.version_info[0] != 3:
 import subprocess
 from optparse import OptionParser
 
-# import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.intervals import *
-
 # import my own modules
 from qcmodule import SAM
 
@@ -95,7 +90,7 @@ def main():
         print('unknow sequencing layout. Must be "SE" or "PE"', file=sys.stderr)
     try:
         subprocess.call("Rscript " + options.output_prefix + ".clipping_profile.r", shell=True)
-    except:
+    except Exception:
         print("Cannot generate pdf file from " + options.output_prefix + ".clipping_profile.r", file=sys.stderr)
         pass
 

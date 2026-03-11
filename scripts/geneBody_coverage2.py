@@ -65,8 +65,8 @@ def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
                 fields = line.split()
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                tx_end = int(fields[2])
-                geneName = fields[3]
+                int(fields[2])
+                fields[3]
                 strand = fields[5]
 
                 # Skip chromosomes present in the bed file but not present in the bigwig file.
@@ -78,7 +78,7 @@ def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
                 exon_starts = list(map((lambda x: x + tx_start), exon_starts))
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            except:
+            except Exception:
                 print("[NOTE: input bed must be 12-column] skipped this line: " + line, end="\n", file=sys.stderr)
                 continue
 
@@ -195,7 +195,7 @@ def main():
         )
         try:
             call("Rscript " + options.output_prefix + ".geneBodyCoverage_plot.r", shell=True)
-        except:
+        except Exception:
             print(
                 "Cannot generate plot from " + options.output_prefix + ".geneBodyCoverage_plot.r",
                 end="\n",

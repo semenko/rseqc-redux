@@ -116,7 +116,7 @@ def barcode_edits(infile, outfile, step_size=10000, limit=2000000, CR_tag="CR", 
                     for diff in diff_str(original_CB, corrected_CB):
                         try:
                             CB_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] += 1
-                        except:
+                        except Exception:
                             CB_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] = 1
                 else:
                     CB_same += 1
@@ -134,7 +134,7 @@ def barcode_edits(infile, outfile, step_size=10000, limit=2000000, CR_tag="CR", 
                     for diff in diff_str(original_UMI, corrected_UMI):
                         try:
                             UMI_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] += 1
-                        except:
+                        except Exception:
                             UMI_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] = 1
                 else:
                     UMI_same += 1
@@ -221,7 +221,7 @@ def mapping_stat(
     try:
         # older versions of pysam
         samfile = pysam.AlignmentFile(infile, mode="rb", require_index=True, thread=n_thread)
-    except:
+    except Exception:
         # latest verion of pysam (v0.19.1)
         samfile = pysam.AlignmentFile(infile, mode="rb", require_index=True, threads=n_thread)
     if samfile.check_index():

@@ -55,7 +55,7 @@ def fragment_size(bedfile, samfile, qcut=30, ncut=5):
         tx_start = int(fields[1])
         tx_end = int(fields[2])
         geneName = fields[3]
-        trand = fields[5].replace(" ", "_")
+        fields[5].replace(" ", "_")
         exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
         exon_starts = list(map((lambda x: x + tx_start), exon_starts))
         exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
@@ -68,7 +68,7 @@ def fragment_size(bedfile, samfile, qcut=30, ncut=5):
 
         try:
             alignedReads = samfile.fetch(chrom, tx_start, tx_end)
-        except:
+        except Exception:
             yield "\t".join([str(i) for i in (geneID, 0, 0, 0)])
             continue
 

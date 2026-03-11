@@ -31,11 +31,6 @@ import subprocess
 from optparse import OptionParser
 from time import strftime
 
-# import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.intervals import *
-
 # import my own modules
 from qcmodule import SAM
 
@@ -150,7 +145,7 @@ def main():
     )
     try:
         subprocess.call("Rscript " + options.output_prefix + ".inner_distance_plot.r", shell=True)
-    except:
+    except Exception:
         print("Cannot generate pdf file from " + options.output_prefix + ".inner_distance_plot.r", file=sys.stderr)
         pass
 

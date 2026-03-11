@@ -12,7 +12,7 @@ import math
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"
-__credits__ = []
+__credits__: list[str] = []
 __license__ = "GPL"
 __version__ = "3.0.0"
 __maintainer__ = "Liguo Wang"
@@ -106,7 +106,7 @@ def simpson_index(arg):
         for i in lst:
             simpson = simpson + (i / sum(lst)) ** 2
         return 1 - simpson
-    except:
+    except Exception:
         return 0
 
 
@@ -120,7 +120,7 @@ def simpson_index_es(arg):
         for i in lst:
             simpson = simpson + i * (i - 1)
         return 1 - (simpson / (sum(lst) * (sum(lst) - 1)))
-    except:
+    except Exception:
         return 0
 
 
@@ -136,7 +136,7 @@ def Hill_number(arg, qvalue=1):
     freq = [(i / sum(lst)) ** qvalue for i in lst]
     try:
         return (sum(freq)) ** (1 / (1 - qvalue))
-    except:
+    except Exception:
         return math.exp(shannon_entropy(arg))
 
 

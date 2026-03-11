@@ -21,7 +21,7 @@ __status__ = "Production"
 
 def file_exist(file):
     try:
-        with open(file) as f:
+        with open(file):
             return True
     except IOError:
         return False
@@ -105,7 +105,7 @@ def main():
         print(kmer + "\t", end=" ")
         try:
             print("\t".join([str(read_table[name][kmer] / (read_file_sum[name])) for name in read_file_names]))
-        except:
+        except Exception:
             print("\t".join([str(read_table[name][kmer] / (read_file_sum[name] + 1)) for name in read_file_names]))
 
 

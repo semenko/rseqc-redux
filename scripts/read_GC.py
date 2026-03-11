@@ -81,7 +81,7 @@ def main():
         obj.readGC(outfile=options.output_prefix, q_cut=options.map_qual)
         try:
             subprocess.call("Rscript " + options.output_prefix + ".GC_plot.r", shell=True)
-        except:
+        except Exception:
             pass
     else:
         print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)

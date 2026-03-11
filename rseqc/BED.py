@@ -9,7 +9,6 @@ import math
 import os
 import re
 import sys
-from itertools import *
 from itertools import groupby
 
 # import gc
@@ -18,9 +17,8 @@ from operator import itemgetter
 import pysam
 
 # import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.intervals import *
+from bx.bitset_builders import binned_bitsets_from_file, binned_bitsets_from_list
+from bx.intervals import Intersecter, Interval, IntervalTree
 
 from . import fasta
 
@@ -31,7 +29,7 @@ from . import fasta
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"
-__credits__ = []
+__credits__: list[str] = []
 __license__ = "GPL"
 __version__ = "3.0.0"
 __maintainer__ = "Liguo Wang"
@@ -280,7 +278,7 @@ class ParseBED:
                 )
                 for line in groups[k]:
                     FO.write("\t" + line + "\n")
-        except:
+        except Exception:
             # return (groups,groups_boundary_st,groups_boundary_end)
             return groups
 
@@ -388,7 +386,6 @@ class ParseBED:
 
     def bedToGFF(self, outfile=None):
         """Transform bed file into GFF format. Borrowed from Galaxy with slight change"""
-        input_name = self.ABS_fileName
         if outfile is None:
             output_name = self.fileName + ".GFF"
         else:
@@ -413,21 +410,21 @@ class ParseBED:
                     else:
                         try:
                             feature = elems[3]
-                        except:
+                        except Exception:
                             feature = "feature%d" % (i + 1)
                     start = int(elems[1]) + 1
                     end = int(elems[2])
                     try:
                         score = elems[4]
-                    except:
+                    except Exception:
                         score = "0"
                     try:
                         strand = elems[5]
-                    except:
+                    except Exception:
                         strand = "+"
                     try:
                         group = elems[3]
-                    except:
+                    except Exception:
                         group = "group%d" % (i + 1)
                     if complete_bed:
                         out.write(
@@ -451,7 +448,7 @@ class ParseBED:
                                 "%s\tbed2gff\texon\t%d\t%d\t%s\t%s\t.\texon %s;\n"
                                 % (chrom, exon_start, exon_end, score, strand, group)
                             )
-                except:
+                except Exception:
                     skipped_lines += 1
                     if not first_skipped_line:
                         first_skipped_line = i + 1
@@ -486,7 +483,7 @@ class ParseBED:
             geneName = fields[3]
             strand = fields[5]
             txStart = int(fields[1])
-            txEnd = int(fields[2])
+            int(fields[2])
             cdsStart = int(fields[6])
             cdsEnd = int(fields[7])
             exon_start = list(map(int, fields[11].rstrip(",").split(",")))
@@ -533,11 +530,11 @@ class ParseBED:
             f = f.strip().split()
             chrom = f[0]
             chrom_start = int(f[1])
-            name = f[4]
-            strand = f[5]
-            cdsStart = int(f[6])
-            cdsEnd = int(f[7])
-            blockCount = int(f[9])
+            f[4]
+            f[5]
+            int(f[6])
+            int(f[7])
+            int(f[9])
             blockSizes = [int(i) for i in f[10].strip(",").split(",")]
             blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
             for base, offset in zip(blockStarts, blockSizes):
@@ -549,7 +546,6 @@ class ParseBED:
         """Extract exon regions from input bed file (must be 12-column). Return ranges of
         transcript"""
 
-        mRNA_ranges = []
         for line in self.f:
             try:
                 if line.startswith("#"):
@@ -565,7 +561,7 @@ class ParseBED:
                 strand = fields[5]
                 geneName = fields[3]
                 yield ([chrom, txStart, txEnd, strand, geneName + ":" + chrom + ":" + str(txStart) + "-" + str(txEnd)])
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
         self.f.seek(0)
@@ -577,17 +573,14 @@ class ParseBED:
             f = f.strip().split()
             chrom = f[0]
             chrom_start = int(f[1])
-            name = f[4]
-            strand = f[5]
+            f[4]
+            f[5]
             cdsStart = int(f[6])
             cdsEnd = int(f[7])
-            blockCount = int(f[9])
+            int(f[9])
             blockSizes = [int(i) for i in f[10].strip(",").split(",")]
             blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
             # grab cdsStart - cdsEnd
-            cds_exons = []
-            cds_seq = ""
-            genome_seq_index = []
             for base, offset in zip(blockStarts, blockSizes):
                 if (base + offset) < cdsStart:
                     continue
@@ -613,7 +606,7 @@ class ParseBED:
             f = f.strip().split()
             chrom = f[0]
             txStart = int(f[1])
-            txEnd = int(f[2])
+            int(f[2])
             score = f[4]
             name = f[3]
             strand = f[5]
@@ -712,11 +705,11 @@ class ParseBED:
                 fields = line.split()
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                tx_end = int(fields[2])
-                geneName = fields[3]
+                int(fields[2])
+                fields[3]
                 strand = fields[5].replace(" ", "_")
-                cds_start = int(fields[6])
-                cds_end = int(fields[7])
+                int(fields[6])
+                int(fields[7])
                 if int(fields[9] == 1):
                     continue
 
@@ -728,18 +721,17 @@ class ParseBED:
                 intron_end = exon_starts[1:]
 
                 if strand == "-":
-                    intronNum = len(intron_start)
+                    len(intron_start)
                     for st, end in zip(intron_start, intron_end):
                         # FO.write(chrom + "\t" + str(st) + "\t" + str(end) + "\t" + geneName + "_intron_" + str(intronNum) + "\t0\t" + strand + '\n')
                         # intronNum -= 1
                         ret_lst.append([chrom, st, end])
                 else:
-                    intronNum = 1
                     for st, end in zip(intron_start, intron_end):
                         # FO.write(chrom + "\t" + str(st) + "\t" + str(end) + "\t" + geneName + "_intron_" + str(intronNum) + "\t0\t" + strand + '\n')
                         # intronNum += 1
                         ret_lst.append([chrom, st, end])
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
         self.f.seek(0)
@@ -780,7 +772,7 @@ class ParseBED:
                 for st, end in zip(intron_start, intron_end):
                     tmp.append(chrom + ":" + str(st) + "-" + str(end))
                 yield ((geneName, chrom, tx_start, tx_end, tmp))
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -900,7 +892,7 @@ class ParseBED:
                 if cds_start == cds_end:
                     utr3len = 0
                     utr5len = 0
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
             for st, end in zip(intron_start, intron_end):
@@ -948,31 +940,29 @@ class ParseBED:
         FO = open(outfile, "w")
         print("writing feature information to " + outfile + " ...", file=sys.stderr)
 
-        intron_sizes = []
         for line in self.f:
-            intron_sizes = []
             flag = 0
             try:
                 if line.startswith(("#", "track", "browser")):
                     continue
                 # Parse fields from gene tabls
                 fields = line.split()
-                chrom = fields[0]
+                fields[0]
                 tx_start = int(fields[1])
-                tx_end = int(fields[2])
-                geneName = fields[3]
-                strand = fields[5].replace(" ", "_")
-                cds_start = int(fields[6])
-                cds_end = int(fields[7])
+                int(fields[2])
+                fields[3]
+                fields[5].replace(" ", "_")
+                int(fields[6])
+                int(fields[7])
                 exon_num = int(fields[9])
-                exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
+                list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
                 exon_starts = list(map((lambda x: x + tx_start), exon_starts))
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
             if exon_num <= 1:  # intron size is 0
@@ -1008,11 +998,11 @@ class ParseBED:
             fields = line.split()
             chrom = fields[0]
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
+            int(fields[2])
             geneName = fields[3]
             strand = fields[5].replace(" ", "_")
-            cds_start = int(fields[6])
-            cds_end = int(fields[7])
+            int(fields[6])
+            int(fields[7])
             if int(fields[9] == 1):
                 continue
 
@@ -1050,7 +1040,7 @@ class ParseBED:
                         + "\n"
                     )
                 uniqJunc[key] += 1
-            # except:
+            # except Exception:
             #   print >>sys.stderr,"[NOTE:input bed must be 12-column] skipped this line: " + line,
             #   continue
         self.f.seek(0)
@@ -1075,7 +1065,6 @@ class ParseBED:
         chrm = dict()
         strands = dict()
         for line in self.f:
-            skip_flag = 0
             try:
                 if line.startswith(("#", "track", "broser")):
                     continue
@@ -1084,7 +1073,7 @@ class ParseBED:
                 chrom = fields[0]
                 tx_start = int(fields[1])
                 tx_end = int(fields[2])
-                geneName = fields[3]
+                fields[3]
                 score = int(fields[4])
                 strand = fields[5].replace(" ", "_")
                 if int(fields[9]) == 1:  # if bed has only 1 block
@@ -1093,7 +1082,7 @@ class ParseBED:
                 if int(fields[9]) >= 3:  # if bed has more than 3 blocks
                     print(line, end=" ", file=FO)
                     continue
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
             exonSize = list(map(int, fields[10].rstrip(",\n").split(",")))
@@ -1161,9 +1150,9 @@ class ParseBED:
                 continue
             fields = line.rstrip().split()
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
+            int(fields[2])
             exonSize = list(map(int, fields[10].rstrip(",\n").split(",")))
-            block_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+            list(map(int, fields[11].rstrip(",\n").split(",")))
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
             exon_starts = list(map((lambda x: x + tx_start), exon_starts))
             exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
@@ -1283,7 +1272,7 @@ class ParseBED:
                         cdsStart = int(fields[6])
                         cdsEnd = int(fields[7])
                         geneName = fields[3]
-                        score = fields[4]
+                        fields[4]
                         txEnd_float = txEnd
                         cdsEnd_float = cdsEnd
                     elif Orig_bedNum > 1:  # this is NOT first entry
@@ -1304,7 +1293,7 @@ class ParseBED:
                         cdsStart = int(fields[6])
                         cdsEnd = int(fields[7])
                         geneName = fields[3]
-                        score = fields[4]
+                        fields[4]
                         txEnd_float = max(txEnd_float, int(fields[2]))
                         cdsEnd_float = max(cdsEnd_float, int(fields[7]))
                     exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -1357,7 +1346,7 @@ class ParseBED:
                         cdsStart = int(fields[6])
                         cdsEnd = int(fields[7])
                         geneName = fields[3]
-                        score = fields[4]
+                        fields[4]
                         txEnd_float = txEnd
                         cdsEnd_float = cdsEnd
                     elif Orig_bedNum > 1:  # this is NOT first entry
@@ -1369,7 +1358,7 @@ class ParseBED:
                             txEnd_float = int(fields[2])
                         if (boundary == "utr") and (fields[0] == chrom) and (int(fields[1]) >= txEnd_float):
                             overlap_flag = 0
-                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEdn_float):
+                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEdn_float):  # noqa: F821 — known typo bug: should be cdsEnd_float
                             overlap_flag = 0
                         txStart = int(fields[1])
                         txEnd = int(fields[2])
@@ -1378,7 +1367,7 @@ class ParseBED:
                         cdsStart = int(fields[6])
                         cdsEnd = int(fields[7])
                         geneName = fields[3]
-                        score = fields[4]
+                        fields[4]
                         txEnd_float = max(txEnd_float, int(fields[2]))
                         cdsEnd_float = max(cdsEnd_float, int(fields[7]))
                     exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -1428,7 +1417,7 @@ class ParseBED:
                         cdsStart = int(fields[6])
                         cdsEnd = int(fields[7])
                         geneName = fields[3]
-                        score = fields[4]
+                        fields[4]
                         txEnd_float = txEnd
                         cdsEnd_float = cdsEnd
                     elif Orig_bedNum > 1:  # this is NOT first entry
@@ -1440,7 +1429,7 @@ class ParseBED:
                             txEnd_float = int(fields[2])
                         if (boundary == "utr") and (fields[0] == chrom) and (int(fields[1]) >= txEnd_float):
                             overlap_flag = 0
-                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEdn_float):
+                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEdn_float):  # noqa: F821 — known typo bug: should be cdsEnd_float
                             overlap_flag = 0
                         txStart = int(fields[1])
                         txEnd = int(fields[2])
@@ -1449,7 +1438,7 @@ class ParseBED:
                         cdsStart = int(fields[6])
                         cdsEnd = int(fields[7])
                         geneName = fields[3]
-                        score = fields[4]
+                        fields[4]
                         txEnd_float = max(txEnd_float, int(fields[2]))
                         cdsEnd_float = max(cdsEnd_float, int(fields[7]))
                     exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -1556,13 +1545,13 @@ class ParseBED:
 
             chrom = fields[0]
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
-            geneName = fields[3]
-            strand = fields[5]
-            cds_start = int(fields[6])
-            cds_end = int(fields[7])
-            exon_num = int(fields[9])
-            exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
+            int(fields[2])
+            fields[3]
+            fields[5]
+            int(fields[6])
+            int(fields[7])
+            int(fields[9])
+            list(map(int, fields[10].rstrip(",\n").split(",")))
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
             exon_starts = list(map((lambda x: x + tx_start), exon_starts))
             exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
@@ -1643,7 +1632,7 @@ class ParseBED:
             txStart = fields[1]  #
             txEnd = fields[2]  #
             geneName = fields[3]
-            score = fields[4]
+            fields[4]
             strand = fields[5]  #
             cdsStart = fields[6]  #
             cdsEnd = fields[7]  #
@@ -1728,7 +1717,7 @@ class CompareBED:
                 continue
             chrom = fields[0]
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
+            int(fields[2])
             if int(fields[9] == 1):
                 continue
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -1745,7 +1734,6 @@ class CompareBED:
 
         print("processing", self.A_full_Name, "...", end=" ", file=sys.stderr)
         for line in self.A_fh:
-            found = 0
             if line.startswith("#"):
                 continue
             if line.startswith("track"):
@@ -1759,7 +1747,7 @@ class CompareBED:
                 continue
             chrom = fields[0]
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
+            int(fields[2])
             if int(fields[9] == 1):
                 continue
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -1821,7 +1809,7 @@ class CompareBED:
                 continue
             chrom = fields[0]
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
+            int(fields[2])
             if int(fields[9] == 1):
                 continue
 
@@ -1853,7 +1841,7 @@ class CompareBED:
                 continue
             chrom = fields[0]
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
+            int(fields[2])
             geneName = fields[3]
             score = fields[4]
             strand = fields[5]
@@ -2037,7 +2025,7 @@ class CompareBED:
                 fields = line.split()
                 chrom = fields[0].upper()
                 tx_start = int(fields[1])
-                tx_end = int(fields[2])
+                int(fields[2])
                 geneName = fields[3]
                 strand = fields[5].replace(" ", "_")
 
@@ -2047,7 +2035,7 @@ class CompareBED:
                 exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
                 intron_starts = exon_ends[:-1]
                 intron_ends = exon_starts[1:]
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -2237,7 +2225,7 @@ class CompareBED:
                 tx_end = int(fields[2])
                 geneName = fields[3]
                 strand = fields[5].replace(" ", "_")
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -2306,7 +2294,7 @@ class CompareBED:
             if line.startswith(("track", "#", "browser")):
                 continue
             fields = line.rstrip("\n ").split()
-            juntionID = fields[0] + ":" + fields[1] + ":" + fields[2] + ":" + fields[5]
+            fields[0] + ":" + fields[1] + ":" + fields[2] + ":" + fields[5]
             if len(fields) < 12:
                 print(
                     "[NOTE:input bed must be at least 12 columns] skipped this line: " + line, end=" ", file=sys.stderr
@@ -2360,7 +2348,7 @@ class CompareBED:
                 tx_end = int(fields[2])
                 geneName = fields[3]
                 strand = fields[5].replace(" ", "_")
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -2679,14 +2667,6 @@ class CompareBED:
     def findClosestPeak(self, mod, downStream=50000, upStream=50000):
         """For each entry in second bed file (reference gene model) find the closest peak defined in the fist bed file"""
 
-        mode = {
-            0: "TSS-up, TSS-down",
-            1: "TSS-up, TES-down",
-            2: "TES-up, TES-down",
-            3: "CDSS-up, CDSS-down",
-            4: "CDSS-up, CDSE-down",
-            5: "CDSE-up, CDSE-down",
-        }
         ranges = {}
 
         # read peak bed file
@@ -2741,13 +2721,13 @@ class CompareBED:
                     TES = int(fields[2])
                     CDSS = int(fields[6])
                     CDSE = int(fields[7])
-                geneName = fields[3]
-                score = fields[4]
-                blockCount = fields[9]
-                blockSize = fields[10]
-                blockStart = fields[11]
+                fields[3]
+                fields[4]
+                fields[9]
+                fields[10]
+                fields[11]
                 # line_id = geneName
-            except:
+            except Exception:
                 print("Reference gene model must 12 column BED files", file=sys.stderr)
                 sys.exit(1)
             if chrom in ranges:
@@ -2808,7 +2788,7 @@ class CompareBED:
             txStart = int(fields[1])
             txEnd = fields[2]
             geneName = fields[3]
-            score = fields[4]
+            fields[4]
             strand = fields[5]
             cdsStart = fields[6]
             cdsEnd = fields[7]
@@ -2823,7 +2803,7 @@ class CompareBED:
             exon_start = list(map((lambda x: x + txStart), exon_start))
             exon_end = list(map(int, fields[10].rstrip(",").split(",")))
             exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
-            # except:
+            # except Exception:
             #   print >>sys.stderr,"[NOTE:input bed must be 12-column] skipped this line: " + line,
             #   continue
             for st, end in zip(exon_start, exon_end):
@@ -2859,7 +2839,7 @@ class CompareBED:
                 txStart = int(fields[1])
                 txEnd = fields[2]
                 geneName = fields[3]
-                score = fields[4]
+                fields[4]
                 strand = fields[5]
                 cdsStart = fields[6]
                 cdsEnd = fields[7]
@@ -2872,7 +2852,7 @@ class CompareBED:
                 exon_start = list(map((lambda x: x + txStart), exon_start))
                 exon_end = list(map(int, fields[10].rstrip(",").split(",")))
                 exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -2926,7 +2906,7 @@ class CompareBED:
 
                         # we found a ref gene best match to input gene
                         input_gene_marks = boundaries
-                        i_union = ref_best_match_set.union(input_gene_marks)
+                        ref_best_match_set.union(input_gene_marks)
                         i_intersection = ref_best_match_set.intersection(input_gene_marks)
                         ref_gene_uniq = ref_best_match_set.difference(input_gene_marks)
                         input_gene_uniq = input_gene_marks.difference(ref_best_match_set)

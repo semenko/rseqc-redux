@@ -14,10 +14,9 @@ import pysam
 from bx.binned_array import BinnedArray
 
 # import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.bitset_utils import *
-from bx.intervals import *
+from bx.bitset import BinnedBitSet
+from bx.bitset_builders import binned_bitsets_from_list
+from bx.intervals import Intersecter, Interval
 from bx_extras.fpconst import isNaN
 
 from rseqc import BED, bam_cigar, fasta, mystat
@@ -30,7 +29,7 @@ from rseqc import BED, bam_cigar, fasta, mystat
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"
-__credits__ = []
+__credits__: list[str] = []
 __license__ = "GPL"
 __version__ = "3.0.0"
 __maintainer__ = "Liguo Wang"
@@ -464,7 +463,6 @@ class ParseSAM(object):
         print('Writing unmapped reads to"', outfile, '"... ', end=" ", file=sys.stderr)
 
         for line in self.f:
-            hits = []
             if line[0] == "@":
                 continue  # skip head lines
             if ParseSAM._reExpr2.match(line):
@@ -500,7 +498,6 @@ class ParseSAM(object):
         PPcount = 0
         print('Writing proper paired reads to"', outfile, '"... ', end=" ", file=sys.stderr)
         for line in self.f:
-            hits = []
             if line[0] == "@":
                 continue  # skip head lines
             if ParseSAM._reExpr2.match(line):
@@ -524,7 +521,6 @@ class ParseSAM(object):
             outfile2 = outfile + ".NVC_plot.r"
         FO = open(outfile1, "w")
         RS = open(outfile2, "w")
-        PPcount = 0
 
         transtab = string.maketrans("ACGTNX", "TGCANX")
         base_freq = collections.defaultdict(int)
@@ -614,7 +610,7 @@ class ParseSAM(object):
             if ParseSAM._reExpr2.match(line):
                 continue  # skip blank lines
             field = line.rstrip("\n").split()
-            flagCode = string.atoi(field[1])
+            string.atoi(field[1])
             gc_percent = "%4.2f" % (
                 (field[9].upper().count("C") + field[9].upper().count("G")) / (len(field[9]) + 0.0) * 100
             )
@@ -748,7 +744,6 @@ class ParseSAM(object):
         Uniqcount = 0
         print('Writing uniquely mapped reads to"', outfile, '"... ', end=" ", file=sys.stderr)
         for line in self.f:
-            hits = []
             if line[0] == "@":
                 continue  # skip head lines
             if ParseSAM._reExpr2.match(line):
@@ -775,7 +770,6 @@ class ParseSAM(object):
         wrongStrand = 0
         print('Writing incorrectly stranded reads to"', outfile, '"... ', end=" ", file=sys.stderr)
         for line in self.f:
-            hits = []
             if line.startswith("@"):
                 continue  # skip head lines
             if ParseSAM._reExpr2.match(line):
@@ -1135,7 +1129,7 @@ class QCSAM(object):
                 fields = line.split()
                 chrom = fields[0].upper()
                 tx_start = int(fields[1])
-                tx_end = int(fields[2])
+                int(fields[2])
                 geneName = fields[3]
                 strand = fields[5].replace(" ", "_")
 
@@ -1145,7 +1139,7 @@ class QCSAM(object):
                 exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
                 intron_starts = exon_ends[:-1]
                 intron_ends = exon_starts[1:]
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -1285,7 +1279,6 @@ class QCSAM(object):
         ranges = {}
         totalReads = 0
         fragment_num = 0  # splice reads will counted twice
-        rpkm = {}
 
         # read SAM
         print("reading " + self.fileName + "...", end=" ", file=sys.stderr)
@@ -1330,15 +1323,15 @@ class QCSAM(object):
                 fields = line.split()
                 chrom = fields[0].upper()
                 tx_start = int(fields[1])
-                tx_end = int(fields[2])
-                geneName = fields[3]
+                int(fields[2])
+                fields[3]
                 strand = fields[5]
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
                 exon_starts = list(map((lambda x: x + tx_start), exon_starts))
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
             gene_all_base = []
@@ -1471,7 +1464,7 @@ class QCSAM(object):
                 intron_starts = exon_ends[:-1]
                 intron_ends = exon_starts[1:]
                 key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -1547,7 +1540,7 @@ class QCSAM(object):
                         + "\n"
                     )
                     rpkm[key] = mRNA_count * 1000000000.0 / (mRNA_len * cUR)
-                except:
+                except Exception:
                     RPKM_OUT.write(
                         chrom.lower()
                         + "\t"
@@ -1633,7 +1626,7 @@ class QCSAM(object):
                         + "\n"
                     )
                     rpkm[key] = mRNA_count * 1000000000.0 / (mRNA_len * cUR)
-                except:
+                except Exception:
                     RPKM_OUT.write(
                         chrom.lower()
                         + "\t"
@@ -1699,7 +1692,7 @@ class QCSAM(object):
                 exon_starts = list(map((lambda x: x + tx_start), exon_starts))
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -1786,7 +1779,7 @@ class QCSAM(object):
                 intron_starts = exon_ends[:-1]
                 intron_ends = exon_starts[1:]
                 key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -1862,7 +1855,7 @@ class QCSAM(object):
                         + "\n"
                     )
                     rpkm[key] = mRNA_count * 1000000000.0 / (mRNA_len * cUR)
-                except:
+                except Exception:
                     RPKM_OUT.write(
                         chrom.lower()
                         + "\t"
@@ -1948,7 +1941,7 @@ class QCSAM(object):
                         + "\n"
                     )
                     rpkm[key] = mRNA_count * 1000000000.0 / (mRNA_len * cUR)
-                except:
+                except Exception:
                     RPKM_OUT.write(
                         chrom.lower()
                         + "\t"
@@ -1998,15 +1991,15 @@ class QCSAM(object):
                 fields = line.split()
                 chrom = fields[0].upper()
                 tx_start = int(fields[1])
-                tx_end = int(fields[2])
-                geneName = fields[3]
-                strand = fields[5].replace(" ", "_")
+                int(fields[2])
+                fields[3]
+                fields[5].replace(" ", "_")
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
                 exon_starts = list(map((lambda x: x + tx_start), exon_starts))
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -2285,7 +2278,7 @@ class QCSAM(object):
                     exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
                     exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                     key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
-                except:
+                except Exception:
                     print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
                     continue
                 mRNA_count = 0  # we need to initializ it to 0 for each gene
@@ -2340,7 +2333,7 @@ class QCSAM(object):
                 continue
             chrom = fields[0].upper()
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
+            int(fields[2])
             if int(fields[9] == 1):
                 continue
 
@@ -2497,7 +2490,7 @@ class QCSAM(object):
                 continue
             chrom = fields[0].upper()
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
+            int(fields[2])
             if int(fields[9] == 1):
                 continue
 
@@ -2728,7 +2721,7 @@ class QCSAM(object):
                 exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
                 exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                 key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
                 continue
             mRNA_count = 0  # we need to initializ it to 0 for each gene
@@ -2790,9 +2783,9 @@ class QCSAM(object):
                 chrom = fields[0]
                 tx_start = int(fields[1])
                 tx_end = int(fields[2])
-                geneName = fields[3]
+                fields[3]
                 strand = fields[5]
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
                 continue
             if chrom not in gene_ranges:
@@ -2882,7 +2875,7 @@ class QCSAM(object):
                 for st, end in zip(intron_start, intron_end):
                     try:
                         splice_motif = str(tmp.fetchSeq(chrom, st, st + 2)) + str(tmp.fetchSeq(chrom, end - 2, end))
-                    except:
+                    except Exception:
                         print(line)
                     if splice_motif in motif:
                         splice_strand.append("+")
@@ -2993,7 +2986,7 @@ class QCSAM(object):
             out_file2 = outfile + ".insertion_profile.r"
 
         OUT = open(out_file1, "w")
-        ROUT = open(out_file2, "w")
+        open(out_file2, "w")
         print("Position\tRead_Total\tRead_clipped", file=OUT)
         soft_p = re.compile(r"(.*?)(\d+)I")
         read_part = re.compile(r"(\d+)[MIS=X]")
@@ -3046,7 +3039,7 @@ class ParseBAM(object):
                 print("BAM/SAM file has no header section. Exit!", file=sys.stderr)
                 sys.exit(1)
             self.bam_format = True
-        except:
+        except Exception:
             self.samfile = pysam.Samfile(inputFile, "r")
             if len(self.samfile.header) == 0:
                 print("BAM/SAM file has no header section. Exit!", file=sys.stderr)
@@ -3072,7 +3065,6 @@ class ParseBAM(object):
         R_splice = 0
         R_properPair = 0
         R_pair_diff_chrom = 0
-        R_mitochondria = 0
 
         if self.bam_format:
             print("Load BAM file ... ", end=" ", file=sys.stderr)
@@ -3081,7 +3073,6 @@ class ParseBAM(object):
 
         try:
             while 1:
-                flag = 0
                 aligned_read = next(self.samfile)
                 R_total += 1
                 if aligned_read.is_qcfail:  # skip QC fail read
@@ -3172,9 +3163,9 @@ class ParseBAM(object):
                 chrom = fields[0]
                 txStart = int(fields[1])
                 txEnd = int(fields[2])
-                geneName = fields[3]
+                fields[3]
                 strand = fields[5]
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
                 continue
             if chrom not in gene_ranges:
@@ -3241,7 +3232,6 @@ class ParseBAM(object):
 
         print("Total " + str(count) + " usable reads were sampled", file=sys.stderr)
         protocol = "unknown"
-        strandness = None
         spec1 = 0.0
         spec2 = 0.0
         other = 0.0
@@ -3302,7 +3292,7 @@ class ParseBAM(object):
         for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
             try:
                 self.samfile.fetch(chr_name, 0, chr_size)
-            except:
+            except Exception:
                 print("No alignments for " + chr_name + ". skipped", file=sys.stderr)
                 continue
             print("Processing " + chr_name + " ...", file=sys.stderr)
@@ -3379,7 +3369,7 @@ class ParseBAM(object):
                 subprocess.call(
                     "wigToBigWig -clip " + outfile + ".wig " + chrom_file + " " + outfile + ".bw ", shell=True
                 )
-            except:
+            except Exception:
                 print('Failed to call "wigToBigWig".', file=sys.stderr)
                 pass
         else:
@@ -3394,7 +3384,7 @@ class ParseBAM(object):
                     "wigToBigWig -clip " + outfile + ".Reverse.wig " + chrom_file + " " + outfile + ".Reverse.bw ",
                     shell=True,
                 )
-            except:
+            except Exception:
                 print('Failed to call "wigToBigWig".', file=sys.stderr)
                 pass
 
@@ -3407,7 +3397,7 @@ class ParseBAM(object):
         for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
             try:
                 self.samfile.fetch(chr_name, 0, chr_size)
-            except:
+            except Exception:
                 print("No alignments for " + chr_name + ". skipped", file=sys.stderr)
                 continue
             print("Processing " + chr_name + " ...", file=sys.stderr)
@@ -3444,7 +3434,7 @@ class ParseBAM(object):
                 else:
                     map_strand = "+"
 
-                key = read_id + map_strand
+                read_id + map_strand
 
                 hit_st = aligned_read.pos
                 for block in bam_cigar.fetch_exon(chr_name, hit_st, aligned_read.cigar):
@@ -3548,8 +3538,6 @@ class ParseBAM(object):
         minus_ranges = {}
         unstrand_ranges = {}
 
-        rpkm_value = {}
-
         RPKM_OUT = open(outfile, "w")
         if self.bam_format:
             print("Load BAM file ... ", end=" ", file=sys.stderr)
@@ -3649,8 +3637,8 @@ class ParseBAM(object):
                 exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                 intron_starts = exon_ends[:-1]
                 intron_ends = exon_starts[1:]
-                key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
-            except:
+                "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -3726,7 +3714,7 @@ class ParseBAM(object):
                         + str(mRNA_count * 1000000000.0 / (mRNA_len * total_tags))
                         + "\n"
                     )
-                except:
+                except Exception:
                     RPKM_OUT.write(
                         chrom.lower()
                         + "\t"
@@ -3810,7 +3798,7 @@ class ParseBAM(object):
                         + str(mRNA_count * 1000000000.0 / (mRNA_len * total_tags))
                         + "\n"
                     )
-                except:
+                except Exception:
                     RPKM_OUT.write(
                         chrom.lower()
                         + "\t"
@@ -3894,7 +3882,7 @@ class ParseBAM(object):
                         + str(mRNA_count * 1000000000.0 / (mRNA_len * total_tags))
                         + "\n"
                     )
-                except:
+                except Exception:
                     RPKM_OUT.write(
                         chrom.lower()
                         + "\t"
@@ -3924,7 +3912,6 @@ class ParseBAM(object):
             outfile2 = outfile + ".NVC_plot.r"
         FO = open(outfile1, "w")
         RS = open(outfile2, "w")
-        PPcount = 0
 
         transtab = str.maketrans("ACGTNX", "TGCANX")
         base_freq = collections.defaultdict(int)
@@ -4072,7 +4059,7 @@ class ParseBAM(object):
                         q_min = q
                     try:
                         quality[i][q] += 1
-                    except:
+                    except Exception:
                         quality[i][q] = 1
         except StopIteration:
             print("Done", file=sys.stderr)
@@ -4571,7 +4558,6 @@ class ParseBAM(object):
         ranges = {}
         totalReads = 0
         fragment_num = 0  # splice reads will counted twice
-        rpkm = {}
 
         # read SAM
         if self.bam_format:
@@ -4606,7 +4592,6 @@ class ParseBAM(object):
 
         print("calculating coverage over gene body ...", file=sys.stderr)
         coverage = collections.defaultdict(int)
-        flag = 0
         for line in open(refbed, "r"):
             try:
                 if line.startswith(("#", "track", "browser")):
@@ -4615,21 +4600,20 @@ class ParseBAM(object):
                 fields = line.split()
                 chrom = fields[0].upper()
                 tx_start = int(fields[1])
-                tx_end = int(fields[2])
-                geneName = fields[3]
+                int(fields[2])
+                fields[3]
                 strand = fields[5]
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
                 exon_starts = list(map((lambda x: x + tx_start), exon_starts))
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
             gene_all_base = []
             percentile_base = []
             mRNA_len = 0
-            flag = 0
             for st, end in zip(exon_starts, exon_ends):
                 gene_all_base.extend(list(range(st + 1, end + 1)))  # 0-based coordinates on genome
                 mRNA_len = len(gene_all_base)
@@ -4675,7 +4659,6 @@ class ParseBAM(object):
         ranges[fchrom] = Intersecter()
 
         window_left_bound = list(range(low_bound, up_bound, step))
-        frag_size = 0
 
         inner_distance_bitsets = BinnedBitSet()
         tmp = BinnedBitSet()
@@ -4770,7 +4753,7 @@ class ParseBAM(object):
                         read1_end - 1, read1_end
                     ):  # gene: Interval(0, 10, value=a)
                         read1_gene_names.add(gene.value)
-                except:
+                except Exception:
                     pass
 
                 read2_gene_names = set()  # read2_start
@@ -4779,7 +4762,7 @@ class ParseBAM(object):
                         read2_start, read2_start + 1
                     ):  # gene: Interval(0, 10, value=a)
                         read2_gene_names.add(gene.value)
-                except:
+                except Exception:
                     pass
 
                 if len(read1_gene_names.intersection(read2_gene_names)) == 0:  # no common gene
@@ -4897,7 +4880,7 @@ class ParseBAM(object):
                 continue
             chrom = fields[0].upper()
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
+            int(fields[2])
             if int(fields[9] == 1):
                 continue
 
@@ -5060,7 +5043,7 @@ class ParseBAM(object):
         junc_freq = collections.defaultdict(int)
         try:
             alignedReads = self.samfile.fetch(chrom, st, end)
-        except:
+        except Exception:
             return junc_freq
         for aligned_read in alignedReads:
             if aligned_read.is_qcfail:
@@ -5116,7 +5099,7 @@ class ParseBAM(object):
             chrom = fields[0].upper()
             chrom_list.add(chrom)
             tx_start = int(fields[1])
-            tx_end = int(fields[2])
+            int(fields[2])
             if int(fields[9] == 1):
                 continue
 
@@ -5145,7 +5128,7 @@ class ParseBAM(object):
                 aligned_read = next(self.samfile)
                 try:
                     chrom = self.samfile.getrname(aligned_read.tid).upper()
-                except:
+                except Exception:
                     continue
                 if chrom not in chrom_list:
                     continue
@@ -5186,7 +5169,6 @@ class ParseBAM(object):
         tmp = list(range(sample_start, sample_end, sample_step))
         tmp.append(100)
         for pertl in tmp:  # [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95,100]
-            knownSpliceSites_num = 0
             index_st = int(SR_num * ((pertl - sample_step) / 100.0))
             index_end = int(SR_num * (pertl / 100.0))
             if index_st < 0:
@@ -5271,7 +5253,6 @@ class ParseBAM(object):
         RAW_OUT = open(raw_file, "w")
 
         ranges = {}
-        totalReads = 0
         cUR_num = 0  # number of fragements
         cUR_plus = 0
         cUR_minus = 0
@@ -5432,7 +5413,7 @@ class ParseBAM(object):
                     exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
                     exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                     key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
-                except:
+                except Exception:
                     print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
                     continue
                 mRNA_count = 0  # we need to initializ it to 0 for each gene
@@ -5480,7 +5461,6 @@ class ParseBAM(object):
         RAW_OUT = open(raw_file, "w")
 
         ranges = {}
-        totalReads = 0
         cUR_num = 0  # number of fragements
         cUR_plus = 0
         cUR_minus = 0
@@ -5622,7 +5602,7 @@ class ParseBAM(object):
                     exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
                     exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                     key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
-                except:
+                except Exception:
                     print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
                     continue
                 mRNA_count = 0  # we need to initializ it to 0 for each gene
@@ -5663,7 +5643,7 @@ class ParseBAM(object):
         try:
             a = self.samfile.fetch(chr, st, end)
             return a
-        except:
+        except Exception:
             return None
 
     def mismatchProfile(self, read_length, read_num, outfile, q_cut=30):
@@ -5681,7 +5661,7 @@ class ParseBAM(object):
             print("Process SAM file ... ", end=" ", file=sys.stderr)
 
         MD_pat = re.compile(r"(\d+)([A-Z]+)")
-        number_base = re.compile(r"([0-9]+)([A-Z]+)", re.I)
+        re.compile(r"([0-9]+)([A-Z]+)", re.I)
 
         count = 0
         data = collections.defaultdict(dict)  # data[read_coord][genotype] = geno_type_number

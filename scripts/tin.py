@@ -20,7 +20,7 @@ from optparse import OptionParser
 from time import strftime
 
 import pysam
-from bx.intervals import *
+from bx.intervals import Intersecter, Interval
 from numpy import mean, median, std
 
 from qcmodule import getBamFiles
@@ -139,11 +139,11 @@ def genomic_positions(refbed, sample_size):
             tx_end = int(fields[2])
             geneName = fields[3]
             strand = fields[5]
-            cdsStart = int(fields[6]) + 1  # convert to 1-based
-            cdsEnd = int(fields[7])
-            exon_count = int(fields[9])
+            int(fields[6]) + 1  # convert to 1-based
+            int(fields[7])
+            int(fields[9])
             mRNA_size = sum([int(i) for i in fields[10].strip(",").split(",")])
-            geneID = "_".join([str(j) for j in (chrom, tx_start, tx_end, geneName, strand)])
+            "_".join([str(j) for j in (chrom, tx_start, tx_end, geneName, strand)])
 
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
             exon_starts = list(map((lambda x: x + tx_start), exon_starts))
@@ -152,7 +152,7 @@ def genomic_positions(refbed, sample_size):
             intron_size = tx_end - tx_start - mRNA_size
             if intron_size < 0:
                 intron_size = 0
-        except:
+        except Exception:
             print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
             continue
 
@@ -202,7 +202,7 @@ def check_min_reads(samfile, chrom, tx_st, tx_end, cutoff):
                 tmp = True
                 break
         return tmp
-    except:
+    except Exception:
         return False
 
 
@@ -236,7 +236,7 @@ def genebody_coverage(samfile, chrom, positions, bg_level=0):
                 # if pileupread.alignment.is_duplicate:continue
                 cover_read += 1.0
             cvg.append(cover_read)
-    except:
+    except Exception:
         cvg = []
 
     if bg_level <= 0:

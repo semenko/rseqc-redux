@@ -30,9 +30,6 @@ from os.path import basename
 from time import strftime
 
 import pysam
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.intervals import *
 
 # import third-party modules
 from numpy import mean, std
@@ -118,12 +115,10 @@ def genebody_percentile(refbed, mRNA_len_cut=100):
             exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
             exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
             transcript_count += 1
-        except:
+        except Exception:
             print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
             continue
         gene_all_base = []
-        mRNA_len = 0
-        flag = 0
         for st, end in zip(exon_starts, exon_ends):
             gene_all_base.extend(list(range(st + 1, end + 1)))  # 1-based coordinates on genome
         if len(gene_all_base) < mRNA_len_cut:
@@ -156,7 +151,7 @@ def genebody_coverage(bam, position_list):
         chrom_end = positions[-1]
         try:
             samfile.pileup(chrom, 1, 2)
-        except:
+        except Exception:
             continue
 
         for pileupcolumn in samfile.pileup(chrom, chrom_start, chrom_end, truncate=True):
@@ -383,7 +378,7 @@ def main():
     printlog("Running R script ...")
     try:
         subprocess.call("Rscript " + options.output_prefix + ".geneBodyCoverage.r", shell=True)
-    except:
+    except Exception:
         print("Cannot generate pdf file from " + options.output_prefix + ".geneBodyCoverage.r", file=sys.stderr)
         pass
 

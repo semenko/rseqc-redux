@@ -89,7 +89,7 @@ def main():
         print('unknow sequencing layout. Must be "SE" or "PE"', file=sys.stderr)
     try:
         subprocess.call("Rscript " + options.output_prefix + ".insertion_profile.r", shell=True)
-    except:
+    except Exception:
         print("Cannot generate pdf file from " + options.output_prefix + ".insertion_profile.r", file=sys.stderr)
         pass
 

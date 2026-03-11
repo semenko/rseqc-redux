@@ -23,10 +23,7 @@ from optparse import OptionParser
 import pysam
 
 # import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.bitset_utils import *
-from bx.intervals import *
+from bx.intervals import Intersecter, Interval
 
 # import my own modules
 from qcmodule import BED

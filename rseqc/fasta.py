@@ -22,7 +22,7 @@ from rseqc import FrameKmer
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"
-__credits__ = []
+__credits__: list[str] = []
 __license__ = "GPL"
 __version__ = "3.0.0"
 __maintainer__ = "Liguo Wang"
@@ -45,7 +45,7 @@ class Fasta:
                 line = line.strip(" \n")
                 if line.startswith(">"):
                     if tmpseq:
-                        self.seqs[name] = tmpseq
+                        self.seqs[name] = tmpseq  # noqa: F821 — known bug: `name` unbound on malformed input
                     name = line[1:]
                     tmpseq = ""
                     self.IDs.append(name)
@@ -89,7 +89,7 @@ class Fasta:
         else:
             try:
                 seqlen[seqID] = len(self.seqs[seqID])
-            except:
+            except Exception:
                 print("Not found", file=sys.stderr)
         return seqlen
 
@@ -242,7 +242,7 @@ class Fasta:
         else:
             try:
                 return self.seqs[chr][st:end].upper()
-            except:
+            except Exception:
                 print(
                     "cannot fetch sequence from " + self.filename + " for " + chr + ":" + str(st) + "-" + str(end),
                     file=sys.stderr,

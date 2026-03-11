@@ -20,11 +20,7 @@ if sys.version_info[0] != 3:
     sys.exit()
 
 from optparse import OptionParser
-
-# import third-party modules
-from bx.bitset import *
-from bx.bitset_builders import *
-from bx.intervals import *
+from time import strftime
 
 # import my own modules
 from qcmodule import SAM
@@ -149,7 +145,7 @@ def main():
         print("\n\ntotal wigsum is:" + str(wig_sum) + "\n", file=sys.stderr)
         try:
             norm_factor = options.total_wigsum / wig_sum
-        except:
+        except Exception:
             norm_factor = None
 
     obj = SAM.ParseBAM(options.input_file)

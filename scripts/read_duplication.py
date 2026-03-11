@@ -92,7 +92,7 @@ def main():
         obj.readDupRate(outfile=options.output_prefix, up_bound=options.upper_limit, q_cut=options.map_qual)
         try:
             subprocess.call("Rscript " + options.output_prefix + ".DupRate_plot.r", shell=True)
-        except:
+        except Exception:
             pass
     else:
         print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)

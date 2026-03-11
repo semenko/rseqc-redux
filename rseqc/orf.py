@@ -7,7 +7,7 @@ import sys
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"
-__credits__ = []
+__credits__: list[str] = []
 __license__ = "GPL"
 __version__ = "3.0.0"
 __maintainer__ = "Liguo Wang"
@@ -94,7 +94,6 @@ def longest_orf_bed(seq, bedline, sc=None, tc=None):
     orf_ranges = collections.defaultdict(list)
     dna_seq = seq.upper()
     possible_orf = {}  # [orf-st, orf_end] ==>size
-    largest_orf = ""
 
     if sc is not None:
         start_coden = sc.strip(",").split(",")

@@ -19,6 +19,40 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
    - Add type hints incrementally
 4. **Improve performance** — only after extensive tests exist to verify correctness.
 
+## Current State (as of 2026-03-11)
+
+**Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
+
+**Tests:** 195 passing, 1 xfail. Coverage: 15% overall; utility modules 78–97%, BED.py 13%, SAM.py 2%.
+
+**Lint/Type:** CI green — ruff (0 errors), mypy (0 errors), ruff format clean.
+
+**What's been modernized:**
+- Star imports replaced with explicit imports in all `rseqc/` and `scripts/` files
+- Bare `except:` → `except Exception:` across entire codebase (97 instances)
+- Unused variables removed (147 instances via ruff F841)
+- Type hints added to `cigar.py` and `ireader.py`
+- `__credits__: list[str] = []` annotation in 13 modules (mypy fix)
+
+**What still needs work:**
+- SAM.py/BED.py methods need integration tests with BAM fixtures (pysam-built)
+- CLI scripts have zero test coverage
+- scbam.py at 4% coverage
+- Type hints for remaining modules
+- E501 (line length) and E741 (ambiguous vars) still suppressed
+
+## Known Bugs (documented, NOT fixed — need regression tests first)
+
+1. **`cdsEdn_float` typo** — `rseqc/BED.py:1370,1441` — `NameError` when `boundary == "cds"` in `unionBED()`. Should be `cdsEnd_float`. Marked with `# noqa: F821`.
+2. **`name` before assignment** — `rseqc/fasta.py:48` — `UnboundLocalError` on empty/malformed FASTA input. Marked with `# noqa: F821`.
+3. **`if int(fields[9] == 1)`** — `rseqc/BED.py:720` — operator precedence bug. `fields[9] == 1` evaluates to bool, `int(bool)` is 0 or 1, so the `continue` for single-exon genes never fires. Intron extraction works by accident because single-exon genes produce empty intron lists anyway.
+4. **`sc` parameter shadows `start_coden`** — `rseqc/orf.py:63` — `UnboundLocalError` when calling `longest_orf()` without explicit `sc`/`tc` args. The `for sc in start_coden` loop variable shadows the function parameter, and Python detects `start_coden` as a local. Documented with xfail test.
+5. **`chromm` typo** — `rseqc/annoGene.py:189,231` — `NameError` in `getUTRExonFromLine()` and `getCDSExonFromLine()`. Should be `chrom`. These functions are dead code (never called from scripts).
+6. **`txstart`/`txEnd` undefined** — `rseqc/annoGene.py:151` — `NameError` in `getExonFromFile2()`. Variable name case mismatch + undefined `txEnd`. Dead code.
+7. **`input_file` undefined** — `scripts/bam_stat.py:67` — Should be `options.input_file`. Marked with `# noqa: F821`.
+8. **`urllib.urlopen`** — `rseqc/ireader.py:31` — Python 2 API, should be `urllib.request.urlopen`. URL-based file reading is broken.
+9. **`subtractBed3` no-op guard** — `rseqc/BED.py:3003` — `if chrom not in bitsets1` is always False since we iterate over `bitsets1`. Likely should be `bitsets2`.
+
 ## Commands
 
 ```bash
@@ -70,7 +104,6 @@ Runtime: `pysam`, `bx-python`, `numpy`, `pyBigWig`, `cython`
 ### Key Patterns
 - Almost all scripts follow: parse args with `optparse` → open BAM with pysam → iterate reads → call into `SAM.py` or `BED.py` for logic → write results + optional matplotlib plots.
 - `BED.py` and `SAM.py` are tightly coupled — SAM.py imports BED models extensively.
-- No existing tests anywhere in the codebase.
 
 ## CI/CD
 

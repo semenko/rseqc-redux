@@ -189,7 +189,7 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
                     fpkm_uq = (count * 1000000000) / (gene_sizes[gene] * uq_count)
                     fpkm = (count * 1000000000) / (gene_sizes[gene] * total_count)
 
-            except:
+            except Exception:
                 fpkm_uq = "NA"
                 fpkm = "NA"
 

@@ -81,11 +81,7 @@ def kmer_ratio(seq, word_size, step_size, coding, noncoding):
         return 0
 
     sum_of_log_ratio_0 = 0.0
-    sum_of_log_ratio_1 = 0.0
-    sum_of_log_ratio_2 = 0.0
     frame0_count = 0.0
-    frame1_count = 0.0
-    frame2_count = 0.0
     for k in word_generator(seq=seq, word_size=word_size, step_size=step_size, frame=0):
         if (k not in coding) or (k not in noncoding):
             continue
@@ -100,7 +96,7 @@ def kmer_ratio(seq, word_size, step_size, coding, noncoding):
         else:
             continue
         frame0_count += 1
-    """	
+    """
 	for k in word_generator(seq=seq, word_size = word_size, step_size=step_size,frame=1):
 		if (not coding.has_key(k)) or (not noncoding.has_key(k)):
 			continue
@@ -115,7 +111,7 @@ def kmer_ratio(seq, word_size, step_size, coding, noncoding):
 		else:
 			continue
 		frame1_count += 1
-	
+
 	for k in word_generator(seq=seq, word_size = word_size, step_size=step_size,frame=2):
 		if (not coding.has_key(k)) or (not noncoding.has_key(k)):
 			continue
@@ -130,6 +126,6 @@ def kmer_ratio(seq, word_size, step_size, coding, noncoding):
 		else:
 			continue
 		frame2_count += 1
-	return max(sum_of_log_ratio_0/frame0_count, sum_of_log_ratio_1/frame1_count,sum_of_log_ratio_2/frame2_count)	
+	return max(sum_of_log_ratio_0/frame0_count, sum_of_log_ratio_1/frame1_count,sum_of_log_ratio_2/frame2_count)
 	"""
     return sum_of_log_ratio_0 / frame0_count

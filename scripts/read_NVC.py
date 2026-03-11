@@ -91,7 +91,7 @@ def main():
         obj.readsNVC(outfile=options.output_prefix, nx=options.unknown_nucleotide, q_cut=options.map_qual)
         try:
             subprocess.call("Rscript " + options.output_prefix + ".NVC_plot.r", shell=True)
-        except:
+        except Exception:
             pass
     else:
         print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)

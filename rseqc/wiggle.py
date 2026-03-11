@@ -22,7 +22,7 @@ from bx_extras.fpconst import isNaN
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"
-__credits__ = []
+__credits__: list[str] = []
 __license__ = "GPL"
 __version__ = "3.0.0"
 __maintainer__ = "Liguo Wang"
@@ -196,15 +196,15 @@ class ParseWig2:
                     continue
                 fields = line.rstrip("\r\n").split()
                 txStart = int(fields[1])
-                chrom = fields[0]
-                strand = fields[5]
-                geneName = fields[3]
-                score = fields[4]
+                fields[0]
+                fields[5]
+                fields[3]
+                fields[4]
                 exon_start = list(map(int, fields[11].rstrip(",").split(",")))
                 exon_start = list(map((lambda x: x + txStart), exon_start))
                 exon_end = list(map(int, fields[10].rstrip(",").split(",")))
                 exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
-            except:
+            except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
