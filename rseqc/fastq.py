@@ -12,7 +12,7 @@ import logomaker
 import matplotlib.pyplot as plt
 
 import logging
-import ireader
+from rseqc import ireader
 
 
 def fasta_iter(infile):

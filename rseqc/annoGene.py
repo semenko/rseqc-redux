@@ -1,6 +1,6 @@
 import collections
 from bx.intervals import *
-from qcmodule import BED
+from rseqc import BED
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"

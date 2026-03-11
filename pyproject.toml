@@ -1,0 +1,141 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rseqc-redux"
+version = "5.1.0a1"
+description = "RNA-seq Quality Control — modernized fork of RSeQC"
+readme = "README.md"
+license = "GPL-2.0-only"
+requires-python = ">=3.10"
+authors = [
+    { name = "Liguo Wang", email = "wangliguo78@gmail.com" },
+]
+keywords = ["RNA-seq", "QC", "bioinformatics"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+    "pysam",
+    "bx-python",
+    "logomaker",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "pyBigWig",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "nox",
+]
+
+[project.urls]
+Homepage = "https://github.com/semenko/rseqc-redux"
+Documentation = "https://semenko.github.io/rseqc-redux/"
+Repository = "https://github.com/semenko/rseqc-redux"
+Issues = "https://github.com/semenko/rseqc-redux/issues"
+
+[project.scripts]
+bam_stat = "scripts.bam_stat:main"
+"bam_stat.py" = "scripts.bam_stat:main"
+bam2fq = "scripts.bam2fq:main"
+"bam2fq.py" = "scripts.bam2fq:main"
+bam2wig = "scripts.bam2wig:main"
+"bam2wig.py" = "scripts.bam2wig:main"
+clipping_profile = "scripts.clipping_profile:main"
+"clipping_profile.py" = "scripts.clipping_profile:main"
+deletion_profile = "scripts.deletion_profile:main"
+"deletion_profile.py" = "scripts.deletion_profile:main"
+divide_bam = "scripts.divide_bam:main"
+"divide_bam.py" = "scripts.divide_bam:main"
+FPKM_count = "scripts.FPKM_count:main"
+"FPKM_count.py" = "scripts.FPKM_count:main"
+"FPKM-UQ" = "scripts.FPKM_UQ:main"
+"FPKM-UQ.py" = "scripts.FPKM_UQ:main"
+geneBody_coverage = "scripts.geneBody_coverage:main"
+"geneBody_coverage.py" = "scripts.geneBody_coverage:main"
+geneBody_coverage2 = "scripts.geneBody_coverage2:main"
+"geneBody_coverage2.py" = "scripts.geneBody_coverage2:main"
+infer_experiment = "scripts.infer_experiment:main"
+"infer_experiment.py" = "scripts.infer_experiment:main"
+inner_distance = "scripts.inner_distance:main"
+"inner_distance.py" = "scripts.inner_distance:main"
+insertion_profile = "scripts.insertion_profile:main"
+"insertion_profile.py" = "scripts.insertion_profile:main"
+junction_annotation = "scripts.junction_annotation:main"
+"junction_annotation.py" = "scripts.junction_annotation:main"
+junction_saturation = "scripts.junction_saturation:main"
+"junction_saturation.py" = "scripts.junction_saturation:main"
+mismatch_profile = "scripts.mismatch_profile:main"
+"mismatch_profile.py" = "scripts.mismatch_profile:main"
+normalize_bigwig = "scripts.normalize_bigwig:main"
+"normalize_bigwig.py" = "scripts.normalize_bigwig:main"
+overlay_bigwig = "scripts.overlay_bigwig:main"
+"overlay_bigwig.py" = "scripts.overlay_bigwig:main"
+read_distribution = "scripts.read_distribution:main"
+"read_distribution.py" = "scripts.read_distribution:main"
+read_duplication = "scripts.read_duplication:main"
+"read_duplication.py" = "scripts.read_duplication:main"
+read_GC = "scripts.read_GC:main"
+"read_GC.py" = "scripts.read_GC:main"
+read_hexamer = "scripts.read_hexamer:main"
+"read_hexamer.py" = "scripts.read_hexamer:main"
+read_NVC = "scripts.read_NVC:main"
+"read_NVC.py" = "scripts.read_NVC:main"
+read_quality = "scripts.read_quality:main"
+"read_quality.py" = "scripts.read_quality:main"
+RNA_fragment_size = "scripts.RNA_fragment_size:main"
+"RNA_fragment_size.py" = "scripts.RNA_fragment_size:main"
+RPKM_saturation = "scripts.RPKM_saturation:main"
+"RPKM_saturation.py" = "scripts.RPKM_saturation:main"
+sc_bamStat = "scripts.sc_bamStat:main"
+"sc_bamStat.py" = "scripts.sc_bamStat:main"
+sc_editMatrix = "scripts.sc_editMatrix:main"
+"sc_editMatrix.py" = "scripts.sc_editMatrix:main"
+sc_seqLogo = "scripts.sc_seqLogo:main"
+"sc_seqLogo.py" = "scripts.sc_seqLogo:main"
+sc_seqQual = "scripts.sc_seqQual:main"
+"sc_seqQual.py" = "scripts.sc_seqQual:main"
+split_bam = "scripts.split_bam:main"
+"split_bam.py" = "scripts.split_bam:main"
+split_paired_bam = "scripts.split_paired_bam:main"
+"split_paired_bam.py" = "scripts.split_paired_bam:main"
+tin = "scripts.tin:main"
+"tin.py" = "scripts.tin:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["rseqc", "qcmodule", "scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

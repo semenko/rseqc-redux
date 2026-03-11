@@ -10,7 +10,7 @@ import re
 import sys
 from optparse import OptionParser
 import collections
-from qcmodule import FrameKmer
+from rseqc import FrameKmer
 #import third-party modules
 
 #changes to the paths

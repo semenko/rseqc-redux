@@ -17,7 +17,6 @@ from itertools import groupby
 
 
 #import third-party modules
-import psyco_full
 from bx.bitset import *
 from bx.bitset_builders import *
 from bx.intervals import *

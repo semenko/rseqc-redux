@@ -1,0 +1,10 @@
+site_name: rseqc-redux
+site_description: Modernized RNA-seq Quality Control
+repo_url: https://github.com/semenko/rseqc-redux
+repo_name: semenko/rseqc-redux
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
