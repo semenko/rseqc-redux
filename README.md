@@ -1,20 +1,62 @@
 # rseqc-redux
 
-[![CI](https://github.com/semenko/rseqc-redux/actions/workflows/ci.yml/badge.svg)](https://github.com/semenko/rseqc-redux/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/rseqc-redux.svg)][pypi status]
+[![Status](https://img.shields.io/pypi/status/rseqc-redux.svg)][pypi status]
+[![Python Version](https://img.shields.io/pypi/pyversions/rseqc-redux)][pypi status]
+[![License](https://img.shields.io/pypi/l/rseqc-redux)][license]
 
-A modernized fork of [RSeQC](http://rseqc.sourceforge.net/) (RNA-seq Quality Control), originally by Liguo Wang.
+[![Tests](https://github.com/semenko/rseqc-redux/actions/workflows/ci.yml/badge.svg)][tests]
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/semenko/rseqc-redux/python-coverage-comment-action-data/endpoint.json)][coverage]
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-rseqc-redux updates the RSeQC 5.0.1 codebase with modern Python packaging, comprehensive tests, and CI — while preserving the original functionality.
+[pypi status]: https://pypi.org/project/rseqc-redux/
+[tests]: https://github.com/semenko/rseqc-redux/actions?workflow=CI
+[coverage]: https://htmlpreview.github.io/?https://github.com/semenko/rseqc-redux/blob/python-coverage-comment-action-data/htmlcov/index.html
+[license]: https://github.com/semenko/rseqc-redux/blob/main/LICENSE
+
+**rseqc-redux** is a modernized fork of [RSeQC](http://rseqc.sourceforge.net/) (RNA-seq Quality Control), originally by Liguo Wang. It updates the RSeQC 5.0.1 codebase with modern Python packaging, comprehensive tests, and CI — while preserving the original functionality.
+
+## Requirements
+
+- Python 3.10 or higher
+- Indexed BAM files (`.bam` with corresponding `.bam.bai` index files)
+- A BED-format gene model / reference annotation
+
+### Dependencies
+
+Core dependencies are automatically installed:
+- `pysam` — BAM/SAM file handling
+- `bx-python` — Interval indexing and overlap
+- `numpy` — Numerical operations
+- `pandas` — Data frame operations (single-cell modules)
+- `pyBigWig` — BigWig file I/O
+- `matplotlib` / `logomaker` — Plotting
 
 ## Installation
 
+### From PyPI (Recommended)
+
 ```bash
 pip install rseqc-redux
-# or
-uv add rseqc-redux
 ```
 
-## Usage
+### From Source
+
+```bash
+git clone https://github.com/semenko/rseqc-redux.git
+cd rseqc-redux
+pip install .
+```
+
+### Development Installation
+
+```bash
+git clone https://github.com/semenko/rseqc-redux.git
+cd rseqc-redux
+uv sync
+```
+
+## Quick Start
 
 ```bash
 # Basic BAM statistics
@@ -25,14 +67,50 @@ infer_experiment -r gene_model.bed -i sample.bam
 
 # Transcript integrity number
 tin -i sample.bam -r gene_model.bed
+
+# Gene body coverage
+geneBody_coverage -r gene_model.bed -i sample.bam -o output
+
+# Read distribution over genomic features
+read_distribution -r gene_model.bed -i sample.bam
+
+# Junction annotation
+junction_annotation -r gene_model.bed -i sample.bam -o output
 ```
 
-## Development
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `bam_stat` | Summarize mapping statistics of a BAM file |
+| `infer_experiment` | Infer RNA-seq strandedness |
+| `tin` | Calculate Transcript Integrity Number |
+| `geneBody_coverage` | Gene body coverage profile |
+| `read_distribution` | Reads over genomic features (CDS, UTR, intron, etc.) |
+| `junction_annotation` | Annotate splice junctions |
+| `junction_saturation` | Splice junction saturation analysis |
+| `read_duplication` | Read duplication rate |
+| `read_GC` | GC content of reads |
+| `read_NVC` | Nucleotide composition (ACGT) along reads |
+| `read_quality` | Per-position quality scores |
+| `FPKM_count` | FPKM expression quantification |
+| `FPKM-UQ` | Upper-quartile normalized FPKM |
+| `inner_distance` | Inner distance between read pairs |
+| `bam2wig` | Convert BAM to wiggle/BigWig |
+| `mismatch_profile` | Mismatch profile along reads |
+| `insertion_profile` | Insertion profile along reads |
+| `deletion_profile` | Deletion profile along reads |
+| `clipping_profile` | Clipping profile along reads |
+| `split_bam` | Split BAM by chromosome |
+
+## Contributing
+
+Contributions are welcome!
+
+### Development Commands
 
 ```bash
-# Clone and install
-git clone https://github.com/semenko/rseqc-redux.git
-cd rseqc-redux
+# Install development dependencies
 uv sync
 
 # Run tests
@@ -51,8 +129,16 @@ uv run mypy rseqc/
 
 ## License
 
-GPLv2 — see [LICENSE](LICENSE) for details.
+Distributed under the terms of the [GPLv2 license][license], rseqc-redux is free and open source software.
+
+## Issues
+
+If you encounter any problems, please [file an issue] with a description of the problem, steps to reproduce, and relevant error messages.
+
+[file an issue]: https://github.com/semenko/rseqc-redux/issues
 
 ## Credits
 
 Original RSeQC by Liguo Wang — [rseqc.sourceforge.net](http://rseqc.sourceforge.net/)
+
+Modernization by [Nick Semenkovich (@semenko)](https://nick.semenkovich.com/).
