@@ -26,16 +26,6 @@ if sys.version_info[0] != 3:
     sys.exit()
 
 
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__ = []
-__license__ = "GPL"
-__version__ = "5.0.1"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
-
-
 def overlap_length2(lst1, lst2):
     l = 0
     for x in lst1:
@@ -110,7 +100,7 @@ def fragment_size(bedfile, samfile, qcut=30, ncut=5):
 
 def main():
     usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog " + __version__)
+    parser = OptionParser(usage, version="%prog 5.0.2")
     parser.add_option("-i", "--input", action="store", type="string", dest="input_file", help="Input BAM file")
     parser.add_option(
         "-r",

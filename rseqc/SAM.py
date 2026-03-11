@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """manipulate BAM/SAM file."""
 
-# import built-in modules
 import collections
 import os
 import random
@@ -12,29 +9,12 @@ import sys
 
 import pysam
 from bx.binned_array import BinnedArray
-
-# import third-party modules
 from bx.bitset import BinnedBitSet
 from bx.bitset_builders import binned_bitsets_from_list
 from bx.intervals import Intersecter, Interval
 from bx_extras.fpconst import isNaN
 
 from rseqc import BED, bam_cigar, fasta, mystat
-
-# changes to the paths
-
-# changing history to this module
-# 05/26/2011: suppport multiple spliced mapped reads
-# 10/13/2011: saturation test for RNAs-eq data
-
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__: list[str] = []
-__license__ = "GPL"
-__version__ = "3.0.0"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
 
 
 class ParseSAM(object):
@@ -614,7 +594,6 @@ class ParseSAM(object):
             gc_percent = "%4.2f" % (
                 (field[9].upper().count("C") + field[9].upper().count("G")) / (len(field[9]) + 0.0) * 100
             )
-            # print gc_percent
             gc_hist[gc_percent] += 1
 
         print("writing GC content ...", file=sys.stderr)
@@ -639,9 +618,7 @@ class ParseSAM(object):
             % 100,
             file=RS,
         )
-        # print >>RS, "lines(density(gc),col='red')"
         print("dev.off()", file=RS)
-        # self.f.seek(0)
 
     def samDupRate(self, outfile=None, up_bound=500):
         """Calculate reads's duplicate rates"""
@@ -752,8 +729,6 @@ class ParseSAM(object):
             flagCode = string.atoi(field[1])
             if (flagCode & 0x0004) == 1:
                 continue  # skip unmapped reads
-            # else:
-            # print >>sys.stderr,line,
             if ParseSAM._uniqueHit_pat.search(line):
                 print(line, end=" ", file=sys.stderr)
                 Uniqcount += 1
@@ -822,7 +797,6 @@ class ParseSAM(object):
                 int(i) for i in ParseSAM._splicedHit_pat.findall(field[5])
             ]  # "9M4721N63M3157N8M" return ['9', '4721', '63', '3157', '8']
             if len(comb) == 1:  # skip non-spliced
-                # print line,
                 continue
             if len(comb) > 3:  # skip multiple spliced
                 continue
@@ -874,10 +848,8 @@ class ParseSAM(object):
                     and ((map_st + comb[0] + comb[1]) in splice_sites[chrom])
                 ):
                     FO.write(line)
-                    # print line
                     extract_SR += 1
                 else:
-                    # FO2.write(line)
                     continue
         print("Done", file=sys.stderr)
         print("\tTotal mapped Read: " + str(total_read), file=sys.stderr)
@@ -976,13 +948,11 @@ class ParseSAM(object):
                 qual_str = field[10][::-1]
             total_read += 1
             for i in range(0, read_len):
-                # print ord(qual_str[i])-33,
                 qual_sum[i] += ord(qual_str[i]) - 33
                 if qual_min[i] > (ord(qual_str[i]) - 33):
                     qual_min[i] = ord(qual_str[i]) - 33
                 if qual_max[i] < (ord(qual_str[i]) - 33):
                     qual_max[i] = ord(qual_str[i]) - 33
-            # print '\n',
         min_qualities = [str(qual_min[i]) for i in range(0, read_len)]
         max_qualities = [str(qual_max[i]) for i in range(0, read_len)]
         avg_qualities = [str(qual_sum[i] / total_read) for i in range(0, read_len)]
@@ -1001,7 +971,6 @@ class ParseSAM(object):
         print('legend(0,100,legend=c("Max","Average","Min"),col=c("red","black","blue"),lwd=2)', file=FO)
         print("dev.off()", file=FO)
         # for i in range(0,read_len):
-        #   print >>sys.stderr, str(i) + '\t' + str(qual_max[i]) + '\t' + str(qual_min[i]) + '\t' + str(qual_sum[i]/total_read)
         # self.f.seek(0)
 
     def samToBinnedArray(self):
@@ -1749,7 +1718,6 @@ class QCSAM(object):
         print("Uniquely mapped reads (UR): " + str(totalReads - multiMapReads), file=RPKM_OUT)
         print("Spliced  mapped reads (SR): " + str(sR), file=RPKM_OUT)
         print("Corrected uniquely mapped reads (cUR, non-intronic fragments): " + str(cUR), file=RPKM_OUT)
-        # print >>RPKM_OUT, "Intronic Fragments (IF): " + str(intronic)
         if totalReads == 0:
             sys.exit(1)
 
@@ -2260,7 +2228,6 @@ class QCSAM(object):
                     ranges[chr] = Intersecter()
                 ranges[chr].add_interval(Interval(int(coord), int(coord) + 1))
             # ========================= calculating RPKM based on sub-population
-            # print >>sys.stderr, "assign reads to "+ refbed + '...',
             for line in open(refbed, "r"):
                 try:
                     if line.startswith(("#", "track", "browser")):
@@ -2434,8 +2401,6 @@ class QCSAM(object):
             print(str(knownSpliceSites_num) + " known splicing junctions", file=sys.stderr)
             known_junc.append(str(knownSpliceSites_num))
 
-        # for j in uniq_SJ:
-        # print >>OUT, j + "\t" + str(uniq_SJ[j])
         print("pdf('junction_saturation.pdf')", file=OUT)
         print("x=c(" + ",".join([str(i) for i in tmp]) + ")", file=OUT)
         print("y=c(" + ",".join(known_junc) + ")", file=OUT)
@@ -2643,8 +2608,6 @@ class QCSAM(object):
             file=ROUT,
         )
         print("dev.off()", file=ROUT)
-        # print >>ROUT, "mat=matrix(c(events,junction),byrow=T,ncol=3)"
-        # print >>ROUT, 'barplot(mat,beside=T,ylim=c(0,100),names=c("known","partial\nnovel","complete\nnovel"),legend.text=c("splicing events","splicing junction"),ylab="Percent")'
 
     def mRNA_RPKM(self, refbed, outfile=None):
         """calculate mRNA's RPKM value"""
@@ -3112,12 +3075,10 @@ class ParseBAM(object):
                         R_read1_ref = self.samfile.getrname(aligned_read.tid)
                         R_read2_ref = self.samfile.getrname(aligned_read.rnext)
                         if R_read1_ref != R_read2_ref:
-                            # print aligned_read.qname
                             R_pair_diff_chrom += 1
 
         except StopIteration:
             print("Done", file=sys.stderr)
-        # self.samfile.seek(current_pos)
 
         print("\n#==================================================", file=sys.stdout)
         print("#All numbers are READ count", file=sys.stdout)
@@ -3228,7 +3189,6 @@ class ParseBAM(object):
 
         except StopIteration:
             print("Finished", file=sys.stderr)
-        # self.samfile.seek(current_pos)
 
         print("Total " + str(count) + " usable reads were sampled", file=sys.stderr)
         protocol = "unknown"
@@ -3238,7 +3198,6 @@ class ParseBAM(object):
         if len(p_strandness) > 0 and len(s_strandness) == 0:
             protocol = "PairEnd"
             # for k,v in p_strandness.items():
-            #   print >>sys.stderr, k + '\t' + str(v)
             spec1 = (p_strandness["1++"] + p_strandness["1--"] + p_strandness["2+-"] + p_strandness["2-+"]) / float(
                 sum(p_strandness.values())
             )
@@ -3250,7 +3209,6 @@ class ParseBAM(object):
         elif len(s_strandness) > 0 and len(p_strandness) == 0:
             protocol = "SingleEnd"
             # for k,v in s_strandness.items():
-            #   print  >>sys.stderr, k + '\t' + str(v)
             spec1 = (s_strandness["++"] + s_strandness["--"]) / float(sum(s_strandness.values()))
             spec2 = (s_strandness["+-"] + s_strandness["-+"]) / float(sum(s_strandness.values()))
             other = 1 - spec1 - spec2
@@ -3610,7 +3568,6 @@ class ParseBAM(object):
 
         except StopIteration:
             print("Done", file=sys.stderr)
-        # self.samfile.seek(current_pos)
         print("#Total uniquely mapped reads = " + str(uniq_read), file=RPKM_OUT)
         print("#Total fragments = " + str(total_tags), file=RPKM_OUT)
         print("Assign reads to " + geneFile + "...", end=" ", file=sys.stderr)
@@ -4065,7 +4022,6 @@ class ParseBAM(object):
             print("Done", file=sys.stderr)
 
         for p in range(0, read_len):
-            # print str(p) + ':',
             val = []
             occurrence = []
             for q in range(q_min, q_max + 1):
@@ -4135,7 +4091,6 @@ class ParseBAM(object):
                     continue
                 RNA_read = aligned_read.seq.upper()
                 gc_percent = "%4.2f" % ((RNA_read.count("C") + RNA_read.count("G")) / (len(RNA_read) + 0.0) * 100)
-                # print gc_percent
                 gc_hist[gc_percent] += 1
         except StopIteration:
             print("Done", file=sys.stderr)
@@ -4161,9 +4116,7 @@ class ParseBAM(object):
             % 100,
             file=RS,
         )
-        # print >>RS, "lines(density(gc),col='red')"
         print("dev.off()", file=RS)
-        # self.f.seek(0)
 
     def readDupRate(self, q_cut, outfile=None, up_bound=500):
         """Calculate reads's duplicate rates"""
@@ -4745,7 +4698,6 @@ class ParseBAM(object):
                         for i in range(ex[1] + 1, ex[2] + 1):
                             exon_positions.append(i)
                     inner_distance = -len([i for i in exon_positions if i > read2_start and i <= read1_end])
-                # print aligned_read.qname,read1_end, read2_start
 
                 read1_gene_names = set()  # read1_end
                 try:
@@ -4826,8 +4778,6 @@ class ParseBAM(object):
             print(str(st) + "\t" + str(st + step) + "\t" + count, file=FQ)
         print("out_file = '%s'" % outfile, file=RS)
         print("pdf('%s')" % (outfile + ".inner_distance_plot.pdf"), file=RS)
-        # print >>RS, "par(mfrow=c(2,1),cex.main=0.8,cex.lab=0.8,cex.axis=0.8,mar=c(4,4,4,1))"
-        # print >>RS, 'pie(c(%d,%d,%d),col=rainbow(3),cex=0.5,radius=1,main="Total %d fragments",labels=c("fraSize <= %d\\n(%4.2f%%)","fragSize > %d\\n(%4.2f%%)","%d < fragSize <= %d\\n(%4.2f%%)"), density=rep(80,80,80),angle=c(90,140,170))' % (ultra_low, ultra_high, pair_num -ultra_low -ultra_high, pair_num, low_bound, ultra_low*100/pair_num, up_bound, ultra_high*100/pair_num, low_bound, up_bound, 100-ultra_low*100/pair_num - ultra_high*100/pair_num)
         print("fragsize=rep(c(" + ",".join(sizes) + ")," + "times=c(" + ",".join(counts) + "))", file=RS)
         print("frag_sd = sd(fragsize)", file=RS)
         print("frag_mean = mean(fragsize)", file=RS)
@@ -5028,17 +4978,11 @@ class ParseBAM(object):
             file=ROUT,
         )
         print("dev.off()", file=ROUT)
-        # print >>ROUT, "mat=matrix(c(events,junction),byrow=T,ncol=3)"
-        # print >>ROUT, 'barplot(mat,beside=T,ylim=c(0,100),names=c("known","partial\nnovel","complete\nnovel"),legend.text=c("splicing events","splicing junction"),ylab="Percent")'
 
     def junction_freq(self, chrom, st, end, known_junctions, q_cut=30):
         """
         return number of splicing reads for each known junction
         """
-
-        # reading input SAM file
-        # if self.bam_format:print >>sys.stderr, "Load BAM file ... ",
-        # else:print >>sys.stderr, "Load SAM file ... ",
 
         junc_freq = collections.defaultdict(int)
         try:
@@ -5200,8 +5144,6 @@ class ParseBAM(object):
             unknown_junc.append(str(unknown_junctionNum))
             print(str(unknown_junctionNum) + " novel splicing junctions.", file=sys.stderr)
 
-        # for j in uniq_SJ:
-        # print >>OUT, j + "\t" + str(uniq_SJ[j])
         print("pdf('%s')" % (outfile + ".junctionSaturation_plot.pdf"), file=OUT)
         print("x=c(" + ",".join([str(i) for i in tmp]) + ")", file=OUT)
         print("y=c(" + ",".join(known_junc) + ")", file=OUT)
@@ -5779,7 +5721,6 @@ class ParseBAM(object):
         for k in sorted(r_data):
             print("%s=c(%s)" % (k, ",".join([str(i) for i in r_data[k]])), file=ROUT)
 
-        # print >>ROUT, 'color_code = c("#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99","#b15928")'
         print(
             'color_code = c("green","powderblue","lightseagreen","red","violetred4","mediumorchid1","blue","royalblue","steelblue1","orange","gold","black")',
             file=ROUT,
@@ -5873,9 +5814,6 @@ class ParseBAM(object):
                     if strand == "-":
                         p = read_length - p
                     del_postns[p] += 1
-                    # del_sizes[s] += 1
-                # print aligned_read
-                # print del_positions
 
         except StopIteration:
             print("Total reads used: " + str(count), file=sys.stderr)

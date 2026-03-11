@@ -23,15 +23,6 @@ from time import strftime
 
 import numpy as np
 
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__ = []
-__license__ = "GPL"
-__version__ = "5.0.1"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
-
 
 def printlog(mesg):
     """print progress into stderr and log file"""
@@ -206,7 +197,7 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
 def main():
 
     usage = "%prog [options]" + "\n"
-    parser = OptionParser(usage, version="%prog " + __version__)
+    parser = OptionParser(usage, version="%prog 5.0.2")
     parser.add_option(
         "--bam",
         action="store",

@@ -1,33 +1,12 @@
-#!/usr/bin/env python
 # Liguo Wang
 # 04/13/2011
 
-"""
-This python3 module was converted from python2.7 code using 2to3
-"""
-
-# import built-in modules
 import re
 import sys
 
-# from optparse import OptionParser
-# import third-party modules
-# from bx.bitset import *
-# from bx.bitset_builders import *
-# from bx.intervals import *
-# import fasta
 import bx.wiggle
 from bx.binned_array import BinnedArray
 from bx_extras.fpconst import isNaN
-
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__: list[str] = []
-__license__ = "GPL"
-__version__ = "3.0.0"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
 
 
 class ParseWig:
@@ -39,7 +18,6 @@ class ParseWig:
         self.scores = {}
         self.num_re = re.compile(r"[\d\.\-\+]+")
         fh = open(wigFile)
-        # infile=open(wigFile,'r')
         for i, (chrom, pos, val) in enumerate(bx.wiggle.Reader(fh)):
             chrom = chrom.upper()
             if chrom not in self.scores:
@@ -47,7 +25,6 @@ class ParseWig:
             self.scores[chrom][pos] = val
             if i % 100000 == 0:
                 print("%i datapoints loaded \r" % i)
-        # print self.scores.keys()
         print("total " + str(i) + " points loaded")
 
     def fetch_all_scores(self, chr, st, end):
@@ -93,9 +70,6 @@ class ParseWig:
         return sum(lst)
 
 
-# if __name__ == "__main__": main()
-
-
 class ParseWig2:
     """provie methods to manipulate wiggle format file. For wiggle format see:
     http://genome.ucsc.edu/goldenPath/help/wiggle.html. The same coordinate could occur more than
@@ -106,7 +80,6 @@ class ParseWig2:
         self.scores = {}
         self.num_re = re.compile(r"[\d\.\-\+]+")
         fh = open(wigFile)
-        # infile=open(wigFile,'r')
         for i, (chrom, pos, val) in enumerate(bx.wiggle.Reader(fh)):
             chrom = chrom.upper()
             if chrom not in self.scores:
@@ -118,7 +91,6 @@ class ParseWig2:
                 self.scores[chrom][pos] += val
             if i % 100000 == 0:
                 print("%i datapoints loaded \r" % i)
-        # print self.scores.keys()
         print("total " + str(i) + " points loaded")
 
     def fetch_all_scores_by_range(self, chr, st, end):
@@ -207,6 +179,3 @@ class ParseWig2:
             except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
-
-
-# if __name__ == "__main__": main()

@@ -1,26 +1,9 @@
-#!/usr/bin/env python
-
-# import built-in modules
 import math
-
-# import third-party modules
-
-# changes to the paths
-
-# changing history to this module
-# 05/26/2011: suppport multiple spliced mapped reads
-
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__: list[str] = []
-__license__ = "GPL"
-__version__ = "3.0.0"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
+from collections.abc import Callable
+from typing import Any
 
 
-def RSS(arg):
+def RSS(arg: str) -> Any:
     """calculate Square root of sum of square. Input is ',' separated numbers"""
     lst = arg.split(",")
     lst_sum = 0
@@ -30,7 +13,7 @@ def RSS(arg):
     return lst_sum**0.5
 
 
-def H_mean(arg):
+def H_mean(arg: str) -> float | str:
     """calculate harmornic mean. Input is ',' separated numbers"""
     lst = [1 / float(i) for i in arg.split(",") if float(i) != 0]
     if len(lst) == 0:
@@ -39,7 +22,7 @@ def H_mean(arg):
         return len(lst) / (sum(lst))
 
 
-def shannon_entropy(arg):
+def shannon_entropy(arg: list[int | float]) -> float | int:
     """calculate shannon's entropy (or Shannon-Wiener index)."""
     lst = arg
     lst = [float(i) for i in lst if float(i) > 0]
@@ -52,7 +35,7 @@ def shannon_entropy(arg):
         return -entropy
 
 
-def shannon_entropy_es(arg):
+def shannon_entropy_es(arg: list[int | float]) -> float | str | int:
     """calculate estimator of shannon's entropy (Chao & Shen, 2003)"""
     lst = arg
     lst = [float(i) for i in lst if float(i) > 0]
@@ -80,10 +63,9 @@ def shannon_entropy_es(arg):
         return -entropy
 
 
-def shannon_entropy_ht(arg):
+def shannon_entropy_ht(arg: str) -> float | str | int:
     """calculate estimator of shannon's entropy based on Horzitz-Thompson"""
-    lst = arg.split(",")
-    lst = [float(i) for i in lst if float(i) > 0]
+    lst: list[float] = [float(i) for i in arg.split(",") if float(i) > 0]
     if sum(lst) <= 0 or min(lst) < 0:
         return "NA"  # if there is no fragmental splicing
     if len(lst) == 1:
@@ -96,10 +78,9 @@ def shannon_entropy_ht(arg):
     return -entropy
 
 
-def simpson_index(arg):
+def simpson_index(arg: str) -> float | int:
     """calculate Gini-Simpson's index. Input is ',' separated numbers"""
-    lst = arg.split(",")
-    lst = [float(i) for i in lst if float(i) > 0]
+    lst: list[float] = [float(i) for i in arg.split(",") if float(i) > 0]
     simpson = 0.0
 
     try:
@@ -110,10 +91,9 @@ def simpson_index(arg):
         return 0
 
 
-def simpson_index_es(arg):
+def simpson_index_es(arg: str) -> float | int:
     """calculate estimator Gini-Simpson's index. Input is ',' separated numbers"""
-    lst = arg.split(",")
-    lst = [float(i) for i in lst if float(i) > 0]
+    lst: list[float] = [float(i) for i in arg.split(",") if float(i) > 0]
     simpson = 0.0
 
     try:
@@ -124,23 +104,22 @@ def simpson_index_es(arg):
         return 0
 
 
-def Hill_number(arg, qvalue=1):
+def Hill_number(arg: str, qvalue: int | float = 1) -> float:
     """Calculate real diversity (Hill's number). Input is ',' separated numbers. qvalue is the only
     parameter for Hill's function. When q=1, it return exp(H) which is the effective number of junctions
     calculated by Shannon's entropy. When q<1, Hill's function was favors low frequency junctions.
     When q>1, Hill's function was favors high frequency junctions (common junctions). Simpon's Index
     is particular case of Hill's function as q=2"""
 
-    lst = arg.split(",")
-    lst = [float(i) for i in lst if float(i) > 0]
+    lst: list[float] = [float(i) for i in arg.split(",") if float(i) > 0]
     freq = [(i / sum(lst)) ** qvalue for i in lst]
     try:
-        return (sum(freq)) ** (1 / (1 - qvalue))
+        return (sum(freq)) ** (1 / (1 - qvalue))  # type: ignore[no-any-return]
     except Exception:
-        return math.exp(shannon_entropy(arg))
+        return math.exp(shannon_entropy(arg))  # type: ignore[arg-type]  # Bug: passes str to list-expecting function
 
 
-def percentile(N, percent, key=lambda x: x):
+def percentile(N: list[Any], percent: float, key: Callable[[Any], float] = lambda x: x) -> float | None:
     """
     Find the percentile of a list of values.
 
@@ -162,7 +141,7 @@ def percentile(N, percent, key=lambda x: x):
     return d0 + d1
 
 
-def percentile_list(N):
+def percentile_list(N: list[int | float]) -> list[int | float] | None:
     """
     Find the percentile of a list of values.
     @parameter N - is a list of values. Note N MUST BE already sorted.
@@ -172,7 +151,7 @@ def percentile_list(N):
         return None
     if len(N) < 100:
         return N
-    per_list = []
+    per_list: list[int | float] = []
     for i in range(1, 101):
         k = (len(N) - 1) * i / 100.0
         f = math.floor(k)

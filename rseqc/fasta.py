@@ -1,10 +1,7 @@
-#!/usr/bin/env python
 """
 manipulate fasta for fastq format files.
-This python3 module was converted from python2.7 code using 2to3
 """
 
-# import built-in modules
 import collections
 import sys
 from optparse import OptionParser
@@ -12,22 +9,6 @@ from optparse import OptionParser
 import numpy
 
 from rseqc import FrameKmer
-
-# import third-party modules
-
-# changes to the paths
-
-# changing history to this module
-
-
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__: list[str] = []
-__license__ = "GPL"
-__version__ = "3.0.0"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
 
 
 class Fasta:
@@ -248,7 +229,6 @@ class Fasta:
                     file=sys.stderr,
                 )
                 return ""
-                # print >>sys.stderr, chr + "\t" + str(st) +'\t' + str(end) + "  Please input chr,st,end"
 
 
 def main():

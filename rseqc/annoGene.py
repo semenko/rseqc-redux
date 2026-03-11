@@ -3,19 +3,8 @@ import sys
 
 from bx.intervals import Intersecter, Interval
 
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__: list[str] = []
-__license__ = "GPL"
-__version__ = "3.0.0"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
-
-
 """
 Compare given bed entry to reference gene model
-This python3 module was converted from python2.7 code using 2to3
 """
 
 
@@ -314,15 +303,8 @@ def annotateBed(inputbed, refbed, outfile):
                 print(line + "\t" + "novel(intergenic)")
             else:
                 getExonFromLine(line)
-                # print line + '\t' + 'overlap'
                 # utr_3_exons = getUTRExon(line,utr=3)
                 # utr_5_exons = getUTRExon(line,utr=5)
                 # cds_exons = getCDSExon(line)
         else:
             print(line + "\t" + "unknownChrom")
-
-        # for utr3 in utr_3_exons:
-        #   (chrom, st, end) = (utr3[0], int(utr3[1]),int(utr3[2]))
-        #   if chrom in ref_exon_ranges:
-        #       if len(ref_exon_ranges[chrom].find(st,end))>0 :     #input exon overlap with known exon
-        #   else:

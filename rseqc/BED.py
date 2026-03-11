@@ -1,40 +1,16 @@
-#!/usr/bin/env python
-"""
-This python3 module was converted from python2.7 code using 2to3
-"""
-
-# import built-in modules
 import collections
 import math
 import os
 import re
 import sys
 from itertools import groupby
-
-# import gc
 from operator import itemgetter
 
 import pysam
-
-# import third-party modules
 from bx.bitset_builders import binned_bitsets_from_file, binned_bitsets_from_list
 from bx.intervals import Intersecter, Interval, IntervalTree
 
 from . import fasta
-
-# changes to the paths
-
-# changing history to this module
-# 05/26/2011: suppport multiple spliced mapped reads
-
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__: list[str] = []
-__license__ = "GPL"
-__version__ = "3.0.0"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
 
 
 class ParseBED:
@@ -1041,7 +1017,6 @@ class ParseBED:
                     )
                 uniqJunc[key] += 1
             # except Exception:
-            #   print >>sys.stderr,"[NOTE:input bed must be 12-column] skipped this line: " + line,
             #   continue
         self.f.seek(0)
         FO.close()
@@ -1699,7 +1674,6 @@ class CompareBED:
         KNO = open(KnownBed, "w")
         NOV = open(NovelBed, "w")
 
-        # print >>sys.stderr,"writing intron to " + outfile + " ..."
         ref_blocks = collections.defaultdict(dict)
 
         print("reading reference bed file", self.B_full_Name, " ... ", end=" ", file=sys.stderr)
@@ -1790,7 +1764,6 @@ class CompareBED:
         N3 = open(NovelBed3, "w")
         N35 = open(NovelBed35, "w")
 
-        # print >>sys.stderr,"writing intron to " + outfile + " ..."
         refIntronStarts = collections.defaultdict(dict)
         refIntronEnds = collections.defaultdict(dict)
 
@@ -2504,16 +2477,12 @@ class CompareBED:
         for key in tss_group:
             tss_group_num += 1
             chrom, tss_st, tss_end = key.split(":")
-            # print chrom + '\t'+ tss_st +'\t' + tss_end
             if chrom not in ranges:
                 ranges[chrom] = IntervalTree()
             ranges[chrom].insert_interval(Interval(int(tss_st), int(tss_end), value=tss_group[key] + "\t" + key))
 
         self.B_fh.seek(0)
         print("Done. Total " + str(tss_group_num) + " TSS groups", file=sys.stderr)
-
-        # a=ranges['chr1'].find(1000000,1200000)
-        # print a
 
         # read input bed file
         print("Find nearest TSS(s) for " + self.A_base_Name + "...", end=" ", file=sys.stderr)
@@ -2607,16 +2576,12 @@ class CompareBED:
         for key in tts_group:
             tts_group_num += 1
             chrom, tts_st, tts_end = key.split(":")
-            # print chrom + '\t'+ tts_st +'\t' + tts_end
             if chrom not in ranges:
                 ranges[chrom] = IntervalTree()
             ranges[chrom].insert_interval(Interval(int(tts_st), int(tts_end), value=tts_group[key] + "\t" + key))
 
         self.B_fh.seek(0)
         print("Done. Total " + str(tts_group_num) + " TTS groups", file=sys.stderr)
-
-        # a=ranges['chr1'].find(1000000,1200000)
-        # print a
 
         # read input bed file
         print("Find nearest TTS(s) for " + self.A_base_Name + "...", end=" ", file=sys.stderr)
@@ -2763,7 +2728,6 @@ class CompareBED:
         return nearest_peak
         # FO=open("aaa",'w')
         # for k,v in nearest_peak.items():
-        #   print >>FO,  str(k) + '\t' + str(v)
 
     def bestMatch(self):
         """Exon chain comparison. Given a bed entry in bedFileA, find the best-matched gene from bedFileB.
@@ -2804,7 +2768,6 @@ class CompareBED:
             exon_end = list(map(int, fields[10].rstrip(",").split(",")))
             exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
             # except Exception:
-            #   print >>sys.stderr,"[NOTE:input bed must be 12-column] skipped this line: " + line,
             #   continue
             for st, end in zip(exon_start, exon_end):
                 boundaries.add(st)
@@ -2861,7 +2824,6 @@ class CompareBED:
                 boundaries.add(end)
 
             chrom = chrom + ":" + strand
-            # print line.strip() + '\t',
             if chrom in ref_ranges:
                 overlap_genes = ref_ranges[chrom].find(int(txStart), int(txEnd))
                 if len(overlap_genes) == 0:  # not overlap with any gene

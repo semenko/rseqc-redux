@@ -1,19 +1,8 @@
 """
 manipulate CIGAR string
-This python3 module was converted from python2.7 code using 2to3
 """
 
-# import built-in modules
 import re
-
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__: list[str] = []
-__license__ = "GPL"
-__version__ = "3.0.0"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
 
 head_clip = re.compile(r"^(\d+)S")
 tail_clip = re.compile(r"(\d+)S$")
@@ -62,7 +51,6 @@ def fetch_tail_clip(chr: str, st: int | str, cigar: str) -> list[list]:
     else:
         h_len = int(h[0])
     ref_length = sum([int(i) for i in ref_part.findall(cigar)])
-    # print read_length
     chrom_end = int(st) + (ref_length - h_len)  # because SAM is 1-based
     chrom_st = chrom_end - t_len
     block.append([chr, chrom_st, chrom_end])

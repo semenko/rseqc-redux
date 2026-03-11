@@ -21,19 +21,10 @@ import pyBigWig
 
 from qcmodule import BED, twoList
 
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__ = []
-__license__ = "GPL"
-__version__ = "5.0.1"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Testing"
-
 
 def main():
     usage = "%prog [options]"
-    parser = OptionParser(usage, version="%prog " + __version__)
+    parser = OptionParser(usage, version="%prog 5.0.2")
 
     parser.add_option("-i", "--bwfile1", action="store", type="string", dest="BigWig_File1", help="One BigWig file.")
     parser.add_option(

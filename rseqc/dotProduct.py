@@ -1,18 +1,11 @@
+from __future__ import annotations
+
 import random  # module to generate random numnbers
 from itertools import starmap
 from operator import mul
 
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__: list[str] = []
-__license__ = "GPL"
-__version__ = "3.0.0"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
 
-
-def v(N=50, min=-10, max=10):
+def v(N: int = 50, min: int = -10, max: int = 10) -> list[int]:
     """Generates a random vector (in an array) of dimension N; the
     values are integers in the range [min,max]."""
     out = []
@@ -21,13 +14,13 @@ def v(N=50, min=-10, max=10):
     return out
 
 
-def check(v1, v2):
+def check(v1: list[int], v2: list[int]) -> None:
     if len(v1) != len(v2):
         raise ValueError("the lenght of both arrays must be the same")
     pass
 
 
-def d0(v1, v2):
+def d0(v1: list[int], v2: list[int]) -> int:
     """
     d0 is Nominal approach:
     multiply/add in a loop
@@ -39,7 +32,7 @@ def d0(v1, v2):
     return out
 
 
-def d1(v1, v2):
+def d1(v1: list[int], v2: list[int]) -> int:
     """
     d1 uses an imap (from itertools)
     """
@@ -47,7 +40,7 @@ def d1(v1, v2):
     return sum(map(mul, v1, v2))
 
 
-def d2(v1, v2):
+def d2(v1: list[int], v2: list[int]) -> int:
     """
     d2 uses a conventional map
     """
@@ -55,7 +48,7 @@ def d2(v1, v2):
     return sum(map(mul, v1, v2))
 
 
-def d3(v1, v2):
+def d3(v1: list[int], v2: list[int]) -> starmap[int]:
     """
     d3 uses a starmap (itertools) to apply the mul operator on an izipped (v1,v2)
     """

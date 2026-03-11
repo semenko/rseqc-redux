@@ -12,20 +12,12 @@ from optparse import OptionParser
 
 from qcmodule import fastq
 
-__author__ = "Liguo Wang"
 __contributor__ = "Liguo Wang"
-__copyright__ = "Copyright 2020, Mayo Clinic"
-__credits__ = []
-__license__ = "GPL"
-__version__ = "5.0.1"
-__maintainer__ = "Liguo Wang"
-__email__ = "wangliguo78@gmail.com"
-__status__ = "Development"
 
 
 def main():
     usage = __doc__
-    parser = OptionParser(usage, version="%prog " + __version__)
+    parser = OptionParser(usage, version="%prog 5.0.2")
     parser.add_option(
         "-i",
         "--infile",

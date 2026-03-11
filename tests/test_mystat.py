@@ -3,6 +3,8 @@
 import importlib
 import math
 
+import pytest
+
 from rseqc import mystat
 
 
@@ -159,3 +161,81 @@ def test_shannon_entropy_es_single():
 def test_shannon_entropy_es_empty():
     result = mystat.shannon_entropy_es([])
     assert result == "NA"
+
+
+# --- shannon_entropy_ht ---
+
+
+def test_shannon_entropy_ht_uniform():
+    # HT estimator for uniform distribution, should be positive
+    result = mystat.shannon_entropy_ht("1,1,1,1")
+    assert isinstance(result, float)
+    assert result > 0
+
+
+def test_shannon_entropy_ht_single():
+    result = mystat.shannon_entropy_ht("5")
+    assert result == 0
+
+
+def test_shannon_entropy_ht_na():
+    # all zeros filtered out => empty => NA
+    result = mystat.shannon_entropy_ht("0,0,0")
+    assert result == "NA"
+
+
+def test_shannon_entropy_ht_two_values():
+    result = mystat.shannon_entropy_ht("1,3")
+    assert isinstance(result, float)
+    assert result > 0
+
+
+# --- simpson_index_es ---
+
+
+def test_simpson_index_es_uniform():
+    result = mystat.simpson_index_es("1,1,1,1")
+    # For n_i = 1 each, sum(n_i * (n_i - 1)) = 0, so index = 1 - 0 = 1.0
+    # But sum = 4, so 1 - 0 / (4*3) = 1.0
+    assert abs(result - 1.0) < 1e-10
+
+
+def test_simpson_index_es_single():
+    result = mystat.simpson_index_es("5")
+    # 1 - 5*4/(5*4) = 0
+    assert abs(result - 0.0) < 1e-10
+
+
+def test_simpson_index_es_two_values():
+    result = mystat.simpson_index_es("3,7")
+    assert isinstance(result, float)
+    assert 0 <= result <= 1
+
+
+# --- Hill_number extended ---
+
+
+def test_hill_number_q_half():
+    # q=0.5, should be >= q=2 result (favors rare species)
+    result_half = mystat.Hill_number("1,1,1,1", qvalue=0.5)
+    result_two = mystat.Hill_number("1,1,1,1", qvalue=2)
+    # For uniform distribution, all q values give same result = 4
+    assert abs(result_half - 4.0) < 1e-10
+    assert abs(result_two - 4.0) < 1e-10
+
+
+def test_hill_number_q_half_nonuniform():
+    result_half = mystat.Hill_number("1,2,3,4", qvalue=0.5)
+    result_two = mystat.Hill_number("1,2,3,4", qvalue=2)
+    # q=0.5 favors rare species, so result should be >= q=2
+    assert result_half >= result_two
+
+
+def test_hill_number_q1_bug():
+    """q=1 triggers except branch which passes str to shannon_entropy (expects list).
+    This is a known bug — shannon_entropy iterates over characters of the string."""
+    # When q=1, 1/(1-1) raises ZeroDivisionError, falls to except
+    # which calls shannon_entropy(arg) where arg is a string
+    # shannon_entropy treats string chars as iterable, float("1") works but float(",") fails
+    with pytest.raises(ValueError):
+        mystat.Hill_number("1,1,1,1", qvalue=1)

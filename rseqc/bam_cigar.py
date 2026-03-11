@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """manipulate CIGAR string represented as list of tuples (BAM file)
 BAM OP  Description
 0   M   alignment match
@@ -18,22 +16,10 @@ The tuple [ (0,3), (1,5), (0,2) ] refers to an alignment with 3 matches,
 
 NOTE: only deal with Match, Gap, Soft Clip, Insertion, Deletion
 
-
-This python3 module was converted from python2.7 code using 2to3
-
 """
 
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__: list[str] = []
-__license__ = "GPL"
-__version__ = "3.0.0"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
 
-
-def map_bounds(start_pos, cigar):
+def map_bounds(start_pos: int, cigar: list[tuple[int, int]]) -> tuple[int, int]:
     """return the start, end corrdinates (on genome) of mapped region"""
     span_size = 0  # the actual genomic region size that covered by read
     for c, s in cigar:  # code and size
@@ -50,7 +36,7 @@ def map_bounds(start_pos, cigar):
     return (start_pos, start_pos + span_size)
 
 
-def fetch_exon(chrom, st, cigar):
+def fetch_exon(chrom: str, st: int, cigar: list[tuple[int, int]]) -> list[tuple[str, int, int]]:
     """fetch exon regions defined by cigar. st must be zero based
     return list of tuple of (chrom,st, end)
     """
@@ -74,7 +60,7 @@ def fetch_exon(chrom, st, cigar):
     return exon_bound
 
 
-def fetch_intron(chrom, st, cigar):
+def fetch_intron(chrom: str, st: int, cigar: list[tuple[int, int]]) -> list[tuple[str, int, int]]:
     """fetch intron regions defined by cigar. st must be zero based
     return list of tuple of (chrom,st, end)
     """
@@ -99,7 +85,7 @@ def fetch_intron(chrom, st, cigar):
     return intron_bound
 
 
-def fetch_clip(chrom, st, cigar):
+def fetch_clip(chrom: str, st: int, cigar: list[tuple[int, int]]) -> list[tuple[str, int, int]]:
     """fetch head soft clip regions defined by cigar. st must be zero based
     return list of tuple of (chrom,st, end)
     """
@@ -123,7 +109,7 @@ def fetch_clip(chrom, st, cigar):
     return clip_bound
 
 
-def fetch_deletion(chrom, st, cigar):
+def fetch_deletion(chrom: str, st: int, cigar: list[tuple[int, int]]) -> list[tuple[str, int, int]]:
     """fetch deletion regions defined by cigar. st must be zero based
     return list of tuple of (chrom,st, end)
     """
@@ -147,7 +133,7 @@ def fetch_deletion(chrom, st, cigar):
     return del_bound
 
 
-def fetch_deletion_range(cigar):
+def fetch_deletion_range(cigar: list[tuple[int, int]]) -> list[tuple[int, int]]:
     """fetch deletion regions defined by cigar. st must be zero based
     return list of tuple of (st, end). 'st','end' is relative to the
     start of read.
@@ -170,7 +156,7 @@ def fetch_deletion_range(cigar):
     return del_bound
 
 
-def fetch_insertion_range(cigar):
+def fetch_insertion_range(cigar: list[tuple[int, int]]) -> list[tuple[int, int]]:
     """fetch insertion regions defined by cigar. st must be zero based
     return list of tuple of (st, end). 'st','end' is relative to the
     start of read.
@@ -194,7 +180,7 @@ def fetch_insertion_range(cigar):
     return ins_bound
 
 
-def fetch_insertion(chrom, st, cigar):
+def fetch_insertion(chrom: str, st: int, cigar: list[tuple[int, int]]) -> list[tuple[str, int, int]]:
     """fetch insertion regions defined by cigar. st must be zero based
     return list of tuple of (chrom,st, end)
 
@@ -223,7 +209,7 @@ def fetch_insertion(chrom, st, cigar):
     return ins_bound
 
 
-def list2str(lst):
+def list2str(lst: list[tuple[int, int]]) -> str:
     """translate samtools returned cigar_list into cigar_string
 
     [(4, 1), (0, 9)] ==> '1S9M'
@@ -236,7 +222,7 @@ def list2str(lst):
     return cigar_str
 
 
-def list2longstr(lst):
+def list2longstr(lst: list[tuple[int, int]]) -> str:
     """translate samtools returned cigar_list into LONG cigar_string
     Sum of lengths of the M/I/S/=/X operations shall equal the length of SEQ
     """

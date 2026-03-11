@@ -23,7 +23,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 
 **Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
 
-**Tests:** 195 passing, 1 xfail. Coverage: 15% overall; utility modules 78–97%, BED.py 13%, SAM.py 2%.
+**Tests:** 274 passing, 1 xfail. Coverage: utility modules 78–97%, BED.py 13%, SAM.py 2%.
 
 **Lint/Type:** CI green — ruff (0 errors), mypy (0 errors), ruff format clean.
 
@@ -31,14 +31,12 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - Star imports replaced with explicit imports in all `rseqc/` and `scripts/` files
 - Bare `except:` → `except Exception:` across entire codebase (97 instances)
 - Unused variables removed (147 instances via ruff F841)
-- Type hints added to `cigar.py` and `ireader.py`
-- `__credits__: list[str] = []` annotation in 13 modules (mypy fix)
+- Type hints added to `cigar.py`, `ireader.py`, `bam_cigar.py`, `mystat.py`, `quantile.py`, `dotProduct.py`, `changePoint.py`, `twoList.py`, `FrameKmer.py`, `orf.py`
+- Legacy boilerplate removed: Python 3 version checks (32 scripts), `__author__`/`__version__` metadata (44 files), UTF-8 encoding declarations, shebangs from library modules, "converted from python2.7" docstrings, dead code and commented-out prints
+- CLI smoke tests for all 33 scripts (`--help` flag)
 
 **What still needs work:**
 - SAM.py/BED.py methods need integration tests with BAM fixtures (pysam-built)
-- CLI scripts have zero test coverage
-- scbam.py at 4% coverage
-- Type hints for remaining modules
 - E501 (line length) and E741 (ambiguous vars) still suppressed
 
 ## Known Bugs (documented, NOT fixed — need regression tests first)
@@ -52,6 +50,8 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 7. **`input_file` undefined** — `scripts/bam_stat.py:67` — Should be `options.input_file`. Marked with `# noqa: F821`.
 8. **`urllib.urlopen`** — `rseqc/ireader.py:31` — Python 2 API, should be `urllib.request.urlopen`. URL-based file reading is broken.
 9. **`subtractBed3` no-op guard** — `rseqc/BED.py:3003` — `if chrom not in bitsets1` is always False since we iterate over `bitsets1`. Likely should be `bitsets2`.
+10. **`string.atoi`/`string.join`/`string.maketrans`** — ~60 call sites in `rseqc/SAM.py` ParseSAM class. These Python 2 `string` module functions don't exist in Python 3. The entire ParseSAM class is dead code (all scripts use ParseBAM via pysam).
+11. **`Hill_number` q=1 bug** — `rseqc/mystat.py` — When qvalue=1, ZeroDivisionError falls through to `shannon_entropy(arg)` where `arg` is a comma-separated string, but `shannon_entropy()` expects a list. Iterating over string characters causes `ValueError`.
 
 ## Commands
 

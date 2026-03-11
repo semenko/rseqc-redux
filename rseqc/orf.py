@@ -1,34 +1,20 @@
-"""
-This python3 module was converted from python2.7 code using 2to3
-"""
-
 import collections
 import sys
-
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__: list[str] = []
-__license__ = "GPL"
-__version__ = "3.0.0"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
-
 
 start_coden = ["ATG"]
 stop_coden = ["TAG", "TAA", "TGA"]
 
 
-def _reverse_comp(seq):
+def _reverse_comp(seq: str) -> str:
     swap = {"A": "T", "T": "A", "C": "G", "G": "C", "N": "N", "X": "X"}
     tmp = "".join(swap[b] for b in seq)
     return tmp[::-1]
 
 
-def longest_orf(seq, strandness, sc=None, tc=None):
+def longest_orf(seq: str, strandness: str, sc: str | None = None, tc: str | None = None) -> str:  # noqa: C901
     """find the longest ORF in input mRNA sequence. strand=0 only search '+' strand, strand=1, only
     search '-' strand, strand=2, search both strand"""
-    orf_ranges = collections.defaultdict(list)
+    orf_ranges: dict[int, list[int]] = collections.defaultdict(list)
     dna_seq = seq.upper()
     possible_orf = {}  # [orf-st, orf_end] ==>size
     largest_orf = ""
@@ -60,16 +46,16 @@ def longest_orf(seq, strandness, sc=None, tc=None):
     orf_ranges.clear()
     if strand == "-":
         dna_seq = _reverse_comp(dna_seq)
-    for sc in start_coden:
-        start_found = dna_seq.find(sc)
+    for sc in start_coden:  # type: ignore[assignment]  # Bug #4: loop var shadows parameter
+        start_found = dna_seq.find(sc)  # type: ignore[arg-type]
         while start_found > -1:
             start_pos.append(start_found)
-            start_found = dna_seq.find(sc, start_found + 1)
-    for sc in stop_coden:
-        end_found = dna_seq.find(sc)
+            start_found = dna_seq.find(sc, start_found + 1)  # type: ignore[arg-type]
+    for sc in stop_coden:  # type: ignore[assignment]
+        end_found = dna_seq.find(sc)  # type: ignore[arg-type]
         while end_found > -1:
             end_pos.append(end_found)
-            end_found = dna_seq.find(sc, end_found + 1)
+            end_found = dna_seq.find(sc, end_found + 1)  # type: ignore[arg-type]
 
     for st in start_pos:
         for end in end_pos:
@@ -80,18 +66,19 @@ def longest_orf(seq, strandness, sc=None, tc=None):
     for k in sorted(orf_ranges):
         possible_orf[str(k) + "\t" + str(min(orf_ranges[k])) + "\t" + strand] = min(orf_ranges[k]) - k
 
-    for k, v in list(possible_orf.items()):
+    for k, v in list(possible_orf.items()):  # type: ignore[assignment]
         if v == max(possible_orf.values()):
-            # print "#" + k
-            fields = k.split()
+            fields = k.split()  # type: ignore[attr-defined]
             largest_orf = dna_seq[int(fields[0]) : int(fields[1])]
     return largest_orf  # could be None, '' or DNA sequencee
 
 
-def longest_orf_bed(seq, bedline, sc=None, tc=None):
+def longest_orf_bed(  # noqa: C901
+    seq: str, bedline: str, sc: str | None = None, tc: str | None = None
+) -> str | None:
     """find the longest ORF in input mRNA sequence. strand=0 only search '+' strand, strand=1, only
     search '-' strand, strand=2, search both strand"""
-    orf_ranges = collections.defaultdict(list)
+    orf_ranges: dict[int, list[int]] = collections.defaultdict(list)
     dna_seq = seq.upper()
     possible_orf = {}  # [orf-st, orf_end] ==>size
 
@@ -130,16 +117,16 @@ def longest_orf_bed(seq, bedline, sc=None, tc=None):
     orf_ranges.clear()
     if strand == "-":
         dna_seq = _reverse_comp(dna_seq)
-    for sc in start_coden:
-        start_found = dna_seq.find(sc)
+    for sc in start_coden:  # type: ignore[assignment]  # Bug #4: loop var shadows parameter
+        start_found = dna_seq.find(sc)  # type: ignore[arg-type]
         while start_found > -1:
             start_pos.append(start_found)
-            start_found = dna_seq.find(sc, start_found + 1)
-    for sc in stop_coden:
-        end_found = dna_seq.find(sc)
+            start_found = dna_seq.find(sc, start_found + 1)  # type: ignore[arg-type]
+    for sc in stop_coden:  # type: ignore[assignment]
+        end_found = dna_seq.find(sc)  # type: ignore[arg-type]
         while end_found > -1:
             end_pos.append(end_found)
-            end_found = dna_seq.find(sc, end_found + 1)
+            end_found = dna_seq.find(sc, end_found + 1)  # type: ignore[arg-type]
 
     for st in start_pos:
         for end in end_pos:
@@ -150,10 +137,9 @@ def longest_orf_bed(seq, bedline, sc=None, tc=None):
     for k in sorted(orf_ranges):
         possible_orf[str(k) + "\t" + str(min(orf_ranges[k])) + "\t" + strand] = min(orf_ranges[k]) - k
 
-    for k, v in list(possible_orf.items()):
+    for k, v in list(possible_orf.items()):  # type: ignore[assignment]
         if v == max(possible_orf.values()):
-            # print k + '\t' + str(v)
-            col = k.split()
+            col = k.split()  # type: ignore[attr-defined]
             cds_st = int(col[0])
             cds_end = int(col[1])
             strand = col[2]
@@ -199,3 +185,4 @@ def longest_orf_bed(seq, bedline, sc=None, tc=None):
                 fields[7] = str(cds_pos1)
                 fields[6] = str(cds_pos2)
                 return "\t".join(fields)
+    return None

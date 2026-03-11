@@ -4,7 +4,6 @@ Equally divide BAM file (m alignments) into n parts. Each part contains roughly 
 that are randomly sampled from total alignments.
 """
 
-# import built-in modules
 import os
 import sys
 
@@ -22,22 +21,12 @@ if sys.version_info[0] != 3:
 from optparse import OptionParser
 from random import randrange
 
-# import third-party modules
 import pysam
-
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__ = []
-__license__ = "GPL"
-__version__ = "5.0.1"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
 
 
 def main():
     usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog " + __version__)
+    parser = OptionParser(usage, version="%prog 5.0.2")
     parser.add_option(
         "-i",
         "--input-file",

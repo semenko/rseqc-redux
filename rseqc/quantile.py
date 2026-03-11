@@ -9,7 +9,7 @@ Version 0.0.1 August 7. 2009
 from math import floor, modf
 
 
-def quantile(x, q, qtype=7, issorted=False):
+def quantile(x: list[int | float], q: float, qtype: int = 7, issorted: bool = False) -> int | float | None:
     """
     Args:
        x - input data
@@ -55,13 +55,3 @@ def quantile(x, q, qtype=7, issorted=False):
         return y[j]
     else:
         return y[j] + (y[j + 1] - y[j]) * (c + d * g)
-
-
-def Test():
-    x = [11.4, 17.3, 21.3, 25.9, 40.1, 50.5, 60.0, 70.0, 75]
-    for qtype in range(1, 10):
-        print(qtype, quantile(x, 0.35, qtype))
-
-
-if __name__ == "__main__":
-    Test()

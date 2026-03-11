@@ -9,15 +9,6 @@ from optparse import OptionParser
 
 from qcmodule import FrameKmer
 
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__ = []
-__license__ = "GPL"
-__version__ = "5.0.1"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
-
 
 def file_exist(file):
     try:
@@ -29,7 +20,7 @@ def file_exist(file):
 
 def main():
     usage = "\n%prog  [options]"
-    parser = OptionParser(usage, version="%prog " + __version__)
+    parser = OptionParser(usage, version="%prog 5.0.2")
     parser.add_option(
         "-i",
         "--input",

@@ -25,15 +25,6 @@ from numpy import mean, median, std
 
 from qcmodule import getBamFiles
 
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__ = []
-__license__ = "GPL"
-__version__ = "5.0.1"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
-
 
 def printlog(mesg):
     """
@@ -268,7 +259,7 @@ def tin_score(cvg, l):
 
 def main():
     usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog " + __version__)
+    parser = OptionParser(usage, version="%prog 5.0.2")
     parser.add_option(
         "-i",
         "--input",

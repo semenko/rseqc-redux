@@ -7,7 +7,6 @@ Note:
 2) Genes/transcripts with mRNA length < 100 will be skipped (Number specified to "-l" cannot be < 100).
 """
 
-# import built-in modules
 import os
 import sys
 
@@ -30,26 +29,9 @@ from os.path import basename
 from time import strftime
 
 import pysam
-
-# import third-party modules
 from numpy import mean, std
 
-# import my own modules
 from qcmodule import getBamFiles, mystat
-
-# changes to the paths
-
-# changing history to this module
-
-
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__ = []
-__license__ = "GPL"
-__version__ = "5.0.1"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
 
 
 def valid_name(s):
@@ -271,7 +253,7 @@ def Rcode_write(dataset, file_prefix, format="pdf", colNum=100):
 
 def main():
     usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog " + __version__)
+    parser = OptionParser(usage, version="%prog 5.0.2")
     parser.add_option(
         "-i",
         "--input",

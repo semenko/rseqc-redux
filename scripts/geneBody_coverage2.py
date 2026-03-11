@@ -28,15 +28,6 @@ from pyBigWig import open as openBigWig
 
 from qcmodule import mystat
 
-__author__ = "Liguo Wang, Santiago Revale"
-__copyright__ = "Copyleft"
-__credits__ = []
-__license__ = "GPL"
-__version__ = "5.0.1"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Testing"
-
 
 def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
     """Calculate reads coverage over gene body, from 5'to 3'. each gene will be equally divided
@@ -138,7 +129,7 @@ def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
 
 def main():
     usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog " + __version__)
+    parser = OptionParser(usage, version="%prog 5.0.2")
     parser.add_option(
         "-i",
         "--input-file",

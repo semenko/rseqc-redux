@@ -4,7 +4,6 @@ For each nucleotide  position of read (5'->3'), check the nucleotide frequency. 
 gives NVC (Nucleotide Versus Cycle) plot.
 -------------------------------------------------------------------------------------------------"""
 
-# import built-in modules
 import os
 import subprocess
 import sys
@@ -25,19 +24,6 @@ if sys.version_info[0] != 3:
     sys.exit()
 
 
-# changing history to this module
-
-
-__author__ = "Liguo Wang"
-__copyright__ = "Copyleft"
-__credits__ = []
-__license__ = "GPL"
-__version__ = "5.0.1"
-__maintainer__ = "Liguo Wang"
-__email__ = "wang.liguo@mayo.edu"
-__status__ = "Production"
-
-
 def printlog(mesg):
     """print progress into stderr and log file"""
     mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
@@ -48,7 +34,7 @@ def printlog(mesg):
 
 def main():
     usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog " + __version__)
+    parser = OptionParser(usage, version="%prog 5.0.2")
     parser.add_option(
         "-i",
         "--input-file",
