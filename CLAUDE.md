@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), originally by Liguo Wang. Licensed under GPLv2. The original code has no tests, uses deprecated APIs (distutils, nose, psyco), and targets Python >=3.5.
+rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), originally by Liguo Wang. Licensed under GPLv3+. The original code has no tests, uses deprecated APIs (distutils, nose, psyco), and targets Python >=3.5.
 
 ## Goals (in priority order)
 

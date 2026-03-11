@@ -129,7 +129,7 @@ uv run mypy rseqc/
 
 ## License
 
-Distributed under the terms of the [GPLv2 license][license], rseqc-redux is free and open source software.
+Distributed under the terms of the [GPLv3+ license][license], rseqc-redux is free and open source software.
 
 ## Issues
 

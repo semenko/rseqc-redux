@@ -7,7 +7,7 @@ name = "rseqc-redux"
 version = "5.0.2"
 description = "RNA-seq Quality Control — modernized fork of RSeQC"
 readme = "README.md"
-license = "GPL-2.0-only"
+license = "GPL-3.0-or-later"
 requires-python = ">=3.10"
 authors = [
     { name = "Liguo Wang", email = "wangliguo78@gmail.com" },
@@ -17,7 +17,7 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: POSIX",
     "Programming Language :: Python :: 3",
