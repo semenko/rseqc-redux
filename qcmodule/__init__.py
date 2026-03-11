@@ -3,8 +3,17 @@
 import importlib as _importlib
 
 _SUBMODULES = {
-    "SAM", "BED", "bam_cigar", "scbam", "fasta", "fastq",
-    "heatmap", "mystat", "getBamFiles", "twoList", "FrameKmer",
+    "SAM",
+    "BED",
+    "bam_cigar",
+    "scbam",
+    "fasta",
+    "fastq",
+    "heatmap",
+    "mystat",
+    "getBamFiles",
+    "twoList",
+    "FrameKmer",
 }
 
 

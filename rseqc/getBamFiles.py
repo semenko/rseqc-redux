@@ -12,24 +12,25 @@ This python3 module was converted from python2.7 code using 2to3
 
 """
 
-import os,sys
-from os.path import abspath,join, getsize
+import os
+import sys
+from os.path import abspath, getsize, join
 
 __author__ = "Liguo Wang"
 __copyright__ = "Copyleft"
 __credits__ = []
 __license__ = "GPL"
-__version__="3.0.0"
+__version__ = "3.0.0"
 __maintainer__ = "Liguo Wang"
 __email__ = "wang.liguo@mayo.edu"
 __status__ = "Production"
 
 
 def isbamfile(infile):
-    '''check if it is bam file, if it is empty and if the .bai file exists'''
-    if os.path.isfile(infile) and infile[-4:].lower() == '.bam':
+    """check if it is bam file, if it is empty and if the .bai file exists"""
+    if os.path.isfile(infile) and infile[-4:].lower() == ".bam":
         if getsize(infile) != 0:
-            if os.path.isfile(infile + '.bai'):
+            if os.path.isfile(infile + ".bai"):
                 return True
             else:
                 print("Warning: %s.bai does not exist! Skip it." % (infile), file=sys.stderr)
@@ -38,43 +39,46 @@ def isbamfile(infile):
             print("The size of %s is 0! Skip it." % (infile), file=sys.stderr)
             return False
     else:
-        return False    
+        return False
 
-def get_bam_files (input,printit=False):
-    bam_files = []  
-    
-    #dir
+
+def get_bam_files(input, printit=False):
+    bam_files = []
+
+    # dir
     if os.path.isdir(input):
-        for root, directories, files in os.walk(input,followlinks=True):
+        for root, directories, files in os.walk(input, followlinks=True):
             full_names = [join(abspath(root), name) for name in files]
             for fn in full_names:
                 if isbamfile(fn):
                     bam_files.append(fn)
-    #single bam file
+    # single bam file
     elif isbamfile(input):
         bam_files.append(input)
-    #plain text file
+    # plain text file
     elif os.path.isfile(input):
         try:
             for line in open(input):
                 line = line.strip()
-                if line.startswith('#'):continue
+                if line.startswith("#"):
+                    continue
                 if isbamfile(line):
                     bam_files.append(line)
         except:
             pass
     else:
-        tmp = input.split(',')
-        if len(tmp) <2: pass
+        tmp = input.split(",")
+        if len(tmp) < 2:
+            pass
         for i in tmp:
             if isbamfile(i):
                 bam_files.append(i)
-    
+
     if printit:
         for i in bam_files:
-            print(i)        
+            print(i)
     return bam_files
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     get_bam_files(sys.argv[1])
