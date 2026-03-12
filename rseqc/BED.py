@@ -30,233 +30,233 @@ class ParseBED:
         determining overlapping relationship. When boundary="cds", UTR resgions are NOT considered
         in determing overlapping relationship"""
 
-        f = open(infile, "r")
+        with open(infile, "r") as f:
 
-        bed_line = re.compile(r"^\S+\s+\d+\s+\d+")
-        groups = collections.defaultdict(list)  # key is internal ID, value is list of bed lines
-        groups_boundary_st = {}  # key is internal ID, value is leftmost boundary
-        groups_boundary_end = {}  # key is internal ID, value is rightmost boundary
-        Orig_bedNum = 0
-        cluster_Num = 0
-
-        # check if the input bed file is properly sorted
-        print("check if input bed file is sorted properly ...", end=" ", file=sys.stderr)
-        i = 0
-        for line in f:
-            line = line.rstrip("\r\n")
-            line = line.lstrip()
-            if bed_line.match(line):
-                fields = line.split()
-                i += 1
-                if i == 1:
-                    chrom = fields[0]
-                    txStart = int(fields[1])
-                if i > 1:
-                    if (fields[0] < chrom) or (
-                        (fields[0] == chrom) and (int(fields[1]) < txStart)
-                    ):  # print first unsorted line if any
-                        print("File not properly sorted:" + line, file=sys.stderr)
-                        exit(1)
-                    chrom = fields[0]
-                    txStart = int(fields[1])
-        else:  # well, file seems to be OK
-            print("OK!", file=sys.stderr)
-        f.seek(0)
-
-        if strand:  # want to consider strand information.
-            for line in f:
-                line = line.rstrip("\r\n")
-                line = line.lstrip()
-                fields = line.split()
-                if bed_line.match(line) and len(fields) == 12:
-                    if fields[5] == "-":
-                        continue  # merge overlapping transcripts on plus strand
-                    Orig_bedNum += 1
-                    if Orig_bedNum == 1:  # this is first bed entry
-                        overlap_flag = 0  # has nothing to overlap because it's first entry
-                        chrom = fields[0]
-                        strand = fields[5]
-
-                    elif Orig_bedNum > 1:  # this is NOT first entry
-                        overlap_flag = (
-                            1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
-                        )
-                        if fields[0] != chrom:  # not the same chromosome
-                            overlap_flag = 0
-                        if (
-                            (boundary == "utr")
-                            and (fields[0] == chrom)
-                            and (int(fields[1]) >= groups_boundary_end[cluster_Num])
-                        ):
-                            overlap_flag = 0
-                        if (
-                            (boundary == "cds")
-                            and (fields[0] == chrom)
-                            and (int(fields[6]) > groups_boundary_end[cluster_Num])
-                        ):
-                            overlap_flag = 0
-
-                    if overlap_flag == 0:
-                        cluster_Num += 1
-                        groups[cluster_Num].append(line)
-                        if boundary == "utr":
-                            groups_boundary_st[cluster_Num] = int(fields[1])
-                            groups_boundary_end[cluster_Num] = int(fields[2])
-                        if boundary == "cds":
-                            groups_boundary_st[cluster_Num] = int(fields[6])
-                            groups_boundary_end[cluster_Num] = int(fields[7])
-                        strand = fields[5]
-                        chrom = fields[0]
-
-                    elif overlap_flag == 1:
-                        groups[cluster_Num].append(line)
-                        strand = fields[5]
-                        chrom = fields[0]
-                        if boundary == "utr":
-                            groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[1]))
-                            groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[2]))
-                        if boundary == "cds":
-                            groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[6]))
-                            groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[7]))
-
-                else:
-                    print("unknown line:" + line + "\n", file=sys.stderr)
-            f.seek(0)
-
-            # merge overlapping transcripts on minus strand
-            Orig_bedNum = 0
-            for line in f:
-                line = line.rstrip("\r\n")
-                line = line.lstrip()
-                fields = line.split()
-                if bed_line.match(line) and len(fields) == 12:
-                    if fields[5] == "+":
-                        continue  # merge overlapping transcripts on plus strand
-                    Orig_bedNum += 1
-                    if Orig_bedNum == 1:  # this is first bed entry
-                        overlap_flag = 0  # has nothing to overlap because it's first entry
-                        chrom = fields[0]
-                        strand = fields[5]
-
-                    elif Orig_bedNum > 1:  # this is NOT first entry
-                        overlap_flag = (
-                            1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
-                        )
-                        if fields[0] != chrom:  # not the same chromosome
-                            overlap_flag = 0
-                        if (
-                            (boundary == "utr")
-                            and (fields[0] == chrom)
-                            and (int(fields[1]) >= groups_boundary_end[cluster_Num])
-                        ):
-                            overlap_flag = 0
-                        if (
-                            (boundary == "cds")
-                            and (fields[0] == chrom)
-                            and (int(fields[6]) > groups_boundary_end[cluster_Num])
-                        ):
-                            overlap_flag = 0
-
-                    if overlap_flag == 0:
-                        cluster_Num += 1
-                        groups[cluster_Num].append(line)
-                        if boundary == "utr":
-                            groups_boundary_st[cluster_Num] = int(fields[1])
-                            groups_boundary_end[cluster_Num] = int(fields[2])
-                        if boundary == "cds":
-                            groups_boundary_st[cluster_Num] = int(fields[6])
-                            groups_boundary_end[cluster_Num] = int(fields[7])
-                        strand = fields[5]
-                        chrom = fields[0]
-
-                    elif overlap_flag == 1:
-                        groups[cluster_Num].append(line)
-                        strand = fields[5]
-                        chrom = fields[0]
-                        if boundary == "utr":
-                            groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[1]))
-                            groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[2]))
-                        if boundary == "cds":
-                            groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[6]))
-                            groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[7]))
-
-                else:
-                    print("unknown line:" + line + "\n", file=sys.stderr)
-            f.seek(0)
-
-        else:  # NOT want to consider strand information. merge + and - together
+            bed_line = re.compile(r"^\S+\s+\d+\s+\d+")
+            groups = collections.defaultdict(list)  # key is internal ID, value is list of bed lines
+            groups_boundary_st = {}  # key is internal ID, value is leftmost boundary
+            groups_boundary_end = {}  # key is internal ID, value is rightmost boundary
             Orig_bedNum = 0
             cluster_Num = 0
+
+            # check if the input bed file is properly sorted
+            print("check if input bed file is sorted properly ...", end=" ", file=sys.stderr)
+            i = 0
             for line in f:
                 line = line.rstrip("\r\n")
                 line = line.lstrip()
-                fields = line.split()
-                if bed_line.match(line) and len(fields) == 12:
-                    # if fields[5] == '-':continue   #merge overlapping transcripts on plus strand
-                    Orig_bedNum += 1
-                    if Orig_bedNum == 1:  # this is first bed entry
-                        overlap_flag = 0  # has nothing to overlap because it's first entry
+                if bed_line.match(line):
+                    fields = line.split()
+                    i += 1
+                    if i == 1:
                         chrom = fields[0]
-                        strand = fields[5]
-
-                    elif Orig_bedNum > 1:  # this is NOT first entry
-                        overlap_flag = (
-                            1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
-                        )
-                        if fields[0] != chrom:  # not the same chromosome
-                            overlap_flag = 0
-                        if (
-                            (boundary == "utr")
-                            and (fields[0] == chrom)
-                            and (int(fields[1]) >= groups_boundary_end[cluster_Num])
-                        ):
-                            overlap_flag = 0
-                        if (
-                            (boundary == "cds")
-                            and (fields[0] == chrom)
-                            and (int(fields[6]) > groups_boundary_end[cluster_Num])
-                        ):
-                            overlap_flag = 0
-
-                    if overlap_flag == 0:
-                        cluster_Num += 1
-                        groups[cluster_Num].append(line)
-                        if boundary == "utr":
-                            groups_boundary_st[cluster_Num] = int(fields[1])
-                            groups_boundary_end[cluster_Num] = int(fields[2])
-                        if boundary == "cds":
-                            groups_boundary_st[cluster_Num] = int(fields[6])
-                            groups_boundary_end[cluster_Num] = int(fields[7])
-                        strand = fields[5]
+                        txStart = int(fields[1])
+                    if i > 1:
+                        if (fields[0] < chrom) or (
+                            (fields[0] == chrom) and (int(fields[1]) < txStart)
+                        ):  # print first unsorted line if any
+                            print("File not properly sorted:" + line, file=sys.stderr)
+                            exit(1)
                         chrom = fields[0]
-
-                    elif overlap_flag == 1:
-                        groups[cluster_Num].append(line)
-                        strand = fields[5]
-                        chrom = fields[0]
-                        if boundary == "utr":
-                            groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[1]))
-                            groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[2]))
-                        if boundary == "cds":
-                            groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[6]))
-                            groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[7]))
-
-                else:
-                    print("unknown line:" + line + "\n", file=sys.stderr)
+                        txStart = int(fields[1])
+            else:  # well, file seems to be OK
+                print("OK!", file=sys.stderr)
             f.seek(0)
 
-        try:
-            FO = open(outfile, "w")
-            print("Writing to " + outfile + "\n", file=sys.stderr)
-            for k in sorted(groups.keys()):
-                FO.write(
-                    "Group_" + str(k) + "\t" + str(groups_boundary_st[k]) + "\t" + str(groups_boundary_end[k]) + ":\n"
-                )
-                for line in groups[k]:
-                    FO.write("\t" + line + "\n")
-        except Exception:
-            # return (groups,groups_boundary_st,groups_boundary_end)
-            return groups
+            if strand:  # want to consider strand information.
+                for line in f:
+                    line = line.rstrip("\r\n")
+                    line = line.lstrip()
+                    fields = line.split()
+                    if bed_line.match(line) and len(fields) == 12:
+                        if fields[5] == "-":
+                            continue  # merge overlapping transcripts on plus strand
+                        Orig_bedNum += 1
+                        if Orig_bedNum == 1:  # this is first bed entry
+                            overlap_flag = 0  # has nothing to overlap because it's first entry
+                            chrom = fields[0]
+                            strand = fields[5]
+
+                        elif Orig_bedNum > 1:  # this is NOT first entry
+                            overlap_flag = (
+                                1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
+                            )
+                            if fields[0] != chrom:  # not the same chromosome
+                                overlap_flag = 0
+                            if (
+                                (boundary == "utr")
+                                and (fields[0] == chrom)
+                                and (int(fields[1]) >= groups_boundary_end[cluster_Num])
+                            ):
+                                overlap_flag = 0
+                            if (
+                                (boundary == "cds")
+                                and (fields[0] == chrom)
+                                and (int(fields[6]) > groups_boundary_end[cluster_Num])
+                            ):
+                                overlap_flag = 0
+
+                        if overlap_flag == 0:
+                            cluster_Num += 1
+                            groups[cluster_Num].append(line)
+                            if boundary == "utr":
+                                groups_boundary_st[cluster_Num] = int(fields[1])
+                                groups_boundary_end[cluster_Num] = int(fields[2])
+                            if boundary == "cds":
+                                groups_boundary_st[cluster_Num] = int(fields[6])
+                                groups_boundary_end[cluster_Num] = int(fields[7])
+                            strand = fields[5]
+                            chrom = fields[0]
+
+                        elif overlap_flag == 1:
+                            groups[cluster_Num].append(line)
+                            strand = fields[5]
+                            chrom = fields[0]
+                            if boundary == "utr":
+                                groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[1]))
+                                groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[2]))
+                            if boundary == "cds":
+                                groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[6]))
+                                groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[7]))
+
+                    else:
+                        print("unknown line:" + line + "\n", file=sys.stderr)
+                f.seek(0)
+
+                # merge overlapping transcripts on minus strand
+                Orig_bedNum = 0
+                for line in f:
+                    line = line.rstrip("\r\n")
+                    line = line.lstrip()
+                    fields = line.split()
+                    if bed_line.match(line) and len(fields) == 12:
+                        if fields[5] == "+":
+                            continue  # merge overlapping transcripts on plus strand
+                        Orig_bedNum += 1
+                        if Orig_bedNum == 1:  # this is first bed entry
+                            overlap_flag = 0  # has nothing to overlap because it's first entry
+                            chrom = fields[0]
+                            strand = fields[5]
+
+                        elif Orig_bedNum > 1:  # this is NOT first entry
+                            overlap_flag = (
+                                1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
+                            )
+                            if fields[0] != chrom:  # not the same chromosome
+                                overlap_flag = 0
+                            if (
+                                (boundary == "utr")
+                                and (fields[0] == chrom)
+                                and (int(fields[1]) >= groups_boundary_end[cluster_Num])
+                            ):
+                                overlap_flag = 0
+                            if (
+                                (boundary == "cds")
+                                and (fields[0] == chrom)
+                                and (int(fields[6]) > groups_boundary_end[cluster_Num])
+                            ):
+                                overlap_flag = 0
+
+                        if overlap_flag == 0:
+                            cluster_Num += 1
+                            groups[cluster_Num].append(line)
+                            if boundary == "utr":
+                                groups_boundary_st[cluster_Num] = int(fields[1])
+                                groups_boundary_end[cluster_Num] = int(fields[2])
+                            if boundary == "cds":
+                                groups_boundary_st[cluster_Num] = int(fields[6])
+                                groups_boundary_end[cluster_Num] = int(fields[7])
+                            strand = fields[5]
+                            chrom = fields[0]
+
+                        elif overlap_flag == 1:
+                            groups[cluster_Num].append(line)
+                            strand = fields[5]
+                            chrom = fields[0]
+                            if boundary == "utr":
+                                groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[1]))
+                                groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[2]))
+                            if boundary == "cds":
+                                groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[6]))
+                                groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[7]))
+
+                    else:
+                        print("unknown line:" + line + "\n", file=sys.stderr)
+                f.seek(0)
+
+            else:  # NOT want to consider strand information. merge + and - together
+                Orig_bedNum = 0
+                cluster_Num = 0
+                for line in f:
+                    line = line.rstrip("\r\n")
+                    line = line.lstrip()
+                    fields = line.split()
+                    if bed_line.match(line) and len(fields) == 12:
+                        # if fields[5] == '-':continue   #merge overlapping transcripts on plus strand
+                        Orig_bedNum += 1
+                        if Orig_bedNum == 1:  # this is first bed entry
+                            overlap_flag = 0  # has nothing to overlap because it's first entry
+                            chrom = fields[0]
+                            strand = fields[5]
+
+                        elif Orig_bedNum > 1:  # this is NOT first entry
+                            overlap_flag = (
+                                1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
+                            )
+                            if fields[0] != chrom:  # not the same chromosome
+                                overlap_flag = 0
+                            if (
+                                (boundary == "utr")
+                                and (fields[0] == chrom)
+                                and (int(fields[1]) >= groups_boundary_end[cluster_Num])
+                            ):
+                                overlap_flag = 0
+                            if (
+                                (boundary == "cds")
+                                and (fields[0] == chrom)
+                                and (int(fields[6]) > groups_boundary_end[cluster_Num])
+                            ):
+                                overlap_flag = 0
+
+                        if overlap_flag == 0:
+                            cluster_Num += 1
+                            groups[cluster_Num].append(line)
+                            if boundary == "utr":
+                                groups_boundary_st[cluster_Num] = int(fields[1])
+                                groups_boundary_end[cluster_Num] = int(fields[2])
+                            if boundary == "cds":
+                                groups_boundary_st[cluster_Num] = int(fields[6])
+                                groups_boundary_end[cluster_Num] = int(fields[7])
+                            strand = fields[5]
+                            chrom = fields[0]
+
+                        elif overlap_flag == 1:
+                            groups[cluster_Num].append(line)
+                            strand = fields[5]
+                            chrom = fields[0]
+                            if boundary == "utr":
+                                groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[1]))
+                                groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[2]))
+                            if boundary == "cds":
+                                groups_boundary_st[cluster_Num] = min(groups_boundary_st[cluster_Num], int(fields[6]))
+                                groups_boundary_end[cluster_Num] = max(groups_boundary_end[cluster_Num], int(fields[7]))
+
+                    else:
+                        print("unknown line:" + line + "\n", file=sys.stderr)
+                f.seek(0)
+
+            try:
+                with open(outfile, "w") as FO:
+                    print("Writing to " + outfile + "\n", file=sys.stderr)
+                    for k in sorted(groups.keys()):
+                        FO.write(
+                            "Group_" + str(k) + "\t" + str(groups_boundary_st[k]) + "\t" + str(groups_boundary_end[k]) + ":\n"
+                        )
+                        for line in groups[k]:
+                            FO.write("\t" + line + "\n")
+            except Exception:
+                # return (groups,groups_boundary_st,groups_boundary_end)
+                return groups
 
     groupingBED = staticmethod(groupingBED)
 
@@ -272,40 +272,40 @@ class ParseBED:
 
         if outfile is None:
             outfile = self.fileName + ".compl.bed"
-        FO = open(outfile, "w")
+        with open(outfile, "w") as FO:
 
-        # read sizeFile
-        chrSize = {}
-        for line in open(sizeFile):
-            line = line.rstrip(" \n")
-            line = line.lstrip()
-            fields = line.split()
-            if (len(fields)) != 2:
-                continue
-            chrSize[fields[0]] = int(fields[1])
+            # read sizeFile
+            chrSize = {}
+            with open(sizeFile) as _fh:
+                for line in _fh:
+                    line = line.rstrip(" \n")
+                    line = line.lstrip()
+                    fields = line.split()
+                    if (len(fields)) != 2:
+                        continue
+                    chrSize[fields[0]] = int(fields[1])
 
-        bitsets = binned_bitsets_from_file(open(self.ABS_fileName))
+            bitsets = binned_bitsets_from_file(open(self.ABS_fileName))
 
-        for chrom in chrSize:
-            if chrom in bitsets:
-                bits = bitsets[chrom]
-                bits.invert()
-                length = chrSize[chrom]
-                end = 0
-                while 1:
-                    start = bits.next_set(end)
-                    if start == bits.size:
-                        break
-                    end = bits.next_clear(start)
-                    if end > length:
-                        end = length
-                    FO.write(chrom + "\t" + str(start) + "\t" + str(end) + "\n")
-                    if end == length:
-                        break
-            else:
-                FO.write(chrom + "\t0\t" + str(chrSize[chrom]) + "\n")
-        FO.close()
-        self.f.seek(0)
+            for chrom in chrSize:
+                if chrom in bitsets:
+                    bits = bitsets[chrom]
+                    bits.invert()
+                    length = chrSize[chrom]
+                    end = 0
+                    while 1:
+                        start = bits.next_set(end)
+                        if start == bits.size:
+                            break
+                        end = bits.next_clear(start)
+                        if end > length:
+                            end = length
+                        FO.write(chrom + "\t" + str(start) + "\t" + str(end) + "\n")
+                        if end == length:
+                            break
+                else:
+                    FO.write(chrom + "\t0\t" + str(chrSize[chrom]) + "\n")
+            self.f.seek(0)
 
     def bedToWig(self, outfile=None, log2scale=False, header=True):
         """Transform bed file into wiggle format. Input bed must have at least 3 columns[chrom St End].
@@ -314,51 +314,50 @@ class ParseBED:
 
         if outfile is None:
             outfile = self.fileName + ".wig"
-        FO = open(outfile, "w")
-        wig = collections.defaultdict(dict)
-        headline = "track type=wiggle_0 name=" + outfile + " track_label description='' visibility=full color=255,0,0"
+        with open(outfile, "w") as FO:
+            wig = collections.defaultdict(dict)
+            headline = "track type=wiggle_0 name=" + outfile + " track_label description='' visibility=full color=255,0,0"
 
-        print('Writing wig file to "', outfile, '"...', file=sys.stderr)
+            print('Writing wig file to "', outfile, '"...', file=sys.stderr)
 
-        for line in self.f:
-            line = line.rstrip("\r\n")
-            if line.startswith("#"):
-                continue
-            if line.startswith("track"):
-                continue
-            if line.startswith("browser"):
-                continue
-            fields = line.rstrip("\n").split()
-            coverReg = []
-            if len(fields) < 12 and len(fields) > 2:
-                chrom = fields[0]
-                coverReg = list(range(int(fields[1]) + 1, int(fields[2]) + 1))
-            elif len(fields) == 12:
-                chrom = fields[0]
-                exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                for st, size in zip(exon_starts, exon_sizes):
-                    coverReg.extend(list(range(int(fields[1]) + st + 1, int(fields[1]) + st + size + 1)))
-            else:
-                continue
-
-            for i in coverReg:
-                if i in wig[chrom]:
-                    wig[chrom][i] += 1
+            for line in self.f:
+                line = line.rstrip("\r\n")
+                if line.startswith("#"):
+                    continue
+                if line.startswith("track"):
+                    continue
+                if line.startswith("browser"):
+                    continue
+                fields = line.rstrip("\n").split()
+                coverReg = []
+                if len(fields) < 12 and len(fields) > 2:
+                    chrom = fields[0]
+                    coverReg = list(range(int(fields[1]) + 1, int(fields[2]) + 1))
+                elif len(fields) == 12:
+                    chrom = fields[0]
+                    exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
+                    exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                    for st, size in zip(exon_starts, exon_sizes):
+                        coverReg.extend(list(range(int(fields[1]) + st + 1, int(fields[1]) + st + size + 1)))
                 else:
-                    wig[chrom][i] = 1
-        if header:
-            FO.write(headline + "\n")
-        for chr in sorted(wig.keys()):
-            print("Writing ", chr, " ...", file=sys.stderr)
-            FO.write("variableStep chrom=" + chr + "\n")
-            for coord in sorted(wig[chr]):
-                if log2scale:
-                    FO.write("%d\t%5.3f\n" % (coord, math.log(wig[chr][coord], 2)))
-                else:
-                    FO.write("%d\t%d\n" % (coord, wig[chr][coord]))
-        self.f.seek(0)
-        FO.close()
+                    continue
+
+                for i in coverReg:
+                    if i in wig[chrom]:
+                        wig[chrom][i] += 1
+                    else:
+                        wig[chrom][i] = 1
+            if header:
+                FO.write(headline + "\n")
+            for chr in sorted(wig.keys()):
+                print("Writing ", chr, " ...", file=sys.stderr)
+                FO.write("variableStep chrom=" + chr + "\n")
+                for coord in sorted(wig[chr]):
+                    if log2scale:
+                        FO.write("%d\t%5.3f\n" % (coord, math.log(wig[chr][coord], 2)))
+                    else:
+                        FO.write("%d\t%d\n" % (coord, wig[chr][coord]))
+            self.f.seek(0)
 
     def bedToGFF(self, outfile=None):
         """Transform bed file into GFF format. Borrowed from Galaxy with slight change"""
@@ -368,72 +367,71 @@ class ParseBED:
             output_name = outfile
         skipped_lines = 0
         first_skipped_line = 0
-        out = open(output_name, "w")
-        out.write("##gff-version 2\n")
-        out.write("##bed_to_gff_converter.py\n\n")
-        i = 0
-        for i, line in enumerate(self.f):
-            complete_bed = False
-            line = line.rstrip("\r\n")
-            if line and not line.startswith("#") and not line.startswith("track") and not line.startswith("browser"):
-                try:
-                    elems = line.split("\t")
-                    if len(elems) == 12:
-                        complete_bed = True
-                    chrom = elems[0]
-                    if complete_bed:
-                        feature = "mRNA"
-                    else:
+        with open(output_name, "w") as out:
+            out.write("##gff-version 2\n")
+            out.write("##bed_to_gff_converter.py\n\n")
+            i = 0
+            for i, line in enumerate(self.f):
+                complete_bed = False
+                line = line.rstrip("\r\n")
+                if line and not line.startswith("#") and not line.startswith("track") and not line.startswith("browser"):
+                    try:
+                        elems = line.split("\t")
+                        if len(elems) == 12:
+                            complete_bed = True
+                        chrom = elems[0]
+                        if complete_bed:
+                            feature = "mRNA"
+                        else:
+                            try:
+                                feature = elems[3]
+                            except Exception:
+                                feature = "feature%d" % (i + 1)
+                        start = int(elems[1]) + 1
+                        end = int(elems[2])
                         try:
-                            feature = elems[3]
+                            score = elems[4]
                         except Exception:
-                            feature = "feature%d" % (i + 1)
-                    start = int(elems[1]) + 1
-                    end = int(elems[2])
-                    try:
-                        score = elems[4]
-                    except Exception:
-                        score = "0"
-                    try:
-                        strand = elems[5]
-                    except Exception:
-                        strand = "+"
-                    try:
-                        group = elems[3]
-                    except Exception:
-                        group = "group%d" % (i + 1)
-                    if complete_bed:
-                        out.write(
-                            "%s\tbed2gff\t%s\t%d\t%d\t%s\t%s\t.\t%s %s;\n"
-                            % (chrom, feature, start, end, score, strand, feature, group)
-                        )
-                    else:
-                        out.write(
-                            "%s\tbed2gff\t%s\t%d\t%d\t%s\t%s\t.\t%s;\n"
-                            % (chrom, feature, start, end, score, strand, group)
-                        )
-                    if complete_bed:
-                        # We have all the info necessary to annotate exons for genes and mRNAs
-                        block_count = int(elems[9])
-                        block_sizes = elems[10].split(",")
-                        block_starts = elems[11].split(",")
-                        for j in range(block_count):
-                            exon_start = int(start) + int(block_starts[j])
-                            exon_end = exon_start + int(block_sizes[j]) - 1
+                            score = "0"
+                        try:
+                            strand = elems[5]
+                        except Exception:
+                            strand = "+"
+                        try:
+                            group = elems[3]
+                        except Exception:
+                            group = "group%d" % (i + 1)
+                        if complete_bed:
                             out.write(
-                                "%s\tbed2gff\texon\t%d\t%d\t%s\t%s\t.\texon %s;\n"
-                                % (chrom, exon_start, exon_end, score, strand, group)
+                                "%s\tbed2gff\t%s\t%d\t%d\t%s\t%s\t.\t%s %s;\n"
+                                % (chrom, feature, start, end, score, strand, feature, group)
                             )
-                except Exception:
+                        else:
+                            out.write(
+                                "%s\tbed2gff\t%s\t%d\t%d\t%s\t%s\t.\t%s;\n"
+                                % (chrom, feature, start, end, score, strand, group)
+                            )
+                        if complete_bed:
+                            # We have all the info necessary to annotate exons for genes and mRNAs
+                            block_count = int(elems[9])
+                            block_sizes = elems[10].split(",")
+                            block_starts = elems[11].split(",")
+                            for j in range(block_count):
+                                exon_start = int(start) + int(block_starts[j])
+                                exon_end = exon_start + int(block_sizes[j]) - 1
+                                out.write(
+                                    "%s\tbed2gff\texon\t%d\t%d\t%s\t%s\t.\texon %s;\n"
+                                    % (chrom, exon_start, exon_end, score, strand, group)
+                                )
+                    except Exception:
+                        skipped_lines += 1
+                        if not first_skipped_line:
+                            first_skipped_line = i + 1
+                else:
                     skipped_lines += 1
                     if not first_skipped_line:
                         first_skipped_line = i + 1
-            else:
-                skipped_lines += 1
-                if not first_skipped_line:
-                    first_skipped_line = i + 1
-        out.close()
-        info_msg = "%i lines converted to GFF version 2.  " % (i + 1 - skipped_lines)
+            info_msg = "%i lines converted to GFF version 2.  " % (i + 1 - skipped_lines)
         if skipped_lines > 0:
             info_msg += "Skipped %d blank/comment/invalid lines starting with line #%d." % (
                 skipped_lines,
@@ -797,165 +795,163 @@ class ParseBED:
         transtab = str.maketrans("ACGTNX", "TGCANX")
         if outfile is None:
             outfile = self.fileName + ".infor.xls"
-        FO = open(outfile, "w")
-        print("writing feature information to " + outfile + " ...", file=sys.stderr)
+        with open(outfile, "w") as FO:
+            print("writing feature information to " + outfile + " ...", file=sys.stderr)
 
-        intron_sizes = []
-        FO.write("geneID\t" + "Exon_Num\t" + "Exon_Len_Sum\t" + "Exon_Len_Min\t" + "Exon_Len_Max\t" + "Exon_Len_Avg\t")
-        FO.write(
-            "Intron_Len_Sum\t"
-            + "Intron_Len_Min\t"
-            + "Intron_Len_Max\t"
-            + "Intron_Len_Avg\t"
-            + "3'UTR\t"
-            + "5'UTR\t"
-            + "GC\t"
-            + "\n"
-        )
-        for line in self.f:
             intron_sizes = []
-            mRNA_seq = ""
-            GC_content = 0.0
-            utr5len = 0
-            utr3len = 0
-            try:
-                if line.startswith(("#", "track", "browser")):
-                    continue
-                # Parse fields from gene tabls
-                fields = line.split()
-                chrom = fields[0]
-                tx_start = int(fields[1])
-                tx_end = int(fields[2])
-                geneName = fields[3]
-                strand = fields[5].replace(" ", "_")
-                cds_start = int(fields[6])
-                cds_end = int(fields[7])
-                exon_num = int(fields[9])
-                exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-                intron_start = exon_ends[:-1]
-                intron_end = exon_starts[1:]
-
-                if reffa is not None:
-                    for st, end in zip(exon_starts, exon_ends):
-                        exon_coord = chrom + ":" + str(st + 1) + "-" + str(end)
-                        tmp = pysam.faidx(reffa, exon_coord)
-                        mRNA_seq += "".join([i.rstrip("\n\r") for i in tmp[1:]])
-                    if strand == "-":
-                        mRNA_seq = mRNA_seq.upper().translate(transtab)[::-1]
-                    elif strand == "+":
-                        mRNA_seq = mRNA_seq.upper()
-                    GC_content = (mRNA_seq.count("C") + mRNA_seq.count("G")) * 1.0 / len(mRNA_seq)
-
-                for st, end in zip(exon_starts, exon_ends):
-                    if strand == "+":
-                        if st < cds_start:  # 5' UTR
-                            utr_st = st
-                            utr_end = min(end, cds_start)
-                            utr5len += utr_end - utr_st
-                        if end > cds_end:  # 3' UTR
-                            utr_st = max(st, cds_end)
-                            utr_end = end
-                            utr3len += utr_end - utr_st
-                    if strand == "-":
-                        if st < cds_start:  # 3' UTR
-                            utr_st = st
-                            utr_end = min(end, cds_start)
-                            utr3len += utr_end - utr_st
-                        if end > cds_end:  # 5' UTR
-                            utr_st = max(st, cds_end)
-                            utr_end = end
-                            utr5len += utr_end - utr_st
-                if cds_start == cds_end:
-                    utr3len = 0
-                    utr5len = 0
-            except Exception:
-                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-                continue
-            for st, end in zip(intron_start, intron_end):
-                intron_sizes.append(end - st)
-
-            FO.write(chrom + ":" + str(tx_start + 1) + ":" + str(tx_end) + ":" + geneName + "\t")
+            FO.write("geneID\t" + "Exon_Num\t" + "Exon_Len_Sum\t" + "Exon_Len_Min\t" + "Exon_Len_Max\t" + "Exon_Len_Avg\t")
             FO.write(
-                str(exon_num)
-                + "\t"
-                + str(sum(exon_sizes))
-                + "\t"
-                + str(min(exon_sizes))
-                + "\t"
-                + str(max(exon_sizes))
-                + "\t"
-                + str(sum(exon_sizes) / exon_num)
-                + "\t"
+                "Intron_Len_Sum\t"
+                + "Intron_Len_Min\t"
+                + "Intron_Len_Max\t"
+                + "Intron_Len_Avg\t"
+                + "3'UTR\t"
+                + "5'UTR\t"
+                + "GC\t"
+                + "\n"
             )
-            if intron_sizes:
+            for line in self.f:
+                intron_sizes = []
+                mRNA_seq = ""
+                GC_content = 0.0
+                utr5len = 0
+                utr3len = 0
+                try:
+                    if line.startswith(("#", "track", "browser")):
+                        continue
+                    # Parse fields from gene tabls
+                    fields = line.split()
+                    chrom = fields[0]
+                    tx_start = int(fields[1])
+                    tx_end = int(fields[2])
+                    geneName = fields[3]
+                    strand = fields[5].replace(" ", "_")
+                    cds_start = int(fields[6])
+                    cds_end = int(fields[7])
+                    exon_num = int(fields[9])
+                    exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
+                    exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                    exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                    exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                    intron_start = exon_ends[:-1]
+                    intron_end = exon_starts[1:]
+
+                    if reffa is not None:
+                        for st, end in zip(exon_starts, exon_ends):
+                            exon_coord = chrom + ":" + str(st + 1) + "-" + str(end)
+                            tmp = pysam.faidx(reffa, exon_coord)
+                            mRNA_seq += "".join([i.rstrip("\n\r") for i in tmp[1:]])
+                        if strand == "-":
+                            mRNA_seq = mRNA_seq.upper().translate(transtab)[::-1]
+                        elif strand == "+":
+                            mRNA_seq = mRNA_seq.upper()
+                        GC_content = (mRNA_seq.count("C") + mRNA_seq.count("G")) * 1.0 / len(mRNA_seq)
+
+                    for st, end in zip(exon_starts, exon_ends):
+                        if strand == "+":
+                            if st < cds_start:  # 5' UTR
+                                utr_st = st
+                                utr_end = min(end, cds_start)
+                                utr5len += utr_end - utr_st
+                            if end > cds_end:  # 3' UTR
+                                utr_st = max(st, cds_end)
+                                utr_end = end
+                                utr3len += utr_end - utr_st
+                        if strand == "-":
+                            if st < cds_start:  # 3' UTR
+                                utr_st = st
+                                utr_end = min(end, cds_start)
+                                utr3len += utr_end - utr_st
+                            if end > cds_end:  # 5' UTR
+                                utr_st = max(st, cds_end)
+                                utr_end = end
+                                utr5len += utr_end - utr_st
+                    if cds_start == cds_end:
+                        utr3len = 0
+                        utr5len = 0
+                except Exception:
+                    print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
+                    continue
+                for st, end in zip(intron_start, intron_end):
+                    intron_sizes.append(end - st)
+
+                FO.write(chrom + ":" + str(tx_start + 1) + ":" + str(tx_end) + ":" + geneName + "\t")
                 FO.write(
-                    str(sum(intron_sizes))
+                    str(exon_num)
                     + "\t"
-                    + str(min(intron_sizes))
+                    + str(sum(exon_sizes))
                     + "\t"
-                    + str(max(intron_sizes))
+                    + str(min(exon_sizes))
                     + "\t"
-                    + str(sum(intron_sizes) / len(intron_sizes))
+                    + str(max(exon_sizes))
+                    + "\t"
+                    + str(sum(exon_sizes) / exon_num)
                     + "\t"
                 )
-            else:
-                FO.write("0" + "\t" + "0" + "\t" + "0" + "\t" + "0" + "\t")
-            FO.write(str(utr3len) + "\t" + str(utr5len) + "\t")
-            if reffa is not None:
-                FO.write(str(GC_content) + "\n")
-            else:
-                FO.write("NA" + "\n")
+                if intron_sizes:
+                    FO.write(
+                        str(sum(intron_sizes))
+                        + "\t"
+                        + str(min(intron_sizes))
+                        + "\t"
+                        + str(max(intron_sizes))
+                        + "\t"
+                        + str(sum(intron_sizes) / len(intron_sizes))
+                        + "\t"
+                    )
+                else:
+                    FO.write("0" + "\t" + "0" + "\t" + "0" + "\t" + "0" + "\t")
+                FO.write(str(utr3len) + "\t" + str(utr5len) + "\t")
+                if reffa is not None:
+                    FO.write(str(GC_content) + "\n")
+                else:
+                    FO.write("NA" + "\n")
 
-        self.f.seek(0)
-        FO.close()
+            self.f.seek(0)
 
     def filterBedbyIntronSize(self, outfile=None, min_intron=50):
         """Filter bed files with intron size. Mamalian gene has minimum intron size"""
         if outfile is None:
             outfile = self.fileName + ".filterIntron.xls"
-        FO = open(outfile, "w")
-        print("writing feature information to " + outfile + " ...", file=sys.stderr)
+        with open(outfile, "w") as FO:
+            print("writing feature information to " + outfile + " ...", file=sys.stderr)
 
-        for line in self.f:
-            flag = 0
-            try:
-                if line.startswith(("#", "track", "browser")):
+            for line in self.f:
+                flag = 0
+                try:
+                    if line.startswith(("#", "track", "browser")):
+                        continue
+                    # Parse fields from gene tabls
+                    fields = line.split()
+                    fields[0]
+                    tx_start = int(fields[1])
+                    int(fields[2])
+                    fields[3]
+                    fields[5].replace(" ", "_")
+                    int(fields[6])
+                    int(fields[7])
+                    exon_num = int(fields[9])
+                    list(map(int, fields[10].rstrip(",\n").split(",")))
+                    exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                    exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                    exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                    intron_start = exon_ends[:-1]
+                    intron_end = exon_starts[1:]
+                except Exception:
+                    print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                     continue
-                # Parse fields from gene tabls
-                fields = line.split()
-                fields[0]
-                tx_start = int(fields[1])
-                int(fields[2])
-                fields[3]
-                fields[5].replace(" ", "_")
-                int(fields[6])
-                int(fields[7])
-                exon_num = int(fields[9])
-                list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-                intron_start = exon_ends[:-1]
-                intron_end = exon_starts[1:]
-            except Exception:
-                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-                continue
-            if exon_num <= 1:  # intron size is 0
-                continue
-            for st, end in zip(intron_start, intron_end):
-                if end - st <= min_intron:
-                    flag = 1
-                    break
-            if flag == 0:
-                FO.write(line)
+                if exon_num <= 1:  # intron size is 0
+                    continue
+                for st, end in zip(intron_start, intron_end):
+                    if end - st <= min_intron:
+                        flag = 1
+                        break
+                if flag == 0:
+                    FO.write(line)
 
-        self.f.seek(0)
-        FO.close()
+            self.f.seek(0)
 
     def getAllUniqJunctions(self, outfile=None, flankSize=20):
         """Extract unique (non-redundant) junctions from input bed file (must be 12-column).  use
@@ -964,66 +960,65 @@ class ParseBED:
         file"""
         if outfile is None:
             outfile = self.fileName + ".uniqJunctions.bed"
-        FO = open(outfile, "w")
-        print("writing unique junctions " + outfile + " ...", file=sys.stderr)
-        uniqJunc = collections.defaultdict(int)
-        for line in self.f:
-            # try:
-            if line.startswith("#"):
-                continue
-            if line.startswith("track"):
-                continue
-            if line.startswith("browser"):
-                continue
-            fields = line.split()
-            chrom = fields[0]
-            tx_start = int(fields[1])
-            int(fields[2])
-            geneName = fields[3]
-            strand = fields[5].replace(" ", "_")
-            int(fields[6])
-            int(fields[7])
-            if int(fields[9]) == 1:
-                continue
+        with open(outfile, "w") as FO:
+            print("writing unique junctions " + outfile + " ...", file=sys.stderr)
+            uniqJunc = collections.defaultdict(int)
+            for line in self.f:
+                # try:
+                if line.startswith("#"):
+                    continue
+                if line.startswith("track"):
+                    continue
+                if line.startswith("browser"):
+                    continue
+                fields = line.split()
+                chrom = fields[0]
+                tx_start = int(fields[1])
+                int(fields[2])
+                geneName = fields[3]
+                strand = fields[5].replace(" ", "_")
+                int(fields[6])
+                int(fields[7])
+                if int(fields[9]) == 1:
+                    continue
 
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            intron_start = exon_ends[:-1]
-            intron_end = exon_starts[1:]
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                intron_start = exon_ends[:-1]
+                intron_end = exon_starts[1:]
 
-            for st, end in zip(intron_start, intron_end):
-                key = chrom + str(st) + str(end)
-                if key not in uniqJunc:
-                    FO.write(
-                        chrom
-                        + "\t"
-                        + str(st - flankSize)
-                        + "\t"
-                        + str(end + flankSize)
-                        + "\t"
-                        + geneName
-                        + "\t0\t"
-                        + strand
-                        + "\t"
-                        + str(st - flankSize)
-                        + "\t"
-                        + str(end + flankSize)
-                        + "\t0,0,0\t2\t"
-                        + str(flankSize)
-                        + ","
-                        + str(flankSize)
-                        + "\t"
-                        + "0,"
-                        + str(end - st + flankSize)
-                        + "\n"
-                    )
-                uniqJunc[key] += 1
-            # except Exception:
-            #   continue
-        self.f.seek(0)
-        FO.close()
+                for st, end in zip(intron_start, intron_end):
+                    key = chrom + str(st) + str(end)
+                    if key not in uniqJunc:
+                        FO.write(
+                            chrom
+                            + "\t"
+                            + str(st - flankSize)
+                            + "\t"
+                            + str(end + flankSize)
+                            + "\t"
+                            + geneName
+                            + "\t0\t"
+                            + strand
+                            + "\t"
+                            + str(st - flankSize)
+                            + "\t"
+                            + str(end + flankSize)
+                            + "\t0,0,0\t2\t"
+                            + str(flankSize)
+                            + ","
+                            + str(flankSize)
+                            + "\t"
+                            + "0,"
+                            + str(end - st + flankSize)
+                            + "\n"
+                        )
+                    uniqJunc[key] += 1
+                # except Exception:
+                #   continue
+            self.f.seek(0)
 
     def collapseJunctionBed(self, outfile=None):
         """Junctions spannig the same block will be merged. multiple spliced junctions will be reported
@@ -1031,133 +1026,131 @@ class ParseBED:
 
         if outfile is None:
             outfile = self.fileName + ".collapsed.bed"
-        FO = open(outfile, "w")
-        print("\tCollapse junctions for " + self.fileName, end=" ", file=sys.stderr)
+        with open(outfile, "w") as FO:
+            print("\tCollapse junctions for " + self.fileName, end=" ", file=sys.stderr)
 
-        tss_start = collections.defaultdict(list)
-        tss_end = collections.defaultdict(list)
-        exon_size1 = collections.defaultdict(list)
-        exon_size2 = collections.defaultdict(list)
-        block_start1 = collections.defaultdict(list)
-        block_start2 = collections.defaultdict(list)
-        count = collections.defaultdict(int)
-        chrm = dict()
-        strands = dict()
-        for line in self.f:
-            try:
-                if line.startswith(("#", "track", "broser")):
+            tss_start = collections.defaultdict(list)
+            tss_end = collections.defaultdict(list)
+            exon_size1 = collections.defaultdict(list)
+            exon_size2 = collections.defaultdict(list)
+            block_start1 = collections.defaultdict(list)
+            block_start2 = collections.defaultdict(list)
+            count = collections.defaultdict(int)
+            chrm = dict()
+            strands = dict()
+            for line in self.f:
+                try:
+                    if line.startswith(("#", "track", "broser")):
+                        continue
+                    fields = line.rstrip().split()
+                    exonSize = list(map(int, fields[10].rstrip(",\n").split(",")))
+                    chrom = fields[0]
+                    tx_start = int(fields[1])
+                    tx_end = int(fields[2])
+                    fields[3]
+                    score = int(fields[4])
+                    strand = fields[5].replace(" ", "_")
+                    if int(fields[9]) == 1:  # if bed has only 1 block
+                        print(line, end=" ", file=FO)
+                        continue
+                    if int(fields[9]) >= 3:  # if bed has more than 3 blocks
+                        print(line, end=" ", file=FO)
+                        continue
+                except Exception:
+                    print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                     continue
-                fields = line.rstrip().split()
                 exonSize = list(map(int, fields[10].rstrip(",\n").split(",")))
-                chrom = fields[0]
-                tx_start = int(fields[1])
-                tx_end = int(fields[2])
-                fields[3]
-                score = int(fields[4])
-                strand = fields[5].replace(" ", "_")
-                if int(fields[9]) == 1:  # if bed has only 1 block
-                    print(line, end=" ", file=FO)
-                    continue
-                if int(fields[9]) >= 3:  # if bed has more than 3 blocks
-                    print(line, end=" ", file=FO)
-                    continue
-            except Exception:
-                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-                continue
-            exonSize = list(map(int, fields[10].rstrip(",\n").split(",")))
-            block_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            intron_start = exon_ends[:-1]
-            intron_end = exon_starts[1:]
+                block_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                intron_start = exon_ends[:-1]
+                intron_end = exon_starts[1:]
 
-            intronKey = chrom + ":" + str(intron_start[0] + 1) + "-" + str(intron_end[0]) + ":" + strand
-            count[intronKey] += score
-            chrm[intronKey] = chrom
-            strands[intronKey] = strand
-            tss_start[intronKey].append(tx_start)
-            tss_end[intronKey].append(tx_end)
-            exon_size1[intronKey].append(exonSize[0])
-            exon_size2[intronKey].append(exonSize[1])
-            block_start1[intronKey].append(block_starts[0])
-            block_start2[intronKey].append(block_starts[1])
+                intronKey = chrom + ":" + str(intron_start[0] + 1) + "-" + str(intron_end[0]) + ":" + strand
+                count[intronKey] += score
+                chrm[intronKey] = chrom
+                strands[intronKey] = strand
+                tss_start[intronKey].append(tx_start)
+                tss_end[intronKey].append(tx_end)
+                exon_size1[intronKey].append(exonSize[0])
+                exon_size2[intronKey].append(exonSize[1])
+                block_start1[intronKey].append(block_starts[0])
+                block_start2[intronKey].append(block_starts[1])
 
-        print("Writing junctions to " + outfile + " ...", file=sys.stderr)
-        for key in count:
-            print(
-                chrm[key]
-                + "\t"
-                + str(min(tss_start[key]))
-                + "\t"
-                + str(max(tss_end[key]))
-                + "\t"
-                + "SR="
-                + str(count[key])
-                + "\t"
-                + str(count[key]),
-                end=" ",
-                file=FO,
-            )
-            print(
-                "\t" + strands[key] + "\t" + str(min(tss_start[key])) + "\t" + str(max(tss_end[key])) + "\t",
-                end=" ",
-                file=FO,
-            )
-            print(
-                "255,0,0" + "\t2\t" + str(max(exon_size1[key])) + "," + str(max(exon_size2[key])) + "\t",
-                end=" ",
-                file=FO,
-            )
-            print(str(min(block_start1[key])) + "," + str(max(block_start2[key])), file=FO)
+            print("Writing junctions to " + outfile + " ...", file=sys.stderr)
+            for key in count:
+                print(
+                    chrm[key]
+                    + "\t"
+                    + str(min(tss_start[key]))
+                    + "\t"
+                    + str(max(tss_end[key]))
+                    + "\t"
+                    + "SR="
+                    + str(count[key])
+                    + "\t"
+                    + str(count[key]),
+                    end=" ",
+                    file=FO,
+                )
+                print(
+                    "\t" + strands[key] + "\t" + str(min(tss_start[key])) + "\t" + str(max(tss_end[key])) + "\t",
+                    end=" ",
+                    file=FO,
+                )
+                print(
+                    "255,0,0" + "\t2\t" + str(max(exon_size1[key])) + "," + str(max(exon_size2[key])) + "\t",
+                    end=" ",
+                    file=FO,
+                )
+                print(str(min(block_start1[key])) + "," + str(max(block_start2[key])), file=FO)
 
-        self.f.seek(0)
-        FO.close()
+            self.f.seek(0)
 
     def filterJunctionBed(self, outfile=None, overhang=8, min_intron=50, max_intron=1000000, cvg=1):
         """filter junction bed file according to overhang size and supporting read"""
 
         if outfile is None:
             outfile = self.fileName + ".filter.bed"
-        FO = open(outfile, "w")
-        print("\tfilter junctions ... ", file=sys.stderr)
+        with open(outfile, "w") as FO:
+            print("\tfilter junctions ... ", file=sys.stderr)
 
-        for line in self.f:
-            skip_flag = 0
-            if line.startswith(("#", "track", "broser", "\n")):
-                continue
-            fields = line.rstrip().split()
-            tx_start = int(fields[1])
-            int(fields[2])
-            exonSize = list(map(int, fields[10].rstrip(",\n").split(",")))
-            list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            intron_start = exon_ends[:-1]
-            intron_end = exon_starts[1:]
-            if fields[9] >= 3:  # pass for multiple spliced read
-                print(line, end=" ", file=FO)
-                continue
-            if fields[4] > cvg:  # pass for multi-read supporting junction
-                print(line, end=" ", file=FO)
-                continue
-            for i in exonSize:
-                if i < overhang:  # filter out short overhang junctions
-                    skip_flag = 1
-                    break
-            for st, end in zip(intron_start, intron_end):
-                if (end - st) > max_intron or (end - st) < min_intron:
-                    skip_flag = 1
-                    break
-            if skip_flag == 1:
-                continue
-            else:
-                print(line, file=FO)
-        self.f.seek(0)
-        FO.close()
+            for line in self.f:
+                skip_flag = 0
+                if line.startswith(("#", "track", "broser", "\n")):
+                    continue
+                fields = line.rstrip().split()
+                tx_start = int(fields[1])
+                int(fields[2])
+                exonSize = list(map(int, fields[10].rstrip(",\n").split(",")))
+                list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                intron_start = exon_ends[:-1]
+                intron_end = exon_starts[1:]
+                if fields[9] >= 3:  # pass for multiple spliced read
+                    print(line, end=" ", file=FO)
+                    continue
+                if fields[4] > cvg:  # pass for multi-read supporting junction
+                    print(line, end=" ", file=FO)
+                    continue
+                for i in exonSize:
+                    if i < overhang:  # filter out short overhang junctions
+                        skip_flag = 1
+                        break
+                for st, end in zip(intron_start, intron_end):
+                    if (end - st) > max_intron or (end - st) < min_intron:
+                        skip_flag = 1
+                        break
+                if skip_flag == 1:
+                    continue
+                else:
+                    print(line, file=FO)
+            self.f.seek(0)
 
     def unionBED(self, outfile=None, outNameFile=None, boundary="utr", stranded=True):
         """Collapse bed entries through UNION all overlapping exons. Just like "dense" display mode
@@ -1178,476 +1171,472 @@ class ParseBED:
             outfile = self.fileName + ".merge.unionExon.bed"
         if outNameFile is None:
             outNameFile = self.fileName + ".name.txt"
-        FO = open(outfile, "w")
-        FName = open(outNameFile, "w")
+        with open(outfile, "w") as FO, open(outNameFile, "w") as FName:
 
-        # some local variable within function
-        bed_line = re.compile(r"^\S+\s+\d+\s+\d+")
-        Merge_bed_TxStart = collections.defaultdict(list)
-        Merge_bed_TxEnd = collections.defaultdict(list)
-        Merge_bed_cdsStart = collections.defaultdict(list)
-        Merge_bed_cdsEnd = collections.defaultdict(list)
-        Merge_bed_ExonStart = collections.defaultdict(list)
-        Merge_bed_ExonEnd = collections.defaultdict(list)
-        Merge_bed_geneName = collections.defaultdict(list)
-        Orig_bedNum = 0  # number of bed entries before merging
-        Merge_bedNum = 0  # number of bed entries after merging
-        Merge_bed_chr = {}
-        Merge_bed_strand = {}
-        final_exon_starts = []
-        final_exon_sizes = []
-
-        # check if the input bed file is properly sorted
-        print("check if input bed file is sorted properly ...", end=" ", file=sys.stderr)
-        i = 0
-        for line in self.f:
-            line = line.strip()
-            if bed_line.match(line):
-                fields = line.split()
-                i += 1
-                if i == 1:
-                    chrom = fields[0]
-                    txStart = int(fields[1])
-                if i > 1:
-                    if (fields[0] < chrom) or (
-                        (fields[0] == chrom) and (int(fields[1]) < txStart)
-                    ):  # print first unsorted line if any
-                        print("File not properly sorted:" + line, file=sys.stderr)
-                        exit(1)
-                    chrom = fields[0]
-                    txStart = int(fields[1])
-        else:  # well, file seems to be OK
-            print("OK!", file=sys.stderr)
-        self.f.seek(0)
-
-        print("merge bed file to " + outfile + " ...", file=sys.stderr)
-        FO.write(
-            "track name="
-            + self.fileName
-            + " description="
-            + ' "'
-            + "Overlapping entries in "
-            + self.fileName
-            + " were merged"
-            + '"'
-            + "\n"
-        )
-        if stranded:  # want to consider strand information
-            for line in self.f:
-                line = line.strip()
-                if bed_line.match(line):
-                    fields = line.split()
-                    if len(fields) != 12:
-                        print("bed file must be 12 columns speparated by Tab(whilte space)" + line, file=sys.stderr)
-                    if fields[5] == "-":
-                        continue  # merge overlapping transcripts on plus strand
-                    Orig_bedNum += 1
-                    if Orig_bedNum == 1:  # this is first bed entry
-                        overlap_flag = 0  # has nothing to overlap because it's first entry
-                        chrom = fields[0]
-                        strand = fields[5]
-                        txStart = int(fields[1])
-                        txEnd = int(fields[2])
-                        cdsStart = int(fields[6])
-                        cdsEnd = int(fields[7])
-                        geneName = fields[3]
-                        fields[4]
-                        txEnd_float = txEnd
-                        cdsEnd_float = cdsEnd
-                    elif Orig_bedNum > 1:  # this is NOT first entry
-                        overlap_flag = (
-                            1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
-                        )
-                        if fields[0] != chrom:  # not the same chromosome
-                            overlap_flag = 0
-                            txEnd_float = int(fields[2])
-                        if (boundary == "utr") and (fields[0] == chrom) and (int(fields[1]) >= txEnd_float):
-                            overlap_flag = 0
-                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEnd_float):
-                            overlap_flag = 0
-                        txStart = int(fields[1])
-                        txEnd = int(fields[2])
-                        strand = fields[5]
-                        chrom = fields[0]
-                        cdsStart = int(fields[6])
-                        cdsEnd = int(fields[7])
-                        geneName = fields[3]
-                        fields[4]
-                        txEnd_float = max(txEnd_float, int(fields[2]))
-                        cdsEnd_float = max(cdsEnd_float, int(fields[7]))
-                    exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                    exon_starts = list(map((lambda x: x + txStart), exon_starts))  # 0-based half open [)
-                    exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-                    # intron_start = exon_ends[:-1]  #0-based half open [)
-                    # intron_end=exon_starts[1:]
-
-                    if overlap_flag == 0:
-                        Merge_bedNum += 1
-                        Merge_bed_TxStart[Merge_bedNum].append(txStart)
-                        Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
-                        Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
-                        Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
-                        Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
-                        Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
-                        Merge_bed_geneName[Merge_bedNum].append(geneName)
-                        Merge_bed_chr[Merge_bedNum] = chrom
-                        Merge_bed_strand[Merge_bedNum] = strand
-                    elif overlap_flag == 1:
-                        Merge_bed_TxStart[Merge_bedNum].append(txStart)
-                        Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
-                        Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
-                        Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
-                        Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
-                        Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
-                        Merge_bed_geneName[Merge_bedNum].append(geneName)
-                        Merge_bed_chr[Merge_bedNum] = chrom
-                        Merge_bed_strand[Merge_bedNum] = strand
-            self.f.seek(0)
-
-            # merge overlapping transcripts on minus strand
-            Orig_bedNum = 0
-            for line in self.f:
-                line = line.strip()
-                if bed_line.match(line):
-                    fields = line.split()
-                    if len(fields) != 12:
-                        print("bed file must be 12 columns speparated by Tab(whilte space)" + line, file=sys.stderr)
-                    if fields[5] == "+":
-                        continue
-                    Orig_bedNum += 1
-                    if Orig_bedNum == 1:  # this is first bed entry
-                        overlap_flag = 0  # has nothing to overlap because it's first entry
-                        chrom = fields[0]
-                        strand = fields[5]
-                        txStart = int(fields[1])
-                        txEnd = int(fields[2])
-                        cdsStart = int(fields[6])
-                        cdsEnd = int(fields[7])
-                        geneName = fields[3]
-                        fields[4]
-                        txEnd_float = txEnd
-                        cdsEnd_float = cdsEnd
-                    elif Orig_bedNum > 1:  # this is NOT first entry
-                        overlap_flag = (
-                            1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
-                        )
-                        if fields[0] != chrom:  # not the same chromosome
-                            overlap_flag = 0
-                            txEnd_float = int(fields[2])
-                        if (boundary == "utr") and (fields[0] == chrom) and (int(fields[1]) >= txEnd_float):
-                            overlap_flag = 0
-                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEnd_float):
-                            overlap_flag = 0
-                        txStart = int(fields[1])
-                        txEnd = int(fields[2])
-                        strand = fields[5]
-                        chrom = fields[0]
-                        cdsStart = int(fields[6])
-                        cdsEnd = int(fields[7])
-                        geneName = fields[3]
-                        fields[4]
-                        txEnd_float = max(txEnd_float, int(fields[2]))
-                        cdsEnd_float = max(cdsEnd_float, int(fields[7]))
-                    exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                    exon_starts = list(map((lambda x: x + txStart), exon_starts))  # 0-based half open [)
-                    exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-                    # intron_start = exon_ends[:-1]  #0-based half open [)
-                    # intron_end=exon_starts[1:]
-
-                    if overlap_flag == 0:
-                        Merge_bedNum += 1
-                        Merge_bed_TxStart[Merge_bedNum].append(txStart)
-                        Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
-                        Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
-                        Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
-                        Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
-                        Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
-                        Merge_bed_geneName[Merge_bedNum].append(geneName)
-                        Merge_bed_chr[Merge_bedNum] = chrom
-                        Merge_bed_strand[Merge_bedNum] = strand
-                    elif overlap_flag == 1:
-                        Merge_bed_TxStart[Merge_bedNum].append(txStart)
-                        Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
-                        Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
-                        Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
-                        Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
-                        Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
-                        Merge_bed_geneName[Merge_bedNum].append(geneName)
-                        Merge_bed_chr[Merge_bedNum] = chrom
-                        Merge_bed_strand[Merge_bedNum] = strand
-            self.f.seek(0)
-        else:  # NOT want to consider strand information. merge + and - together
-            Orig_bedNum = 0
-            Merge_bedNum = 0
-            for line in self.f:
-                line = line.rstrip("\r\n")
-                line = line.lstrip()
-                if bed_line.match(line):
-                    fields = line.split()
-                    Orig_bedNum += 1
-                    if Orig_bedNum == 1:  # this is first bed entry
-                        overlap_flag = 0  # has nothing to overlap because it's first entry
-                        chrom = fields[0]
-                        # strand = fields[5]
-                        txStart = int(fields[1])
-                        txEnd = int(fields[2])
-                        cdsStart = int(fields[6])
-                        cdsEnd = int(fields[7])
-                        geneName = fields[3]
-                        fields[4]
-                        txEnd_float = txEnd
-                        cdsEnd_float = cdsEnd
-                    elif Orig_bedNum > 1:  # this is NOT first entry
-                        overlap_flag = (
-                            1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
-                        )
-                        if fields[0] != chrom:  # not the same chromosome
-                            overlap_flag = 0
-                            txEnd_float = int(fields[2])
-                        if (boundary == "utr") and (fields[0] == chrom) and (int(fields[1]) >= txEnd_float):
-                            overlap_flag = 0
-                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEnd_float):
-                            overlap_flag = 0
-                        txStart = int(fields[1])
-                        txEnd = int(fields[2])
-                        # strand = fields[5]
-                        chrom = fields[0]
-                        cdsStart = int(fields[6])
-                        cdsEnd = int(fields[7])
-                        geneName = fields[3]
-                        fields[4]
-                        txEnd_float = max(txEnd_float, int(fields[2]))
-                        cdsEnd_float = max(cdsEnd_float, int(fields[7]))
-                    exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                    exon_starts = list(map((lambda x: x + txStart), exon_starts))  # 0-based half open [)
-                    exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-                    # intron_start = exon_ends[:-1]  #0-based half open [)
-                    # intron_end=exon_starts[1:]
-
-                    if overlap_flag == 0:
-                        Merge_bedNum += 1
-                        Merge_bed_TxStart[Merge_bedNum].append(txStart)
-                        Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
-                        Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
-                        Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
-                        Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
-                        Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
-                        Merge_bed_geneName[Merge_bedNum].append(geneName)
-                        Merge_bed_chr[Merge_bedNum] = chrom
-                        Merge_bed_strand[Merge_bedNum] = "+"
-                    elif overlap_flag == 1:
-                        Merge_bed_TxStart[Merge_bedNum].append(txStart)
-                        Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
-                        Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
-                        Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
-                        Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
-                        Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
-                        Merge_bed_geneName[Merge_bedNum].append(geneName)
-                        Merge_bed_chr[Merge_bedNum] = chrom
-                        Merge_bed_strand[Merge_bedNum] = "+"
-
-        # meged exon and output
-        for id in sorted(Merge_bed_TxStart.keys()):
-            final_exon = {}  # key is exon start, value is exon end
-            final_exon_sizes = []
+            # some local variable within function
+            bed_line = re.compile(r"^\S+\s+\d+\s+\d+")
+            Merge_bed_TxStart = collections.defaultdict(list)
+            Merge_bed_TxEnd = collections.defaultdict(list)
+            Merge_bed_cdsStart = collections.defaultdict(list)
+            Merge_bed_cdsEnd = collections.defaultdict(list)
+            Merge_bed_ExonStart = collections.defaultdict(list)
+            Merge_bed_ExonEnd = collections.defaultdict(list)
+            Merge_bed_geneName = collections.defaultdict(list)
+            Orig_bedNum = 0  # number of bed entries before merging
+            Merge_bedNum = 0  # number of bed entries after merging
+            Merge_bed_chr = {}
+            Merge_bed_strand = {}
             final_exon_starts = []
-            FName.write("BED_box_" + str(id) + "\t")
-            FName.write(",".join(Merge_bed_geneName[id]) + "\n")
-            for E_st, E_end in sorted(zip(Merge_bed_ExonStart[id], Merge_bed_ExonEnd[id])):
-                startOfFirstExon = E_st
-                endOfFirstExon = E_end
-                final_exon[E_st] = E_end
-                break
-            for E_st, E_end in sorted(zip(Merge_bed_ExonStart[id][1:], Merge_bed_ExonEnd[id][1:])):
-                if E_st in final_exon:  # the current start position already there. We only need to compare end position
-                    if E_end > endOfFirstExon:
-                        final_exon[startOfFirstExon] = E_end
-                        endOfFirstExon = E_end
-                    else:
-                        continue
-                else:  # the current start postion is different
-                    if E_st <= endOfFirstExon:
-                        if E_end <= endOfFirstExon:
+            final_exon_sizes = []
+
+            # check if the input bed file is properly sorted
+            print("check if input bed file is sorted properly ...", end=" ", file=sys.stderr)
+            i = 0
+            for line in self.f:
+                line = line.strip()
+                if bed_line.match(line):
+                    fields = line.split()
+                    i += 1
+                    if i == 1:
+                        chrom = fields[0]
+                        txStart = int(fields[1])
+                    if i > 1:
+                        if (fields[0] < chrom) or (
+                            (fields[0] == chrom) and (int(fields[1]) < txStart)
+                        ):  # print first unsorted line if any
+                            print("File not properly sorted:" + line, file=sys.stderr)
+                            exit(1)
+                        chrom = fields[0]
+                        txStart = int(fields[1])
+            else:  # well, file seems to be OK
+                print("OK!", file=sys.stderr)
+            self.f.seek(0)
+
+            print("merge bed file to " + outfile + " ...", file=sys.stderr)
+            FO.write(
+                "track name="
+                + self.fileName
+                + " description="
+                + ' "'
+                + "Overlapping entries in "
+                + self.fileName
+                + " were merged"
+                + '"'
+                + "\n"
+            )
+            if stranded:  # want to consider strand information
+                for line in self.f:
+                    line = line.strip()
+                    if bed_line.match(line):
+                        fields = line.split()
+                        if len(fields) != 12:
+                            print("bed file must be 12 columns speparated by Tab(whilte space)" + line, file=sys.stderr)
+                        if fields[5] == "-":
+                            continue  # merge overlapping transcripts on plus strand
+                        Orig_bedNum += 1
+                        if Orig_bedNum == 1:  # this is first bed entry
+                            overlap_flag = 0  # has nothing to overlap because it's first entry
+                            chrom = fields[0]
+                            strand = fields[5]
+                            txStart = int(fields[1])
+                            txEnd = int(fields[2])
+                            cdsStart = int(fields[6])
+                            cdsEnd = int(fields[7])
+                            geneName = fields[3]
+                            fields[4]
+                            txEnd_float = txEnd
+                            cdsEnd_float = cdsEnd
+                        elif Orig_bedNum > 1:  # this is NOT first entry
+                            overlap_flag = (
+                                1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
+                            )
+                            if fields[0] != chrom:  # not the same chromosome
+                                overlap_flag = 0
+                                txEnd_float = int(fields[2])
+                            if (boundary == "utr") and (fields[0] == chrom) and (int(fields[1]) >= txEnd_float):
+                                overlap_flag = 0
+                            if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEnd_float):
+                                overlap_flag = 0
+                            txStart = int(fields[1])
+                            txEnd = int(fields[2])
+                            strand = fields[5]
+                            chrom = fields[0]
+                            cdsStart = int(fields[6])
+                            cdsEnd = int(fields[7])
+                            geneName = fields[3]
+                            fields[4]
+                            txEnd_float = max(txEnd_float, int(fields[2]))
+                            cdsEnd_float = max(cdsEnd_float, int(fields[7]))
+                        exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                        exon_starts = list(map((lambda x: x + txStart), exon_starts))  # 0-based half open [)
+                        exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                        exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                        # intron_start = exon_ends[:-1]  #0-based half open [)
+                        # intron_end=exon_starts[1:]
+
+                        if overlap_flag == 0:
+                            Merge_bedNum += 1
+                            Merge_bed_TxStart[Merge_bedNum].append(txStart)
+                            Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
+                            Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
+                            Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
+                            Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
+                            Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
+                            Merge_bed_geneName[Merge_bedNum].append(geneName)
+                            Merge_bed_chr[Merge_bedNum] = chrom
+                            Merge_bed_strand[Merge_bedNum] = strand
+                        elif overlap_flag == 1:
+                            Merge_bed_TxStart[Merge_bedNum].append(txStart)
+                            Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
+                            Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
+                            Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
+                            Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
+                            Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
+                            Merge_bed_geneName[Merge_bedNum].append(geneName)
+                            Merge_bed_chr[Merge_bedNum] = chrom
+                            Merge_bed_strand[Merge_bedNum] = strand
+                self.f.seek(0)
+
+                # merge overlapping transcripts on minus strand
+                Orig_bedNum = 0
+                for line in self.f:
+                    line = line.strip()
+                    if bed_line.match(line):
+                        fields = line.split()
+                        if len(fields) != 12:
+                            print("bed file must be 12 columns speparated by Tab(whilte space)" + line, file=sys.stderr)
+                        if fields[5] == "+":
                             continue
-                        elif E_end > endOfFirstExon:
+                        Orig_bedNum += 1
+                        if Orig_bedNum == 1:  # this is first bed entry
+                            overlap_flag = 0  # has nothing to overlap because it's first entry
+                            chrom = fields[0]
+                            strand = fields[5]
+                            txStart = int(fields[1])
+                            txEnd = int(fields[2])
+                            cdsStart = int(fields[6])
+                            cdsEnd = int(fields[7])
+                            geneName = fields[3]
+                            fields[4]
+                            txEnd_float = txEnd
+                            cdsEnd_float = cdsEnd
+                        elif Orig_bedNum > 1:  # this is NOT first entry
+                            overlap_flag = (
+                                1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
+                            )
+                            if fields[0] != chrom:  # not the same chromosome
+                                overlap_flag = 0
+                                txEnd_float = int(fields[2])
+                            if (boundary == "utr") and (fields[0] == chrom) and (int(fields[1]) >= txEnd_float):
+                                overlap_flag = 0
+                            if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEnd_float):
+                                overlap_flag = 0
+                            txStart = int(fields[1])
+                            txEnd = int(fields[2])
+                            strand = fields[5]
+                            chrom = fields[0]
+                            cdsStart = int(fields[6])
+                            cdsEnd = int(fields[7])
+                            geneName = fields[3]
+                            fields[4]
+                            txEnd_float = max(txEnd_float, int(fields[2]))
+                            cdsEnd_float = max(cdsEnd_float, int(fields[7]))
+                        exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                        exon_starts = list(map((lambda x: x + txStart), exon_starts))  # 0-based half open [)
+                        exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                        exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                        # intron_start = exon_ends[:-1]  #0-based half open [)
+                        # intron_end=exon_starts[1:]
+
+                        if overlap_flag == 0:
+                            Merge_bedNum += 1
+                            Merge_bed_TxStart[Merge_bedNum].append(txStart)
+                            Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
+                            Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
+                            Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
+                            Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
+                            Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
+                            Merge_bed_geneName[Merge_bedNum].append(geneName)
+                            Merge_bed_chr[Merge_bedNum] = chrom
+                            Merge_bed_strand[Merge_bedNum] = strand
+                        elif overlap_flag == 1:
+                            Merge_bed_TxStart[Merge_bedNum].append(txStart)
+                            Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
+                            Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
+                            Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
+                            Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
+                            Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
+                            Merge_bed_geneName[Merge_bedNum].append(geneName)
+                            Merge_bed_chr[Merge_bedNum] = chrom
+                            Merge_bed_strand[Merge_bedNum] = strand
+                self.f.seek(0)
+            else:  # NOT want to consider strand information. merge + and - together
+                Orig_bedNum = 0
+                Merge_bedNum = 0
+                for line in self.f:
+                    line = line.rstrip("\r\n")
+                    line = line.lstrip()
+                    if bed_line.match(line):
+                        fields = line.split()
+                        Orig_bedNum += 1
+                        if Orig_bedNum == 1:  # this is first bed entry
+                            overlap_flag = 0  # has nothing to overlap because it's first entry
+                            chrom = fields[0]
+                            # strand = fields[5]
+                            txStart = int(fields[1])
+                            txEnd = int(fields[2])
+                            cdsStart = int(fields[6])
+                            cdsEnd = int(fields[7])
+                            geneName = fields[3]
+                            fields[4]
+                            txEnd_float = txEnd
+                            cdsEnd_float = cdsEnd
+                        elif Orig_bedNum > 1:  # this is NOT first entry
+                            overlap_flag = (
+                                1  # we suppose current line is overlapped with previous one. Unless it can prove it's NOT!
+                            )
+                            if fields[0] != chrom:  # not the same chromosome
+                                overlap_flag = 0
+                                txEnd_float = int(fields[2])
+                            if (boundary == "utr") and (fields[0] == chrom) and (int(fields[1]) >= txEnd_float):
+                                overlap_flag = 0
+                            if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEnd_float):
+                                overlap_flag = 0
+                            txStart = int(fields[1])
+                            txEnd = int(fields[2])
+                            # strand = fields[5]
+                            chrom = fields[0]
+                            cdsStart = int(fields[6])
+                            cdsEnd = int(fields[7])
+                            geneName = fields[3]
+                            fields[4]
+                            txEnd_float = max(txEnd_float, int(fields[2]))
+                            cdsEnd_float = max(cdsEnd_float, int(fields[7]))
+                        exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                        exon_starts = list(map((lambda x: x + txStart), exon_starts))  # 0-based half open [)
+                        exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                        exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                        # intron_start = exon_ends[:-1]  #0-based half open [)
+                        # intron_end=exon_starts[1:]
+
+                        if overlap_flag == 0:
+                            Merge_bedNum += 1
+                            Merge_bed_TxStart[Merge_bedNum].append(txStart)
+                            Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
+                            Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
+                            Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
+                            Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
+                            Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
+                            Merge_bed_geneName[Merge_bedNum].append(geneName)
+                            Merge_bed_chr[Merge_bedNum] = chrom
+                            Merge_bed_strand[Merge_bedNum] = "+"
+                        elif overlap_flag == 1:
+                            Merge_bed_TxStart[Merge_bedNum].append(txStart)
+                            Merge_bed_TxEnd[Merge_bedNum].append(txEnd)
+                            Merge_bed_cdsStart[Merge_bedNum].append(cdsStart)
+                            Merge_bed_cdsEnd[Merge_bedNum].append(cdsEnd)
+                            Merge_bed_ExonStart[Merge_bedNum].extend(exon_starts)
+                            Merge_bed_ExonEnd[Merge_bedNum].extend(exon_ends)
+                            Merge_bed_geneName[Merge_bedNum].append(geneName)
+                            Merge_bed_chr[Merge_bedNum] = chrom
+                            Merge_bed_strand[Merge_bedNum] = "+"
+
+            # meged exon and output
+            for id in sorted(Merge_bed_TxStart.keys()):
+                final_exon = {}  # key is exon start, value is exon end
+                final_exon_sizes = []
+                final_exon_starts = []
+                FName.write("BED_box_" + str(id) + "\t")
+                FName.write(",".join(Merge_bed_geneName[id]) + "\n")
+                for E_st, E_end in sorted(zip(Merge_bed_ExonStart[id], Merge_bed_ExonEnd[id])):
+                    startOfFirstExon = E_st
+                    endOfFirstExon = E_end
+                    final_exon[E_st] = E_end
+                    break
+                for E_st, E_end in sorted(zip(Merge_bed_ExonStart[id][1:], Merge_bed_ExonEnd[id][1:])):
+                    if E_st in final_exon:  # the current start position already there. We only need to compare end position
+                        if E_end > endOfFirstExon:
                             final_exon[startOfFirstExon] = E_end
                             endOfFirstExon = E_end
-                    else:
-                        final_exon[E_st] = E_end
-                        startOfFirstExon = E_st
-                        endOfFirstExon = E_end
+                        else:
+                            continue
+                    else:  # the current start postion is different
+                        if E_st <= endOfFirstExon:
+                            if E_end <= endOfFirstExon:
+                                continue
+                            elif E_end > endOfFirstExon:
+                                final_exon[startOfFirstExon] = E_end
+                                endOfFirstExon = E_end
+                        else:
+                            final_exon[E_st] = E_end
+                            startOfFirstExon = E_st
+                            endOfFirstExon = E_end
 
-            for k in sorted(final_exon.keys()):
-                final_exon_sizes.append(final_exon[k] - k)
-                final_exon_starts.append(k - (min(Merge_bed_TxStart[id])))
+                for k in sorted(final_exon.keys()):
+                    final_exon_sizes.append(final_exon[k] - k)
+                    final_exon_starts.append(k - (min(Merge_bed_TxStart[id])))
 
-            FO.write(
-                Merge_bed_chr[id] + "\t" + str(min(Merge_bed_TxStart[id])) + "\t" + str(max(Merge_bed_TxEnd[id])) + "\t"
-            )  # column 1,2,3
-            FO.write("BED_box_" + str(id) + "\t0\t")  # column 4,5
-            FO.write(Merge_bed_strand[id] + "\t")  # column 6
-            FO.write(
-                str(min(Merge_bed_cdsStart[id])) + "\t" + str(max(Merge_bed_cdsEnd[id])) + "\t" + "255,0,0" + "\t"
-            )  # column 7,8,9
-            FO.write(str(len(final_exon_starts)) + "\t")  # column 10
-            FO.write(",".join(map(str, final_exon_sizes)) + "\t")  # column 11
-            FO.write(",".join(map(str, final_exon_starts)) + "\n")  # column 12
+                FO.write(
+                    Merge_bed_chr[id] + "\t" + str(min(Merge_bed_TxStart[id])) + "\t" + str(max(Merge_bed_TxEnd[id])) + "\t"
+                )  # column 1,2,3
+                FO.write("BED_box_" + str(id) + "\t0\t")  # column 4,5
+                FO.write(Merge_bed_strand[id] + "\t")  # column 6
+                FO.write(
+                    str(min(Merge_bed_cdsStart[id])) + "\t" + str(max(Merge_bed_cdsEnd[id])) + "\t" + "255,0,0" + "\t"
+                )  # column 7,8,9
+                FO.write(str(len(final_exon_starts)) + "\t")  # column 10
+                FO.write(",".join(map(str, final_exon_sizes)) + "\t")  # column 11
+                FO.write(",".join(map(str, final_exon_starts)) + "\n")  # column 12
 
-        self.f.seek(0)
-        FO.close()
+            self.f.seek(0)
 
     def correctSplicingBed(self, genome, outfile, sp="GTAG,GCAG,ATAC"):
         """input should be bed12 file representing splicing junctions. The function will compare
         the splicing motif to genome. To see if the direcion is correct or not. Only consider GT/AG
         GC/AG, AT/AC motifs. Multiple spliced reads are accepted"""
 
-        fout = open(outfile, "w")
-        motif = sp.upper().split(",")
-        motif_rev = [m.translate(self.transtab)[::-1] for m in motif]
-        print("\tloading " + genome + "...", file=sys.stderr)
-        tmp = fasta.Fasta(genome)
-        for line in self.f:
-            if line.startswith("#"):
-                continue
-            if line.startswith("track"):
-                continue
-            if line.startswith("browser"):
-                continue
-            line = line.strip()
-            fields = line.split()
-            if len(fields) < 12:
-                print(line, file=fout)
-                continue
+        with open(outfile, "w") as fout:
+            motif = sp.upper().split(",")
+            motif_rev = [m.translate(self.transtab)[::-1] for m in motif]
+            print("\tloading " + genome + "...", file=sys.stderr)
+            tmp = fasta.Fasta(genome)
+            for line in self.f:
+                if line.startswith("#"):
+                    continue
+                if line.startswith("track"):
+                    continue
+                if line.startswith("browser"):
+                    continue
+                line = line.strip()
+                fields = line.split()
+                if len(fields) < 12:
+                    print(line, file=fout)
+                    continue
 
-            chrom = fields[0]
-            tx_start = int(fields[1])
-            int(fields[2])
-            fields[3]
-            fields[5]
-            int(fields[6])
-            int(fields[7])
-            int(fields[9])
-            list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            intron_start = exon_ends[:-1]
-            intron_end = exon_starts[1:]
-            splice_strand = []
-            for st, end in zip(intron_start, intron_end):
-                splice_motif = tmp.fetchSeq(chrom, st, st + 2) + tmp.fetchSeq(chrom, end - 2, end)
-                if splice_motif in motif:
-                    splice_strand.append("+")
-                elif splice_motif in motif_rev:
-                    splice_strand.append("-")
+                chrom = fields[0]
+                tx_start = int(fields[1])
+                int(fields[2])
+                fields[3]
+                fields[5]
+                int(fields[6])
+                int(fields[7])
+                int(fields[9])
+                list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                intron_start = exon_ends[:-1]
+                intron_end = exon_starts[1:]
+                splice_strand = []
+                for st, end in zip(intron_start, intron_end):
+                    splice_motif = tmp.fetchSeq(chrom, st, st + 2) + tmp.fetchSeq(chrom, end - 2, end)
+                    if splice_motif in motif:
+                        splice_strand.append("+")
+                    elif splice_motif in motif_rev:
+                        splice_strand.append("-")
+                    else:
+                        splice_strand.append(".")
+
+                real_strand = set(splice_strand)
+                if len(real_strand) == 1:
+                    print(
+                        "\t".join(
+                            (
+                                fields[0],
+                                fields[1],
+                                fields[2],
+                                fields[3],
+                                fields[4],
+                                real_strand.pop(),
+                                fields[6],
+                                fields[7],
+                                fields[8],
+                                fields[9],
+                                fields[10],
+                                fields[11],
+                            )
+                        ),
+                        file=fout,
+                    )
                 else:
-                    splice_strand.append(".")
-
-            real_strand = set(splice_strand)
-            if len(real_strand) == 1:
-                print(
-                    "\t".join(
-                        (
-                            fields[0],
-                            fields[1],
-                            fields[2],
-                            fields[3],
-                            fields[4],
-                            real_strand.pop(),
-                            fields[6],
-                            fields[7],
-                            fields[8],
-                            fields[9],
-                            fields[10],
-                            fields[11],
-                        )
-                    ),
-                    file=fout,
-                )
-            else:
-                print(
-                    "\t".join(
-                        (
-                            fields[0],
-                            fields[1],
-                            fields[2],
-                            fields[3],
-                            fields[4],
-                            ".",
-                            fields[6],
-                            fields[7],
-                            fields[8],
-                            fields[9],
-                            fields[10],
-                            fields[11],
-                        )
-                    ),
-                    file=fout,
-                )
-        self.f.seek(0)
-        fout.close()
+                    print(
+                        "\t".join(
+                            (
+                                fields[0],
+                                fields[1],
+                                fields[2],
+                                fields[3],
+                                fields[4],
+                                ".",
+                                fields[6],
+                                fields[7],
+                                fields[8],
+                                fields[9],
+                                fields[10],
+                                fields[11],
+                            )
+                        ),
+                        file=fout,
+                    )
+            self.f.seek(0)
 
     def nrBED(self, outfile=None):
         """redundant bed entries (exactly the same gene structure) in bed12 file will be merged."""
         if outfile is None:
             outfile = self.fileName + ".nr.bed"
-        FO = open(outfile, "w")
+        with open(outfile, "w") as FO:
 
-        mergeGene = collections.defaultdict(list)
-        print("Removing redundcany from " + self.fileName + "  ...", file=sys.stderr)
-        for line in self.f:
-            if line.startswith("#"):
-                continue
-            if line.startswith("track"):
-                continue
-            if line.startswith("browser"):
-                continue
-            fields = line.rstrip().split()
-            chrom = fields[0]  #
-            txStart = fields[1]  #
-            txEnd = fields[2]  #
-            geneName = fields[3]
-            fields[4]
-            strand = fields[5]  #
-            cdsStart = fields[6]  #
-            cdsEnd = fields[7]  #
-            blockCount = fields[9]  #
-            blockSize = fields[10]  #
-            blockStart = fields[11]  #
+            mergeGene = collections.defaultdict(list)
+            print("Removing redundcany from " + self.fileName + "  ...", file=sys.stderr)
+            for line in self.f:
+                if line.startswith("#"):
+                    continue
+                if line.startswith("track"):
+                    continue
+                if line.startswith("browser"):
+                    continue
+                fields = line.rstrip().split()
+                chrom = fields[0]  #
+                txStart = fields[1]  #
+                txEnd = fields[2]  #
+                geneName = fields[3]
+                fields[4]
+                strand = fields[5]  #
+                cdsStart = fields[6]  #
+                cdsEnd = fields[7]  #
+                blockCount = fields[9]  #
+                blockSize = fields[10]  #
+                blockStart = fields[11]  #
 
-            key = ":".join((chrom, txStart, txEnd, strand, cdsStart, cdsEnd, blockCount, blockSize, blockStart))
-            mergeGene[key].append(geneName)
-        for k in mergeGene:
-            fields = k.split(":")
-            name = ";".join(mergeGene[k])
-            FO.write(
-                fields[0]
-                + "\t"
-                + fields[1]
-                + "\t"
-                + fields[2]
-                + "\t"
-                + name
-                + "\t0\t"
-                + fields[3]
-                + "\t"
-                + fields[4]
-                + "\t"
-                + fields[5]
-                + "\t0,0,0\t"
-                + fields[6]
-                + "\t"
-                + fields[7]
-                + "\t"
-                + fields[8]
-                + "\n"
-            )
-        self.f.seek(0)
-        FO.close()
+                key = ":".join((chrom, txStart, txEnd, strand, cdsStart, cdsEnd, blockCount, blockSize, blockStart))
+                mergeGene[key].append(geneName)
+            for k in mergeGene:
+                fields = k.split(":")
+                name = ";".join(mergeGene[k])
+                FO.write(
+                    fields[0]
+                    + "\t"
+                    + fields[1]
+                    + "\t"
+                    + fields[2]
+                    + "\t"
+                    + name
+                    + "\t0\t"
+                    + fields[3]
+                    + "\t"
+                    + fields[4]
+                    + "\t"
+                    + fields[5]
+                    + "\t0,0,0\t"
+                    + fields[6]
+                    + "\t"
+                    + fields[7]
+                    + "\t"
+                    + fields[8]
+                    + "\n"
+                )
+            self.f.seek(0)
 
 
 class CompareBED:
@@ -1675,75 +1664,74 @@ class CompareBED:
         else:
             KnownBed = outfile + ".known.bed"
             NovelBed = outfile + ".novel.bed"
-        KNO = open(KnownBed, "w")
-        NOV = open(NovelBed, "w")
+        with open(KnownBed, "w") as KNO, open(NovelBed, "w") as NOV:
 
-        ref_blocks = collections.defaultdict(dict)
+            ref_blocks = collections.defaultdict(dict)
 
-        print("reading reference bed file", self.B_full_Name, " ... ", end=" ", file=sys.stderr)
-        for line in self.B_fh:
-            if line.startswith("#"):
-                continue
-            if line.startswith("track"):
-                continue
-            if line.startswith("browser"):
-                continue
+            print("reading reference bed file", self.B_full_Name, " ... ", end=" ", file=sys.stderr)
+            for line in self.B_fh:
+                if line.startswith("#"):
+                    continue
+                if line.startswith("track"):
+                    continue
+                if line.startswith("browser"):
+                    continue
+                    # Parse fields from gene tabls
+                fields = line.split()
+                if len(fields) < 12:
+                    print("Invalid bed line (skipped):", line, end=" ", file=sys.stderr)
+                    continue
+                chrom = fields[0]
+                tx_start = int(fields[1])
+                int(fields[2])
+                if int(fields[9]) == 1:
+                    continue
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                intron_start = exon_ends[:-1]
+                intron_end = exon_starts[1:]
+                for i_st, i_end in zip(intron_start, intron_end):
+                    key_str = str(i_st) + "_" + str(i_end)
+                    ref_blocks[chrom][key_str] = i_end
+
+            print("Done", file=sys.stderr)
+
+            print("processing", self.A_full_Name, "...", end=" ", file=sys.stderr)
+            for line in self.A_fh:
+                if line.startswith("#"):
+                    continue
+                if line.startswith("track"):
+                    continue
+                if line.startswith("browser"):
+                    continue
                 # Parse fields from gene tabls
-            fields = line.split()
-            if len(fields) < 12:
-                print("Invalid bed line (skipped):", line, end=" ", file=sys.stderr)
-                continue
-            chrom = fields[0]
-            tx_start = int(fields[1])
-            int(fields[2])
-            if int(fields[9]) == 1:
-                continue
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            intron_start = exon_ends[:-1]
-            intron_end = exon_starts[1:]
-            for i_st, i_end in zip(intron_start, intron_end):
-                key_str = str(i_st) + "_" + str(i_end)
-                ref_blocks[chrom][key_str] = i_end
+                fields = line.split()
+                if len(fields) < 12:
+                    print("Invalid bed line (skipped):", line, end=" ", file=sys.stderr)
+                    continue
+                chrom = fields[0]
+                tx_start = int(fields[1])
+                int(fields[2])
+                if int(fields[9]) == 1:
+                    continue
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                intron_start = exon_ends[:-1]
+                intron_end = exon_starts[1:]
 
-        print("Done", file=sys.stderr)
-
-        print("processing", self.A_full_Name, "...", end=" ", file=sys.stderr)
-        for line in self.A_fh:
-            if line.startswith("#"):
-                continue
-            if line.startswith("track"):
-                continue
-            if line.startswith("browser"):
-                continue
-            # Parse fields from gene tabls
-            fields = line.split()
-            if len(fields) < 12:
-                print("Invalid bed line (skipped):", line, end=" ", file=sys.stderr)
-                continue
-            chrom = fields[0]
-            tx_start = int(fields[1])
-            int(fields[2])
-            if int(fields[9]) == 1:
-                continue
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            intron_start = exon_ends[:-1]
-            intron_end = exon_starts[1:]
-
-            for i_st, i_end in sorted(zip(intron_start, intron_end)):
-                key_str = str(i_st) + "_" + str(i_end)
-                if key_str in ref_blocks[chrom]:
-                    # found +=1
-                    # if (found == len(intron_start)):
-                    print(line, end=" ", file=KNO)
-                else:
-                    print(line, end=" ", file=NOV)
-        print("Done", file=sys.stderr)
+                for i_st, i_end in sorted(zip(intron_start, intron_end)):
+                    key_str = str(i_st) + "_" + str(i_end)
+                    if key_str in ref_blocks[chrom]:
+                        # found +=1
+                        # if (found == len(intron_start)):
+                        print(line, end=" ", file=KNO)
+                    else:
+                        print(line, end=" ", file=NOV)
+            print("Done", file=sys.stderr)
 
     def annotateSplicingSites(self, outfile=None):
         """Compare bed file A to bed file B (usually a bed file for reference gene model). NOTE that
@@ -1763,179 +1751,181 @@ class CompareBED:
             NovelBed5 = outfile + ".5novel.bed"
             NovelBed3 = outfile + ".3novel.bed"
             NovelBed35 = outfile + ".35novel.bed"
-        KNO = open(KnownBed, "w")
-        N5 = open(NovelBed5, "w")
-        N3 = open(NovelBed3, "w")
-        N35 = open(NovelBed35, "w")
+        with (
+            open(KnownBed, "w") as KNO,
+            open(NovelBed5, "w") as N5,
+            open(NovelBed3, "w") as N3,
+            open(NovelBed35, "w") as N35
+        ):
 
-        refIntronStarts = collections.defaultdict(dict)
-        refIntronEnds = collections.defaultdict(dict)
+            refIntronStarts = collections.defaultdict(dict)
+            refIntronEnds = collections.defaultdict(dict)
 
-        print("\treading reference bed file", self.B_full_Name, " ... ", end=" ", file=sys.stderr)
-        for line in self.B_fh:
-            if line.startswith("#"):
-                continue
-            if line.startswith("track"):
-                continue
-            if line.startswith("browser"):
-                continue
-                # Parse fields from gene tabls
-            fields = line.split()
-            if len(fields) < 12:
-                print("Invalid bed line (skipped):", line, end=" ", file=sys.stderr)
-                continue
-            chrom = fields[0]
-            tx_start = int(fields[1])
-            int(fields[2])
-            if int(fields[9]) == 1:
-                continue
-
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            intron_start = exon_ends[:-1]
-            intron_end = exon_starts[1:]
-            for i_st, i_end in zip(intron_start, intron_end):
-                refIntronStarts[chrom][i_st] = i_st
-                refIntronEnds[chrom][i_end] = i_end
-
-        print("Done", file=sys.stderr)
-
-        print("\tprocessing", self.A_full_Name, "...", end=" ", file=sys.stderr)
-        for line in self.A_fh:
-            found = 0
-            if line.startswith("#"):
-                continue
-            if line.startswith("track"):
-                continue
-            if line.startswith("browser"):
-                continue
-            # Parse fields from gene tabls
-            fields = line.split()
-            if len(fields) < 12:
-                print("Invalid bed line (skipped):", line, end=" ", file=sys.stderr)
-                continue
-            chrom = fields[0]
-            tx_start = int(fields[1])
-            int(fields[2])
-            geneName = fields[3]
-            score = fields[4]
-            strand = fields[5]
-            if int(fields[9]) == 1:
-                continue
-            exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            intron_start = exon_ends[:-1]
-            intron_end = exon_starts[1:]
-            counter = 0
-            for i_st, i_end in zip(intron_start, intron_end):
-                counter += 1
-                if strand == "+" or strand == ".":
-                    if i_st in refIntronStarts[chrom] and i_end in refIntronEnds[chrom]:
-                        found = 2  # known both
-                    elif i_st in refIntronStarts[chrom] and i_end not in refIntronEnds[chrom]:
-                        found = 5  # 5' splice site known, 3' splice site unkonwn
-                    elif i_st not in refIntronStarts[chrom] and i_end in refIntronEnds[chrom]:
-                        found = 3  # 5' splice site uknown, 3' splice site konwn
-                    else:
-                        found = 10
-                elif strand == "-":
-                    if i_st in refIntronStarts[chrom] and i_end in refIntronEnds[chrom]:
-                        found = 2  # known
-                    elif i_st in refIntronStarts[chrom] and i_end not in refIntronEnds[chrom]:
-                        found = 3  # 5' splice site uknown, 3' splice site konwn
-                    elif i_st not in refIntronStarts[chrom] and i_end in refIntronEnds[chrom]:
-                        found = 5  # 5' splice site known, 3' splice site unkonwn
-                    else:
-                        found = 10
-                else:
+            print("\treading reference bed file", self.B_full_Name, " ... ", end=" ", file=sys.stderr)
+            for line in self.B_fh:
+                if line.startswith("#"):
+                    continue
+                if line.startswith("track"):
+                    continue
+                if line.startswith("browser"):
+                    continue
+                    # Parse fields from gene tabls
+                fields = line.split()
+                if len(fields) < 12:
+                    print("Invalid bed line (skipped):", line, end=" ", file=sys.stderr)
+                    continue
+                chrom = fields[0]
+                tx_start = int(fields[1])
+                int(fields[2])
+                if int(fields[9]) == 1:
                     continue
 
-                if found == 2:
-                    print(
-                        "\t".join(
-                            (
-                                chrom,
-                                str(i_st - exon_sizes[counter - 1]),
-                                str(i_end + exon_sizes[counter]),
-                                geneName + "_intron" + str(counter),
-                                score,
-                                strand,
-                                str(i_st - exon_sizes[counter - 1]),
-                                str(i_end + exon_sizes[counter]),
-                                "0,255,0",
-                                "2",
-                                str(exon_sizes[counter - 1]) + "," + str(exon_sizes[counter]),
-                                "0" + "," + str(exon_sizes[counter - 1] + i_end - i_st),
-                            )
-                        ),
-                        file=KNO,
-                    )
-                elif found == 3:
-                    print(
-                        "\t".join(
-                            (
-                                chrom,
-                                str(i_st - exon_sizes[counter - 1]),
-                                str(i_end + exon_sizes[counter]),
-                                geneName + "_intron" + str(counter),
-                                score,
-                                strand,
-                                str(i_st - exon_sizes[counter - 1]),
-                                str(i_end + exon_sizes[counter]),
-                                "0,255,0",
-                                "2",
-                                str(exon_sizes[counter - 1]) + "," + str(exon_sizes[counter]),
-                                "0" + "," + str(exon_sizes[counter - 1] + i_end - i_st),
-                            )
-                        ),
-                        file=N5,
-                    )
-                elif found == 5:
-                    print(
-                        "\t".join(
-                            (
-                                chrom,
-                                str(i_st - exon_sizes[counter - 1]),
-                                str(i_end + exon_sizes[counter]),
-                                geneName + "_intron" + str(counter),
-                                score,
-                                strand,
-                                str(i_st - exon_sizes[counter - 1]),
-                                str(i_end + exon_sizes[counter]),
-                                "0,255,0",
-                                "2",
-                                str(exon_sizes[counter - 1]) + "," + str(exon_sizes[counter]),
-                                "0" + "," + str(exon_sizes[counter - 1] + i_end - i_st),
-                            )
-                        ),
-                        file=N3,
-                    )
-                elif found == 10:
-                    print(
-                        "\t".join(
-                            (
-                                chrom,
-                                str(i_st - exon_sizes[counter - 1]),
-                                str(i_end + exon_sizes[counter]),
-                                geneName + "_intron" + str(counter),
-                                score,
-                                strand,
-                                str(i_st - exon_sizes[counter - 1]),
-                                str(i_end + exon_sizes[counter]),
-                                "0,255,0",
-                                "2",
-                                str(exon_sizes[counter - 1]) + "," + str(exon_sizes[counter]),
-                                "0" + "," + str(exon_sizes[counter - 1] + i_end - i_st),
-                            )
-                        ),
-                        file=N35,
-                    )
-        print("Done", file=sys.stderr)
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                intron_start = exon_ends[:-1]
+                intron_end = exon_starts[1:]
+                for i_st, i_end in zip(intron_start, intron_end):
+                    refIntronStarts[chrom][i_st] = i_st
+                    refIntronEnds[chrom][i_end] = i_end
+
+            print("Done", file=sys.stderr)
+
+            print("\tprocessing", self.A_full_Name, "...", end=" ", file=sys.stderr)
+            for line in self.A_fh:
+                found = 0
+                if line.startswith("#"):
+                    continue
+                if line.startswith("track"):
+                    continue
+                if line.startswith("browser"):
+                    continue
+                # Parse fields from gene tabls
+                fields = line.split()
+                if len(fields) < 12:
+                    print("Invalid bed line (skipped):", line, end=" ", file=sys.stderr)
+                    continue
+                chrom = fields[0]
+                tx_start = int(fields[1])
+                int(fields[2])
+                geneName = fields[3]
+                score = fields[4]
+                strand = fields[5]
+                if int(fields[9]) == 1:
+                    continue
+                exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                intron_start = exon_ends[:-1]
+                intron_end = exon_starts[1:]
+                counter = 0
+                for i_st, i_end in zip(intron_start, intron_end):
+                    counter += 1
+                    if strand == "+" or strand == ".":
+                        if i_st in refIntronStarts[chrom] and i_end in refIntronEnds[chrom]:
+                            found = 2  # known both
+                        elif i_st in refIntronStarts[chrom] and i_end not in refIntronEnds[chrom]:
+                            found = 5  # 5' splice site known, 3' splice site unkonwn
+                        elif i_st not in refIntronStarts[chrom] and i_end in refIntronEnds[chrom]:
+                            found = 3  # 5' splice site uknown, 3' splice site konwn
+                        else:
+                            found = 10
+                    elif strand == "-":
+                        if i_st in refIntronStarts[chrom] and i_end in refIntronEnds[chrom]:
+                            found = 2  # known
+                        elif i_st in refIntronStarts[chrom] and i_end not in refIntronEnds[chrom]:
+                            found = 3  # 5' splice site uknown, 3' splice site konwn
+                        elif i_st not in refIntronStarts[chrom] and i_end in refIntronEnds[chrom]:
+                            found = 5  # 5' splice site known, 3' splice site unkonwn
+                        else:
+                            found = 10
+                    else:
+                        continue
+
+                    if found == 2:
+                        print(
+                            "\t".join(
+                                (
+                                    chrom,
+                                    str(i_st - exon_sizes[counter - 1]),
+                                    str(i_end + exon_sizes[counter]),
+                                    geneName + "_intron" + str(counter),
+                                    score,
+                                    strand,
+                                    str(i_st - exon_sizes[counter - 1]),
+                                    str(i_end + exon_sizes[counter]),
+                                    "0,255,0",
+                                    "2",
+                                    str(exon_sizes[counter - 1]) + "," + str(exon_sizes[counter]),
+                                    "0" + "," + str(exon_sizes[counter - 1] + i_end - i_st),
+                                )
+                            ),
+                            file=KNO,
+                        )
+                    elif found == 3:
+                        print(
+                            "\t".join(
+                                (
+                                    chrom,
+                                    str(i_st - exon_sizes[counter - 1]),
+                                    str(i_end + exon_sizes[counter]),
+                                    geneName + "_intron" + str(counter),
+                                    score,
+                                    strand,
+                                    str(i_st - exon_sizes[counter - 1]),
+                                    str(i_end + exon_sizes[counter]),
+                                    "0,255,0",
+                                    "2",
+                                    str(exon_sizes[counter - 1]) + "," + str(exon_sizes[counter]),
+                                    "0" + "," + str(exon_sizes[counter - 1] + i_end - i_st),
+                                )
+                            ),
+                            file=N5,
+                        )
+                    elif found == 5:
+                        print(
+                            "\t".join(
+                                (
+                                    chrom,
+                                    str(i_st - exon_sizes[counter - 1]),
+                                    str(i_end + exon_sizes[counter]),
+                                    geneName + "_intron" + str(counter),
+                                    score,
+                                    strand,
+                                    str(i_st - exon_sizes[counter - 1]),
+                                    str(i_end + exon_sizes[counter]),
+                                    "0,255,0",
+                                    "2",
+                                    str(exon_sizes[counter - 1]) + "," + str(exon_sizes[counter]),
+                                    "0" + "," + str(exon_sizes[counter - 1] + i_end - i_st),
+                                )
+                            ),
+                            file=N3,
+                        )
+                    elif found == 10:
+                        print(
+                            "\t".join(
+                                (
+                                    chrom,
+                                    str(i_st - exon_sizes[counter - 1]),
+                                    str(i_end + exon_sizes[counter]),
+                                    geneName + "_intron" + str(counter),
+                                    score,
+                                    strand,
+                                    str(i_st - exon_sizes[counter - 1]),
+                                    str(i_end + exon_sizes[counter]),
+                                    "0,255,0",
+                                    "2",
+                                    str(exon_sizes[counter - 1]) + "," + str(exon_sizes[counter]),
+                                    "0" + "," + str(exon_sizes[counter - 1] + i_end - i_st),
+                                )
+                            ),
+                            file=N35,
+                        )
+            print("Done", file=sys.stderr)
 
     def distribBed(self, outfile=None):
         """Compare bed file A (usually a bed file of reads mapping results) to bed file B
@@ -1953,187 +1943,185 @@ class CompareBED:
             rscript = outfile + ".piechart.r"
             rpdf = outfile + ".piechart.pdf"
 
-        EXON_OUT = open(exon_count, "w")
-        INTRON_OUT = open(intron_count, "w")
-        R_OUT = open(rscript, "w")
+        with open(exon_count, "w") as EXON_OUT, open(intron_count, "w") as INTRON_OUT, open(rscript, "w") as R_OUT:
 
-        ranges = {}
-        intronReads = 0
-        exonReads = 0
-        intergenicReads = 0
-        totalReads = 0
-        splicedReads = 0
+            ranges = {}
+            intronReads = 0
+            exonReads = 0
+            intergenicReads = 0
+            totalReads = 0
+            splicedReads = 0
 
-        # read SAM
-        print("reading " + self.A_base_Name + "...", end=" ", file=sys.stderr)
-        for line in self.A_fh:
-            if line.startswith("track"):
-                continue
-            if line.startswith("#"):
-                continue
-            if line.startswith("browser"):
-                continue
-            fields = line.rstrip("\n ").split()
-            totalReads += 1
-            if len(fields) == 12 and fields[9] > 1:
-                splicedReads += 1
-                continue
-            else:
-                chrom = fields[0].upper()
-                mid = int(fields[1]) + int((int(fields[2]) - int(fields[1])) / 2)
-                if chrom not in ranges:
-                    ranges[chrom] = Intersecter()
-                else:
-                    ranges[chrom].add_interval(Interval(mid, mid))
-        self.A_fh.seek(0)
-        print("Done", file=sys.stderr)
-
-        # read refbed file
-        print("Assign reads to " + self.B_base_Name + "...", end=" ", file=sys.stderr)
-        for line in self.B_fh:
-            try:
-                if line.startswith("#"):
-                    continue
+            # read SAM
+            print("reading " + self.A_base_Name + "...", end=" ", file=sys.stderr)
+            for line in self.A_fh:
                 if line.startswith("track"):
+                    continue
+                if line.startswith("#"):
                     continue
                 if line.startswith("browser"):
                     continue
-                # Parse fields from gene tabls
-                fields = line.split()
-                chrom = fields[0].upper()
-                tx_start = int(fields[1])
-                int(fields[2])
-                geneName = fields[3]
-                strand = fields[5].replace(" ", "_")
+                fields = line.rstrip("\n ").split()
+                totalReads += 1
+                if len(fields) == 12 and fields[9] > 1:
+                    splicedReads += 1
+                    continue
+                else:
+                    chrom = fields[0].upper()
+                    mid = int(fields[1]) + int((int(fields[2]) - int(fields[1])) / 2)
+                    if chrom not in ranges:
+                        ranges[chrom] = Intersecter()
+                    else:
+                        ranges[chrom].add_interval(Interval(mid, mid))
+            self.A_fh.seek(0)
+            print("Done", file=sys.stderr)
 
-                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-                intron_starts = exon_ends[:-1]
-                intron_ends = exon_starts[1:]
-            except Exception:
-                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-                continue
+            # read refbed file
+            print("Assign reads to " + self.B_base_Name + "...", end=" ", file=sys.stderr)
+            for line in self.B_fh:
+                try:
+                    if line.startswith("#"):
+                        continue
+                    if line.startswith("track"):
+                        continue
+                    if line.startswith("browser"):
+                        continue
+                    # Parse fields from gene tabls
+                    fields = line.split()
+                    chrom = fields[0].upper()
+                    tx_start = int(fields[1])
+                    int(fields[2])
+                    geneName = fields[3]
+                    strand = fields[5].replace(" ", "_")
 
-                # assign reads to intron
-            if strand == "-":
-                intronNum = len(intron_starts)
-                exonNum = len(exon_starts)
-                for st, end in zip(intron_starts, intron_ends):
-                    if chrom in ranges:
-                        hits = len(ranges[chrom].find(st, end))
-                        intronReads += hits
-                        INTRON_OUT.write(
-                            chrom
-                            + "\t"
-                            + str(st)
-                            + "\t"
-                            + str(end)
-                            + "\t"
-                            + geneName
-                            + "_intron_"
-                            + str(intronNum)
-                            + "\t"
-                            + str(hits)
-                            + "\t"
-                            + strand
-                            + "\n"
-                        )
-                        intronNum -= 1
+                    exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                    exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                    exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                    intron_starts = exon_ends[:-1]
+                    intron_ends = exon_starts[1:]
+                except Exception:
+                    print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
+                    continue
 
-                for st, end in zip(exon_starts, exon_ends):
-                    if chrom in ranges:
-                        hits = len(ranges[chrom].find(st, end))
-                        exonReads += hits
-                        EXON_OUT.write(
-                            chrom
-                            + "\t"
-                            + str(st)
-                            + "\t"
-                            + str(end)
-                            + "\t"
-                            + geneName
-                            + "_exon_"
-                            + str(exonNum)
-                            + "\t"
-                            + str(hits)
-                            + "\t"
-                            + strand
-                            + "\n"
-                        )
-                        exonNum -= 1
-            elif strand == "+":
-                intronNum = 1
-                exonNum = 1
-                for st, end in zip(intron_starts, intron_ends):
-                    if chrom in ranges:
-                        hits = len(ranges[chrom].find(st, end))
-                        intronReads += hits
-                        INTRON_OUT.write(
-                            chrom
-                            + "\t"
-                            + str(st)
-                            + "\t"
-                            + str(end)
-                            + "\t"
-                            + geneName
-                            + "_intron_"
-                            + str(intronNum)
-                            + "\t"
-                            + str(hits)
-                            + "\t"
-                            + strand
-                            + "\n"
-                        )
-                        intronNum += 1
-                for st, end in zip(exon_starts, exon_ends):
-                    if chrom in ranges:
-                        hits = len(ranges[chrom].find(st, end))
-                        exonReads += hits
-                        EXON_OUT.write(
-                            chrom
-                            + "\t"
-                            + str(st)
-                            + "\t"
-                            + str(end)
-                            + "\t"
-                            + geneName
-                            + "_exon_"
-                            + str(exonNum)
-                            + "\t"
-                            + str(hits)
-                            + "\t"
-                            + strand
-                            + "\n"
-                        )
-                        exonNum += 1
-        intergenicReads = totalReads - exonReads - intronReads - splicedReads
-        print("Done." + "\n", file=sys.stderr)
-        print("Total reads:\t" + str(totalReads), file=sys.stderr)
-        print("Exonic reads:\t" + str(exonReads), file=sys.stderr)
-        print("Intronic reads:\t" + str(intronReads), file=sys.stderr)
-        print("Splicing reads:\t" + str(splicedReads), file=sys.stderr)
-        print("Intergenic reads:\t" + str(intergenicReads), file=sys.stderr)
+                    # assign reads to intron
+                if strand == "-":
+                    intronNum = len(intron_starts)
+                    exonNum = len(exon_starts)
+                    for st, end in zip(intron_starts, intron_ends):
+                        if chrom in ranges:
+                            hits = len(ranges[chrom].find(st, end))
+                            intronReads += hits
+                            INTRON_OUT.write(
+                                chrom
+                                + "\t"
+                                + str(st)
+                                + "\t"
+                                + str(end)
+                                + "\t"
+                                + geneName
+                                + "_intron_"
+                                + str(intronNum)
+                                + "\t"
+                                + str(hits)
+                                + "\t"
+                                + strand
+                                + "\n"
+                            )
+                            intronNum -= 1
 
-        print("writing R script ...", end=" ", file=sys.stderr)
-        totalReads = float(totalReads)
-        print("pdf('%s')" % rpdf, file=R_OUT)
-        print("dat=c(%d,%d,%d,%d)" % (exonReads, splicedReads, intronReads, intergenicReads), file=R_OUT)
-        print(
-            "lb=c('exon(%.2f)','junction(%.2f)','intron(%.2f)','intergenic(%.2f)')"
-            % (
-                exonReads / totalReads,
-                splicedReads / totalReads,
-                intronReads / totalReads,
-                intergenicReads / totalReads,
-            ),
-            file=R_OUT,
-        )
-        print("pie(dat,labels=lb,col=rainbow(4),clockwise=TRUE,main='Total reads = %d')" % int(totalReads), file=R_OUT)
-        print("dev.off()", file=R_OUT)
-        print("Done.", file=sys.stderr)
-        self.B_fh.seek(0)
+                    for st, end in zip(exon_starts, exon_ends):
+                        if chrom in ranges:
+                            hits = len(ranges[chrom].find(st, end))
+                            exonReads += hits
+                            EXON_OUT.write(
+                                chrom
+                                + "\t"
+                                + str(st)
+                                + "\t"
+                                + str(end)
+                                + "\t"
+                                + geneName
+                                + "_exon_"
+                                + str(exonNum)
+                                + "\t"
+                                + str(hits)
+                                + "\t"
+                                + strand
+                                + "\n"
+                            )
+                            exonNum -= 1
+                elif strand == "+":
+                    intronNum = 1
+                    exonNum = 1
+                    for st, end in zip(intron_starts, intron_ends):
+                        if chrom in ranges:
+                            hits = len(ranges[chrom].find(st, end))
+                            intronReads += hits
+                            INTRON_OUT.write(
+                                chrom
+                                + "\t"
+                                + str(st)
+                                + "\t"
+                                + str(end)
+                                + "\t"
+                                + geneName
+                                + "_intron_"
+                                + str(intronNum)
+                                + "\t"
+                                + str(hits)
+                                + "\t"
+                                + strand
+                                + "\n"
+                            )
+                            intronNum += 1
+                    for st, end in zip(exon_starts, exon_ends):
+                        if chrom in ranges:
+                            hits = len(ranges[chrom].find(st, end))
+                            exonReads += hits
+                            EXON_OUT.write(
+                                chrom
+                                + "\t"
+                                + str(st)
+                                + "\t"
+                                + str(end)
+                                + "\t"
+                                + geneName
+                                + "_exon_"
+                                + str(exonNum)
+                                + "\t"
+                                + str(hits)
+                                + "\t"
+                                + strand
+                                + "\n"
+                            )
+                            exonNum += 1
+            intergenicReads = totalReads - exonReads - intronReads - splicedReads
+            print("Done." + "\n", file=sys.stderr)
+            print("Total reads:\t" + str(totalReads), file=sys.stderr)
+            print("Exonic reads:\t" + str(exonReads), file=sys.stderr)
+            print("Intronic reads:\t" + str(intronReads), file=sys.stderr)
+            print("Splicing reads:\t" + str(splicedReads), file=sys.stderr)
+            print("Intergenic reads:\t" + str(intergenicReads), file=sys.stderr)
+
+            print("writing R script ...", end=" ", file=sys.stderr)
+            totalReads = float(totalReads)
+            print("pdf('%s')" % rpdf, file=R_OUT)
+            print("dat=c(%d,%d,%d,%d)" % (exonReads, splicedReads, intronReads, intergenicReads), file=R_OUT)
+            print(
+                "lb=c('exon(%.2f)','junction(%.2f)','intron(%.2f)','intergenic(%.2f)')"
+                % (
+                    exonReads / totalReads,
+                    splicedReads / totalReads,
+                    intronReads / totalReads,
+                    intergenicReads / totalReads,
+                ),
+                file=R_OUT,
+            )
+            print("pie(dat,labels=lb,col=rainbow(4),clockwise=TRUE,main='Total reads = %d')" % int(totalReads), file=R_OUT)
+            print("dev.off()", file=R_OUT)
+            print("Done.", file=sys.stderr)
+            self.B_fh.seek(0)
 
     def distribBedWithStrand(self, outfile=None, output=True):
         """Compare bed file A (usually a bed file of reads mapping results) to bed file B
@@ -2444,95 +2432,95 @@ class CompareBED:
             outfileName = self.A_base_Name + ".nearestTSS.xls"
         else:
             outfileName = outfile + ".nearestTSS.xls"
-        OUT = open(outfileName, "w")
+        with open(outfileName, "w") as OUT:
 
-        ranges = {}
-        tss_group = {}
-        tss_group_num = 0
-        # read reference bed file
-        print("Reading " + self.B_base_Name + "...", end=" ", file=sys.stderr)
-        for line in self.B_fh:
-            if line.startswith(("#", "track", "browser")):
-                continue
-            fields = line.rstrip("\n ").split()
+            ranges = {}
+            tss_group = {}
+            tss_group_num = 0
+            # read reference bed file
+            print("Reading " + self.B_base_Name + "...", end=" ", file=sys.stderr)
+            for line in self.B_fh:
+                if line.startswith(("#", "track", "browser")):
+                    continue
+                fields = line.rstrip("\n ").split()
 
-            chrom = fields[0]
-            geneName = fields[3]
-            if len(fields) >= 6:
-                if fields[5] == "-":
-                    tss_st = int(fields[2]) - 1
-                    tss_end = int(fields[2])
-                else:
+                chrom = fields[0]
+                geneName = fields[3]
+                if len(fields) >= 6:
+                    if fields[5] == "-":
+                        tss_st = int(fields[2]) - 1
+                        tss_end = int(fields[2])
+                    else:
+                        tss_st = int(fields[1])
+                        tss_end = int(fields[1]) + 1
+                elif len(fields) < 6 and len(fields) >= 3:
                     tss_st = int(fields[1])
                     tss_end = int(fields[1]) + 1
-            elif len(fields) < 6 and len(fields) >= 3:
-                tss_st = int(fields[1])
-                tss_end = int(fields[1]) + 1
-            else:
-                print("reference bed file must be at least 3 columns", file=sys.stderr)
-                sys.exit(1)
+                else:
+                    print("reference bed file must be at least 3 columns", file=sys.stderr)
+                    sys.exit(1)
 
-            key = chrom + ":" + str(tss_st) + ":" + str(tss_end)
-            if key not in tss_group:
-                tss_group[key] = geneName + ";"
-            else:
-                tss_group[key] += geneName + ";"
+                key = chrom + ":" + str(tss_st) + ":" + str(tss_end)
+                if key not in tss_group:
+                    tss_group[key] = geneName + ";"
+                else:
+                    tss_group[key] += geneName + ";"
 
-        for key in tss_group:
-            tss_group_num += 1
-            chrom, tss_st, tss_end = key.split(":")
-            if chrom not in ranges:
-                ranges[chrom] = IntervalTree()
-            ranges[chrom].insert_interval(Interval(int(tss_st), int(tss_end), value=tss_group[key] + "\t" + key))
+            for key in tss_group:
+                tss_group_num += 1
+                chrom, tss_st, tss_end = key.split(":")
+                if chrom not in ranges:
+                    ranges[chrom] = IntervalTree()
+                ranges[chrom].insert_interval(Interval(int(tss_st), int(tss_end), value=tss_group[key] + "\t" + key))
 
-        self.B_fh.seek(0)
-        print("Done. Total " + str(tss_group_num) + " TSS groups", file=sys.stderr)
+            self.B_fh.seek(0)
+            print("Done. Total " + str(tss_group_num) + " TSS groups", file=sys.stderr)
 
-        # read input bed file
-        print("Find nearest TSS(s) for " + self.A_base_Name + "...", end=" ", file=sys.stderr)
-        for line in self.A_fh:
-            if line.startswith(("#", "track", "browser")):
-                continue
-            fields = line.rstrip("\n ").split()
+            # read input bed file
+            print("Find nearest TSS(s) for " + self.A_base_Name + "...", end=" ", file=sys.stderr)
+            for line in self.A_fh:
+                if line.startswith(("#", "track", "browser")):
+                    continue
+                fields = line.rstrip("\n ").split()
 
-            if len(fields) >= 6:
-                chain = fields[5]
-            elif len(fields) < 6 and len(fields) >= 3:
-                chain = "+"
-            else:
-                print("Input bed file must be at least 3 columns", file=sys.stderr)
-                sys.exit(1)
+                if len(fields) >= 6:
+                    chain = fields[5]
+                elif len(fields) < 6 and len(fields) >= 3:
+                    chain = "+"
+                else:
+                    print("Input bed file must be at least 3 columns", file=sys.stderr)
+                    sys.exit(1)
 
-            chrom = fields[0]
-            bed_st = int(fields[1]) + int((int(fields[2]) - int(fields[1])) / 2)
-            bed_end = bed_st + 1
+                chrom = fields[0]
+                bed_st = int(fields[1]) + int((int(fields[2]) - int(fields[1])) / 2)
+                bed_end = bed_st + 1
 
-            up = ranges[chrom].upstream_of_interval(
-                Interval(bed_st, bed_end, strand=chain), num_intervals=1, max_dist=upStream
-            )
-            down = ranges[chrom].downstream_of_interval(
-                Interval(bed_st, bed_end, strand=chain), num_intervals=1, max_dist=downStream
-            )
+                up = ranges[chrom].upstream_of_interval(
+                    Interval(bed_st, bed_end, strand=chain), num_intervals=1, max_dist=upStream
+                )
+                down = ranges[chrom].downstream_of_interval(
+                    Interval(bed_st, bed_end, strand=chain), num_intervals=1, max_dist=downStream
+                )
 
-            if len(up) > 0:
-                up_name = up[0].value
-                up_dist = abs(up[0].end - bed_end)
-            else:
-                up_name = "NA\tNA"
-                up_dist = "NA"
-            if len(down) > 0:
-                down_name = down[0].value
-                down_dist = abs(down[0].end - bed_end)
-            else:
-                down_name = "NA\tNA"
-                down_dist = "NA"
-            print(
-                line.rstrip() + "\t" + up_name + "\t" + str(up_dist) + "\t" + down_name + "\t" + str(down_dist),
-                file=OUT,
-            )
+                if len(up) > 0:
+                    up_name = up[0].value
+                    up_dist = abs(up[0].end - bed_end)
+                else:
+                    up_name = "NA\tNA"
+                    up_dist = "NA"
+                if len(down) > 0:
+                    down_name = down[0].value
+                    down_dist = abs(down[0].end - bed_end)
+                else:
+                    down_name = "NA\tNA"
+                    down_dist = "NA"
+                print(
+                    line.rstrip() + "\t" + up_name + "\t" + str(up_dist) + "\t" + down_name + "\t" + str(down_dist),
+                    file=OUT,
+                )
 
-        self.A_fh.seek(0)
-        print("Done.", file=sys.stderr)
+            self.A_fh.seek(0)
+            print("Done.", file=sys.stderr)
 
     def findClosestTTS(self, outfile=None, downStream=50000, upStream=50000):
         """For each entry in input bed file (1st bed file), find the nearest gene (2nd bed file) based
@@ -2543,95 +2531,95 @@ class CompareBED:
             outfileName = self.A_base_Name + ".nearestTTS.xls"
         else:
             outfileName = outfile + ".nearestTTS.xls"
-        OUT = open(outfileName, "w")
+        with open(outfileName, "w") as OUT:
 
-        ranges = {}
-        tts_group = {}
-        tts_group_num = 0
-        # read reference bed file
-        print("Reading " + self.B_base_Name + "...", end=" ", file=sys.stderr)
-        for line in self.B_fh:
-            if line.startswith(("#", "track", "browser")):
-                continue
-            fields = line.rstrip("\n ").split()
+            ranges = {}
+            tts_group = {}
+            tts_group_num = 0
+            # read reference bed file
+            print("Reading " + self.B_base_Name + "...", end=" ", file=sys.stderr)
+            for line in self.B_fh:
+                if line.startswith(("#", "track", "browser")):
+                    continue
+                fields = line.rstrip("\n ").split()
 
-            chrom = fields[0]
-            geneName = fields[3]
-            if len(fields) >= 6:
-                if fields[5] == "-":
-                    tts_st = int(fields[1])
-                    tts_end = int(fields[1]) + 1
-                else:
+                chrom = fields[0]
+                geneName = fields[3]
+                if len(fields) >= 6:
+                    if fields[5] == "-":
+                        tts_st = int(fields[1])
+                        tts_end = int(fields[1]) + 1
+                    else:
+                        tts_st = int(fields[2]) - 1
+                        tts_end = int(fields[2])
+                elif len(fields) < 6 and len(fields) >= 3:
                     tts_st = int(fields[2]) - 1
                     tts_end = int(fields[2])
-            elif len(fields) < 6 and len(fields) >= 3:
-                tts_st = int(fields[2]) - 1
-                tts_end = int(fields[2])
-            else:
-                print("reference bed file must be at least 3 columns", file=sys.stderr)
-                sys.exit(1)
+                else:
+                    print("reference bed file must be at least 3 columns", file=sys.stderr)
+                    sys.exit(1)
 
-            key = chrom + ":" + str(tts_st) + ":" + str(tts_end)
-            if key not in tts_group:
-                tts_group[key] = geneName + ";"
-            else:
-                tts_group[key] += geneName + ";"
+                key = chrom + ":" + str(tts_st) + ":" + str(tts_end)
+                if key not in tts_group:
+                    tts_group[key] = geneName + ";"
+                else:
+                    tts_group[key] += geneName + ";"
 
-        for key in tts_group:
-            tts_group_num += 1
-            chrom, tts_st, tts_end = key.split(":")
-            if chrom not in ranges:
-                ranges[chrom] = IntervalTree()
-            ranges[chrom].insert_interval(Interval(int(tts_st), int(tts_end), value=tts_group[key] + "\t" + key))
+            for key in tts_group:
+                tts_group_num += 1
+                chrom, tts_st, tts_end = key.split(":")
+                if chrom not in ranges:
+                    ranges[chrom] = IntervalTree()
+                ranges[chrom].insert_interval(Interval(int(tts_st), int(tts_end), value=tts_group[key] + "\t" + key))
 
-        self.B_fh.seek(0)
-        print("Done. Total " + str(tts_group_num) + " TTS groups", file=sys.stderr)
+            self.B_fh.seek(0)
+            print("Done. Total " + str(tts_group_num) + " TTS groups", file=sys.stderr)
 
-        # read input bed file
-        print("Find nearest TTS(s) for " + self.A_base_Name + "...", end=" ", file=sys.stderr)
-        for line in self.A_fh:
-            if line.startswith(("#", "track", "browser")):
-                continue
-            fields = line.rstrip("\n ").split()
+            # read input bed file
+            print("Find nearest TTS(s) for " + self.A_base_Name + "...", end=" ", file=sys.stderr)
+            for line in self.A_fh:
+                if line.startswith(("#", "track", "browser")):
+                    continue
+                fields = line.rstrip("\n ").split()
 
-            if len(fields) >= 6:
-                chain = fields[5]
-            elif len(fields) < 6 and len(fields) >= 3:
-                chain = "+"
-            else:
-                print("Inut bed file must be at least 3 columns", file=sys.stderr)
-                sys.exit(1)
+                if len(fields) >= 6:
+                    chain = fields[5]
+                elif len(fields) < 6 and len(fields) >= 3:
+                    chain = "+"
+                else:
+                    print("Inut bed file must be at least 3 columns", file=sys.stderr)
+                    sys.exit(1)
 
-            chrom = fields[0]
-            bed_st = int(fields[1]) + int((int(fields[2]) - int(fields[1])) / 2)
-            bed_end = bed_st + 1
+                chrom = fields[0]
+                bed_st = int(fields[1]) + int((int(fields[2]) - int(fields[1])) / 2)
+                bed_end = bed_st + 1
 
-            up = ranges[chrom].upstream_of_interval(
-                Interval(bed_st, bed_end, strand=chain), num_intervals=1, max_dist=upStream
-            )
-            down = ranges[chrom].downstream_of_interval(
-                Interval(bed_st, bed_end, strand=chain), num_intervals=1, max_dist=downStream
-            )
+                up = ranges[chrom].upstream_of_interval(
+                    Interval(bed_st, bed_end, strand=chain), num_intervals=1, max_dist=upStream
+                )
+                down = ranges[chrom].downstream_of_interval(
+                    Interval(bed_st, bed_end, strand=chain), num_intervals=1, max_dist=downStream
+                )
 
-            if len(up) > 0:
-                up_name = up[0].value
-                up_dist = abs(up[0].end - bed_end)
-            else:
-                up_name = "NA\tNA"
-                up_dist = "NA"
-            if len(down) > 0:
-                down_name = down[0].value
-                down_dist = abs(down[0].end - bed_end)
-            else:
-                down_name = "NA\tNA"
-                down_dist = "NA"
-            print(
-                line.rstrip() + "\t" + up_name + "\t" + str(up_dist) + "\t" + down_name + "\t" + str(down_dist),
-                file=OUT,
-            )
+                if len(up) > 0:
+                    up_name = up[0].value
+                    up_dist = abs(up[0].end - bed_end)
+                else:
+                    up_name = "NA\tNA"
+                    up_dist = "NA"
+                if len(down) > 0:
+                    down_name = down[0].value
+                    down_dist = abs(down[0].end - bed_end)
+                else:
+                    down_name = "NA\tNA"
+                    down_dist = "NA"
+                print(
+                    line.rstrip() + "\t" + up_name + "\t" + str(up_dist) + "\t" + down_name + "\t" + str(down_dist),
+                    file=OUT,
+                )
 
-        self.A_fh.seek(0)
-        print("Done.", file=sys.stderr)
+            self.A_fh.seek(0)
+            print("Done.", file=sys.stderr)
 
     def findClosestPeak(self, mod, downStream=50000, upStream=50000):
         """For each entry in second bed file (reference gene model) find
@@ -2867,8 +2855,8 @@ class CompareBED:
                     if status.find("complete_match") == -1:
                         bestID = max(diff_dict, key=diff_dict.get)
                         for i in overlap_genes:
-                            if list(i.keys())[0] == bestID:
-                                ref_best_match_set = list(i.values())[0]
+                            if next(iter(i)) == bestID:
+                                ref_best_match_set = next(iter(i.values()))
                                 break
 
                         # we found a ref gene best match to input gene

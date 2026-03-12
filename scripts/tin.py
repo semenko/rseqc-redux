@@ -119,52 +119,53 @@ def genomic_positions(refbed, sample_size):
         print("You must specify a bed file representing gene model\n", file=sys.stderr)
         exit(0)
 
-    for line in open(refbed, "r"):
-        try:
-            if line.startswith(("#", "track", "browser")):
+    with open(refbed, "r") as _fh:
+        for line in _fh:
+            try:
+                if line.startswith(("#", "track", "browser")):
+                    continue
+                # Parse fields from gene tabls
+                fields = line.split()
+                chrom = fields[0]
+                tx_start = int(fields[1])
+                tx_end = int(fields[2])
+                geneName = fields[3]
+                strand = fields[5]
+                int(fields[6]) + 1  # convert to 1-based
+                int(fields[7])
+                int(fields[9])
+                mRNA_size = sum([int(i) for i in fields[10].strip(",").split(",")])
+                "_".join([str(j) for j in (chrom, tx_start, tx_end, geneName, strand)])
+
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                intron_size = tx_end - tx_start - mRNA_size
+                if intron_size < 0:
+                    intron_size = 0
+            except Exception:
+                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
-            # Parse fields from gene tabls
-            fields = line.split()
-            chrom = fields[0]
-            tx_start = int(fields[1])
-            tx_end = int(fields[2])
-            geneName = fields[3]
-            strand = fields[5]
-            int(fields[6]) + 1  # convert to 1-based
-            int(fields[7])
-            int(fields[9])
-            mRNA_size = sum([int(i) for i in fields[10].strip(",").split(",")])
-            "_".join([str(j) for j in (chrom, tx_start, tx_end, geneName, strand)])
 
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            intron_size = tx_end - tx_start - mRNA_size
-            if intron_size < 0:
-                intron_size = 0
-        except Exception:
-            print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-            continue
-
-        chose_bases = [tx_start + 1, tx_end]
-        exon_bounds = []
-        gene_all_base = []
-        if mRNA_size <= sample_size:  # return all bases of mRNA
-            for st, end in zip(exon_starts, exon_ends):
-                chose_bases.extend(
-                    list(range(st + 1, end + 1))
-                )  # 1-based coordinates on genome, include exon boundaries
-            yield (geneName, chrom, tx_start, tx_end, intron_size, chose_bases)
-        elif mRNA_size > sample_size:
-            step_size = int(mRNA_size / sample_size)
-            for st, end in zip(exon_starts, exon_ends):
-                gene_all_base.extend(list(range(st + 1, end + 1)))
-                exon_bounds.append(st + 1)
-                exon_bounds.append(end)
-            indx = list(range(0, len(gene_all_base), step_size))
-            chose_bases = [gene_all_base[i] for i in indx]
-            yield (geneName, chrom, tx_start, tx_end, intron_size, uniqify(exon_bounds + chose_bases))
+            chose_bases = [tx_start + 1, tx_end]
+            exon_bounds = []
+            gene_all_base = []
+            if mRNA_size <= sample_size:  # return all bases of mRNA
+                for st, end in zip(exon_starts, exon_ends):
+                    chose_bases.extend(
+                        list(range(st + 1, end + 1))
+                    )  # 1-based coordinates on genome, include exon boundaries
+                yield (geneName, chrom, tx_start, tx_end, intron_size, chose_bases)
+            elif mRNA_size > sample_size:
+                step_size = int(mRNA_size / sample_size)
+                for st, end in zip(exon_starts, exon_ends):
+                    gene_all_base.extend(list(range(st + 1, end + 1)))
+                    exon_bounds.append(st + 1)
+                    exon_bounds.append(end)
+                indx = list(range(0, len(gene_all_base), step_size))
+                chose_bases = [gene_all_base[i] for i in indx]
+                yield (geneName, chrom, tx_start, tx_end, intron_size, uniqify(exon_bounds + chose_bases))
 
 
 def check_min_reads(samfile, chrom, tx_st, tx_end, cutoff):
@@ -347,51 +348,50 @@ def main():
     for f in bamfiles:
         printlog("Processing " + f)
 
-        SUM = open(os.path.basename(f).replace("bam", "") + "summary.txt", "w")
-        print("\t".join(["Bam_file", "TIN(mean)", "TIN(median)", "TIN(stdev)"]), file=SUM)
-
-        OUT = open(os.path.basename(f).replace("bam", "") + "tin.xls", "w")
-        print("\t".join(["geneID", "chrom", "tx_start", "tx_end", "TIN"]), file=OUT)
-
-        samfile = pysam.Samfile(f, "rb")
-        sample_TINs = []  # sample level TIN, values are from different genes
-        finish = 0
-        noise_level = 0.0
-        for gname, i_chr, i_tx_start, i_tx_end, intron_size, pick_positions in genomic_positions(
-            refbed=args.ref_gene_model, sample_size=args.sample_size
+        with (
+            open(os.path.basename(f).replace("bam", "") + "summary.txt", "w") as SUM,
+            open(os.path.basename(f).replace("bam", "") + "tin.xls", "w") as OUT,
         ):
-            finish += 1
+            print("\t".join(["Bam_file", "TIN(mean)", "TIN(median)", "TIN(stdev)"]), file=SUM)
+            print("\t".join(["geneID", "chrom", "tx_start", "tx_end", "TIN"]), file=OUT)
 
-            # check minimum reads coverage
-            if check_min_reads(samfile, i_chr, i_tx_start, i_tx_end, args.minimum_coverage) is not True:
-                print("\t".join([str(i) for i in (gname, i_chr, i_tx_start, i_tx_end, 0.0)]), file=OUT)
-                continue
+            samfile = pysam.Samfile(f, "rb")
+            sample_TINs = []  # sample level TIN, values are from different genes
+            finish = 0
+            noise_level = 0.0
+            for gname, i_chr, i_tx_start, i_tx_end, intron_size, pick_positions in genomic_positions(
+                refbed=args.ref_gene_model, sample_size=args.sample_size
+            ):
+                finish += 1
 
-            # estimate background noise if '-s' was specified
-            if args.subtract_bg:
-                intron_signals = estimate_bg_noise(i_chr, i_tx_start, i_tx_end, samfile, exon_ranges)
-                if intron_size > 0:
-                    noise_level = intron_signals / intron_size
+                # check minimum reads coverage
+                if check_min_reads(samfile, i_chr, i_tx_start, i_tx_end, args.minimum_coverage) is not True:
+                    print("\t".join([str(i) for i in (gname, i_chr, i_tx_start, i_tx_end, 0.0)]), file=OUT)
+                    continue
 
-            coverage = genebody_coverage(samfile, i_chr, sorted(pick_positions), noise_level)
+                # estimate background noise if '-s' was specified
+                if args.subtract_bg:
+                    intron_signals = estimate_bg_noise(i_chr, i_tx_start, i_tx_end, samfile, exon_ranges)
+                    if intron_size > 0:
+                        noise_level = intron_signals / intron_size
 
-            # for a,b in zip(sorted(pick_positions),coverage):
-            # print str(a) + '\t' + str(b)
+                coverage = genebody_coverage(samfile, i_chr, sorted(pick_positions), noise_level)
 
-            tin1 = tin_score(cvg=coverage, length=len(pick_positions))
-            sample_TINs.append(tin1)
-            print("\t".join([str(i) for i in (gname, i_chr, i_tx_start, i_tx_end, tin1)]), file=OUT)
-            print(" %d transcripts finished\r" % (finish), end=" ", file=sys.stderr)
+                # for a,b in zip(sorted(pick_positions),coverage):
+                # print str(a) + '\t' + str(b)
 
-        print(
-            "\t".join(
-                [str(i) for i in (os.path.basename(f), mean(sample_TINs), median(sample_TINs), std(sample_TINs))]
-            ),
-            file=SUM,
-        )
-        OUT.close()
-        SUM.close()
-        samfile.close()
+                tin1 = tin_score(cvg=coverage, length=len(pick_positions))
+                sample_TINs.append(tin1)
+                print("\t".join([str(i) for i in (gname, i_chr, i_tx_start, i_tx_end, tin1)]), file=OUT)
+                print(" %d transcripts finished\r" % (finish), end=" ", file=sys.stderr)
+
+            print(
+                "\t".join(
+                    [str(i) for i in (os.path.basename(f), mean(sample_TINs), median(sample_TINs), std(sample_TINs))]
+                ),
+                file=SUM,
+            )
+            samfile.close()
 
 
 if __name__ == "__main__":

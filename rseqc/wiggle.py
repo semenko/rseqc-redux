@@ -17,15 +17,15 @@ class ParseWig:
         """read wig file, creat wig obj"""
         self.scores = {}
         self.num_re = re.compile(r"[\d\.\-\+]+")
-        fh = open(wigFile)
-        for i, (chrom, pos, val) in enumerate(bx.wiggle.Reader(fh)):
-            chrom = chrom.upper()
-            if chrom not in self.scores:
-                self.scores[chrom] = BinnedArray()
-            self.scores[chrom][pos] = val
-            if i % 100000 == 0:
-                print("%i datapoints loaded \r" % i)
-        print("total " + str(i) + " points loaded")
+        with open(wigFile) as fh:
+            for i, (chrom, pos, val) in enumerate(bx.wiggle.Reader(fh)):
+                chrom = chrom.upper()
+                if chrom not in self.scores:
+                    self.scores[chrom] = BinnedArray()
+                self.scores[chrom][pos] = val
+                if i % 100000 == 0:
+                    print("%i datapoints loaded \r" % i)
+            print("total " + str(i) + " points loaded")
 
     def fetch_all_scores(self, chr, st, end):
         """fetch all wiggle scores defined by st and end.  NOTE:
@@ -79,19 +79,19 @@ class ParseWig2:
         """read wig file, creat wig obj"""
         self.scores = {}
         self.num_re = re.compile(r"[\d\.\-\+]+")
-        fh = open(wigFile)
-        for i, (chrom, pos, val) in enumerate(bx.wiggle.Reader(fh)):
-            chrom = chrom.upper()
-            if chrom not in self.scores:
-                self.scores[chrom] = BinnedArray()
-            tmp = self.scores[chrom][pos]
-            if isNaN(tmp):
-                self.scores[chrom][pos] = val
-            else:
-                self.scores[chrom][pos] += val
-            if i % 100000 == 0:
-                print("%i datapoints loaded \r" % i)
-        print("total " + str(i) + " points loaded")
+        with open(wigFile) as fh:
+            for i, (chrom, pos, val) in enumerate(bx.wiggle.Reader(fh)):
+                chrom = chrom.upper()
+                if chrom not in self.scores:
+                    self.scores[chrom] = BinnedArray()
+                tmp = self.scores[chrom][pos]
+                if isNaN(tmp):
+                    self.scores[chrom][pos] = val
+                else:
+                    self.scores[chrom][pos] += val
+                if i % 100000 == 0:
+                    print("%i datapoints loaded \r" % i)
+            print("total " + str(i) + " points loaded")
 
     def fetch_all_scores_by_range(self, chr, st, end):
         '''fetch all wiggle scores defined by st and end.  NOTE:
@@ -162,20 +162,21 @@ class ParseWig2:
         bed file will be cut into 100 tills of equal size"""
 
         print("Reading " + bed + " ...", file=sys.stderr)
-        for line in open(bed, "r"):
-            try:
-                if line.startswith(("#", "track", "browser")):
+        with open(bed, "r") as _fh:
+            for line in _fh:
+                try:
+                    if line.startswith(("#", "track", "browser")):
+                        continue
+                    fields = line.rstrip("\r\n").split()
+                    txStart = int(fields[1])
+                    fields[0]
+                    fields[5]
+                    fields[3]
+                    fields[4]
+                    exon_start = list(map(int, fields[11].rstrip(",").split(",")))
+                    exon_start = list(map((lambda x: x + txStart), exon_start))
+                    exon_end = list(map(int, fields[10].rstrip(",").split(",")))
+                    exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+                except Exception:
+                    print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                     continue
-                fields = line.rstrip("\r\n").split()
-                txStart = int(fields[1])
-                fields[0]
-                fields[5]
-                fields[3]
-                fields[4]
-                exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-                exon_start = list(map((lambda x: x + txStart), exon_start))
-                exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-                exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
-            except Exception:
-                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-                continue

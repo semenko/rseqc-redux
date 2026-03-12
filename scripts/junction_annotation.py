@@ -18,9 +18,9 @@ from rseqc import SAM
 def printlog(mesg):
     """print progress into stderr and log file"""
     mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    LOG = open("class.log", "a")
     print(mesg, file=sys.stderr)
-    print(mesg, file=LOG)
+    with open("class.log", "a") as LOG:
+        print(mesg, file=LOG)
 
 
 def generate_bed12(infile, size=1):
@@ -30,56 +30,56 @@ def generate_bed12(infile, size=1):
     """
 
     outfile = infile.replace(".xls", ".bed")
-    OUT = open(outfile, "w")
-    for line in open(infile, "r"):
-        if line.startswith("chrom"):
-            continue
-        line = line.strip()
-        f = line.split()
-        if len(f) != 5:
-            continue
-        chrom = f[0]
-        start = int(f[1]) - size
-        end = int(f[2]) + size
-        score = int(f[3])
-        strand = "."
-        name = f[4]
-        thick_st = start
-        thick_end = end
-        if name == "annotated":
-            color = "205,0,0"
-        elif name == "partial_novel":
-            color = "0,205,0"
-        elif name == "complete_novel":
-            color = "0,0,205"
-        else:
-            color = "0,0,0"
-        blockCount = 2
-        blockSizes = ",".join((str(size), str(size)))
-        blockStarts = "0," + str(end - size - start)
-        print(
-            "\t".join(
-                [
-                    str(i)
-                    for i in [
-                        chrom,
-                        start,
-                        end,
-                        name,
-                        score,
-                        strand,
-                        thick_st,
-                        thick_end,
-                        color,
-                        blockCount,
-                        blockSizes,
-                        blockStarts,
-                    ]
-                ]
-            ),
-            file=OUT,
-        )
-    OUT.close()
+    with open(outfile, "w") as OUT:
+        with open(infile, "r") as _fh:
+            for line in _fh:
+                if line.startswith("chrom"):
+                    continue
+                line = line.strip()
+                f = line.split()
+                if len(f) != 5:
+                    continue
+                chrom = f[0]
+                start = int(f[1]) - size
+                end = int(f[2]) + size
+                score = int(f[3])
+                strand = "."
+                name = f[4]
+                thick_st = start
+                thick_end = end
+                if name == "annotated":
+                    color = "205,0,0"
+                elif name == "partial_novel":
+                    color = "0,205,0"
+                elif name == "complete_novel":
+                    color = "0,0,205"
+                else:
+                    color = "0,0,0"
+                blockCount = 2
+                blockSizes = ",".join((str(size), str(size)))
+                blockStarts = "0," + str(end - size - start)
+                print(
+                    "\t".join(
+                        [
+                            str(i)
+                            for i in [
+                                chrom,
+                                start,
+                                end,
+                                name,
+                                score,
+                                strand,
+                                thick_st,
+                                thick_end,
+                                color,
+                                blockCount,
+                                blockSizes,
+                                blockStarts,
+                            ]
+                        ]
+                    ),
+                    file=OUT,
+                )
 
 
 def generate_interact(infile, bam_file, size=1):
@@ -89,78 +89,78 @@ def generate_interact(infile, bam_file, size=1):
     """
 
     outfile = infile.replace(".xls", ".Interact.bed")
-    OUT = open(outfile, "w")
-    print(
-        'track type=interact name="Splice junctions"'
-        ' description="Splice junctions detected from %s"'
-        " maxHeightPixels=200:200:50 visibility=full" % bam_file,
-        file=OUT,
-    )
-    for line in open(infile, "r"):
-        if line.startswith("chrom"):
-            continue
-        line = line.strip()
-        f = line.split()
-        if len(f) != 5:
-            continue
-        chrom = f[0]
-        chromStart = int(f[1]) - size
-        chromEnd = int(f[2]) + size
-        name1 = f[4]
-        if name1 == "annotated":
-            color = "205,0,0"
-        elif name1 == "partial_novel":
-            color = "0,205,0"
-        elif name1 == "complete_novel":
-            color = "0,0,205"
-        else:
-            color = "0,0,0"
-
-        name = chrom + ":" + str(chromStart) + "-" + str(chromEnd) + "_" + name1
-        score = int(f[3])
-        value = float(score)
-        exp = "RNAseq_junction"
-
-        sourceChrom = chrom
-        sourceStart = chromStart
-        sourceEnd = chromStart + size
-        sourceName = sourceChrom + ":" + str(sourceStart) + "-" + str(sourceEnd)
-        sourceStrand = "."
-
-        targetChrom = chrom
-        targetStart = chromEnd - size
-        targetEnd = chromEnd
-        targetName = targetChrom + ":" + str(targetStart) + "-" + str(targetEnd)
-        targetStrand = "."
+    with open(outfile, "w") as OUT:
         print(
-            "\t".join(
-                [
-                    str(i)
-                    for i in [
-                        chrom,
-                        chromStart,
-                        chromEnd,
-                        name,
-                        score,
-                        value,
-                        exp,
-                        color,
-                        sourceChrom,
-                        sourceStart,
-                        sourceEnd,
-                        sourceName,
-                        sourceStrand,
-                        targetChrom,
-                        targetStart,
-                        targetEnd,
-                        targetName,
-                        targetStrand,
-                    ]
-                ]
-            ),
+            'track type=interact name="Splice junctions"'
+            ' description="Splice junctions detected from %s"'
+            " maxHeightPixels=200:200:50 visibility=full" % bam_file,
             file=OUT,
         )
-    OUT.close()
+        with open(infile, "r") as _fh:
+            for line in _fh:
+                if line.startswith("chrom"):
+                    continue
+                line = line.strip()
+                f = line.split()
+                if len(f) != 5:
+                    continue
+                chrom = f[0]
+                chromStart = int(f[1]) - size
+                chromEnd = int(f[2]) + size
+                name1 = f[4]
+                if name1 == "annotated":
+                    color = "205,0,0"
+                elif name1 == "partial_novel":
+                    color = "0,205,0"
+                elif name1 == "complete_novel":
+                    color = "0,0,205"
+                else:
+                    color = "0,0,0"
+
+                name = chrom + ":" + str(chromStart) + "-" + str(chromEnd) + "_" + name1
+                score = int(f[3])
+                value = float(score)
+                exp = "RNAseq_junction"
+
+                sourceChrom = chrom
+                sourceStart = chromStart
+                sourceEnd = chromStart + size
+                sourceName = sourceChrom + ":" + str(sourceStart) + "-" + str(sourceEnd)
+                sourceStrand = "."
+
+                targetChrom = chrom
+                targetStart = chromEnd - size
+                targetEnd = chromEnd
+                targetName = targetChrom + ":" + str(targetStart) + "-" + str(targetEnd)
+                targetStrand = "."
+                print(
+                    "\t".join(
+                        [
+                            str(i)
+                            for i in [
+                                chrom,
+                                chromStart,
+                                chromEnd,
+                                name,
+                                score,
+                                value,
+                                exp,
+                                color,
+                                sourceChrom,
+                                sourceStart,
+                                sourceEnd,
+                                sourceName,
+                                sourceStrand,
+                                targetChrom,
+                                targetStart,
+                                targetEnd,
+                                targetName,
+                                targetStrand,
+                            ]
+                        ]
+                    ),
+                    file=OUT,
+                )
 
 
 def main():

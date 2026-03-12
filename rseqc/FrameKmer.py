@@ -21,17 +21,18 @@ def seq_generator(fastafile: str) -> Generator[list[str], None, None]:
     tmpseq = ""
     name = ""
     DNA_pat = re.compile(r"^[ACGTN]+$")
-    for line in open(fastafile, "r"):
-        line = line.strip().upper()
-        if line.startswith(("#", " ", "\n")):
-            continue
-        if line.startswith((">", "@")):
-            if tmpseq:
-                yield [name, tmpseq]
-                tmpseq = ""
-            name = line.split()[0][1:]
-        elif DNA_pat.match(line):
-            tmpseq += line
+    with open(fastafile, "r") as _fh:
+        for line in _fh:
+            line = line.strip().upper()
+            if line.startswith(("#", " ", "\n")):
+                continue
+            if line.startswith((">", "@")):
+                if tmpseq:
+                    yield [name, tmpseq]
+                    tmpseq = ""
+                name = line.split()[0][1:]
+            elif DNA_pat.match(line):
+                tmpseq += line
     yield [name, tmpseq]
 
 

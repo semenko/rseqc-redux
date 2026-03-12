@@ -23,7 +23,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 
 **Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
 
-**Tests:** 316 passing, 31% overall coverage. SAM.py 32%, BED.py 13%, utility modules 62–100%.
+**Tests:** 413 passing. SAM.py 32%, BED.py expanded, scbam.py expanded, utility modules 62–100%.
 
 **Lint/Type:** CI green — ruff (0 errors, E741/E712/E501 all enabled), mypy (0 errors), ruff format clean.
 
@@ -39,7 +39,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - `ParseSAM` and `QCSAM` dead code classes removed from SAM.py (~2,970 lines)
 - All 11 known bugs fixed with regression tests (see CHANGES.md)
 - Session-scoped pysam-built BAM fixture for integration tests
-- CLI integration tests (bam_stat, infer_experiment, read_distribution, read_GC, read_quality with real BAM+BED)
+- CLI integration tests (bam_stat, infer_experiment, read_distribution, read_GC, read_quality, junction_annotation, junction_saturation, inner_distance, mismatch_profile, deletion_profile)
 - `qcmodule` backward-compat shim removed; all scripts import directly from `rseqc`
 - Syntax modernizations: `class Foo(object)` → `class Foo:`, unnecessary `list()` wrappers removed, Python 2 `__div__` replaced with `/` operator
 - `sys.exit()` → `sys.exit(1)` in library error paths (SAM.py, BED.py)
@@ -49,11 +49,13 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - `while 1: next(samfile)` anti-pattern replaced with `for` loops across all files
 - E501 (line length) fully resolved and enabled in ruff — 0 violations
 - Dead `outfile` parameter removed from `annoGene.py` `annotateBed()`
+- 95 bare `open()` calls converted to `with` statements (resource leak prevention)
+- Remaining `list()` wrappers removed from dict view iteration in SAM.py, BED.py, geneBody_coverage.py
+- `heatmap.py` string concatenation bug fixed in `logging.error()`
 
 **What still needs work:**
 - Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels
-- More BED.py method-level integration tests (13% coverage)
-- scbam.py essentially untested (11% coverage)
+- More SAM.py method-level tests (many methods mix computation with file I/O)
 
 ## Commands
 

@@ -71,3 +71,101 @@ def test_read_quality(mini_bam, tmp_path):
         timeout=30,
     )
     assert result.returncode == 0, f"read_quality failed: {result.stderr}"
+
+
+def test_junction_annotation(mini_bam, tmp_path):
+    """Run junction_annotation with mini BAM + mini BED."""
+    bed_file = str(FIXTURES_DIR / "mini.bed")
+    outprefix = str(tmp_path / "junc_anno")
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "scripts.junction_annotation",
+            "-i", str(mini_bam),
+            "-r", bed_file,
+            "-o", outprefix,
+            "-q", "0",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, f"junction_annotation failed: {result.stderr}"
+
+
+def test_junction_saturation(mini_bam, tmp_path):
+    """Run junction_saturation with mini BAM + mini BED."""
+    bed_file = str(FIXTURES_DIR / "mini.bed")
+    outprefix = str(tmp_path / "junc_sat")
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "scripts.junction_saturation",
+            "-i", str(mini_bam),
+            "-r", bed_file,
+            "-o", outprefix,
+            "-q", "0",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, f"junction_saturation failed: {result.stderr}"
+
+
+def test_inner_distance(mini_bam, tmp_path):
+    """Run inner_distance with mini BAM + mini BED."""
+    bed_file = str(FIXTURES_DIR / "mini.bed")
+    outprefix = str(tmp_path / "inner_dist")
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "scripts.inner_distance",
+            "-i", str(mini_bam),
+            "-r", bed_file,
+            "-o", outprefix,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, f"inner_distance failed: {result.stderr}"
+
+
+def test_mismatch_profile(mini_bam, tmp_path):
+    """Run mismatch_profile with mini BAM file.
+
+    The mini BAM has no MD tags and uniform bases, so the script will find
+    no mismatches and exit with code 1.  We accept that as valid behavior.
+    """
+    outprefix = str(tmp_path / "mismatch")
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "scripts.mismatch_profile",
+            "-i", str(mini_bam),
+            "-l", "50",
+            "-o", outprefix,
+            "-q", "0",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    # returncode 0 = normal, returncode 1 with "No mismatches found" = expected for mini BAM
+    if result.returncode != 0:
+        assert "No mismatches found" in result.stderr, f"mismatch_profile failed unexpectedly: {result.stderr}"
+
+
+def test_deletion_profile(mini_bam, tmp_path):
+    """Run deletion_profile with mini BAM file."""
+    outprefix = str(tmp_path / "deletion")
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "scripts.deletion_profile",
+            "-i", str(mini_bam),
+            "-l", "50",
+            "-o", outprefix,
+            "-q", "0",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, f"deletion_profile failed: {result.stderr}"

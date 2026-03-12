@@ -25,44 +25,46 @@ def printlog(mesg):
 def load_chromsize(file):
     """read chrom.size file"""
     chromSize = {}
-    for line in open(file, "r"):
-        if line.startswith("#"):
-            continue
-        if not line.strip():
-            continue
-        fields = line.strip().split()
-        chromSize[fields[0]] = int(fields[1])
+    with open(file, "r") as _fh:
+        for line in _fh:
+            if line.startswith("#"):
+                continue
+            if not line.strip():
+                continue
+            fields = line.strip().split()
+            chromSize[fields[0]] = int(fields[1])
     return chromSize
 
 
 def build_range(refgene):
     """build ranges for exonic region"""
     ranges = {}
-    for line in open(refgene, "r"):
-        try:
-            if line.startswith(("#", "track", "browser")):
+    with open(refgene, "r") as _fh:
+        for line in _fh:
+            try:
+                if line.startswith(("#", "track", "browser")):
+                    continue
+
+                # Parse fields from gene tabls
+                fields = line.split()
+                chrom = fields[0].upper()
+                tx_start = int(fields[1])
+                int(fields[2])
+                fields[3]
+                fields[5].replace(" ", "_")
+
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+            except Exception:
+                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
-            # Parse fields from gene tabls
-            fields = line.split()
-            chrom = fields[0].upper()
-            tx_start = int(fields[1])
-            int(fields[2])
-            fields[3]
-            fields[5].replace(" ", "_")
-
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-        except Exception:
-            print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-            continue
-
-        for st, end in zip(exon_starts, exon_ends):
-            if chrom not in ranges:
-                ranges[chrom] = Intersecter()
-            ranges[chrom].add_interval(Interval(st, end))
+            for st, end in zip(exon_starts, exon_ends):
+                if chrom not in ranges:
+                    ranges[chrom] = Intersecter()
+                ranges[chrom].add_interval(Interval(st, end))
     return ranges
 
 
@@ -161,130 +163,31 @@ def main():
             sys.exit(0)
 
     obj = SAM.ParseBAM(args.input_file)
-    OUT = open(args.output_prefix + ".FPKM.xls", "w")
+    with open(args.output_prefix + ".FPKM.xls", "w") as OUT:
 
-    # ++++++++++++++++++++++++++++++++++++determine strand rule
-    strandRule = {}
-    if args.strand_rule is None:  # Not strand-specific
-        pass
-    elif len(args.strand_rule.split(",")) == 4:  # PairEnd, strand-specific
-        for i in args.strand_rule.split(","):
-            strandRule[i[0] + i[1]] = i[2]
-    elif len(args.strand_rule.split(",")) == 2:  # singeEnd, strand-specific
-        for i in args.strand_rule.split(","):
-            strandRule[i[0]] = i[1]
-    else:
-        print("Unknown value of option :'strand_rule' " + args.strand_rule, file=sys.stderr)
-        sys.exit(1)
-
-    # ++++++++++++++++++++++++++++++++++++counting fragments
-    print("Extract exon regions from  " + args.refgene_bed + "...", file=sys.stderr)
-    gene_ranges = build_range(args.refgene_bed)
-    print("Counting total fragment ... ", end=" ", file=sys.stderr)
-
-    total_frags = 0.0
-    exonic_frags = 0.0
-
-    for aligned_read in _pysam_iter(obj.samfile):
-        if aligned_read.is_qcfail:
-            continue  # skip low quanlity
-        if aligned_read.is_duplicate:
-            continue  # skip duplicate read
-        if aligned_read.is_secondary:
-            continue  # skip non primary hit
-        if args.skip_multi:
-            if aligned_read.mapq < args.map_qual:
-                continue
-        try:
-            chrom = obj.samfile.getrname(aligned_read.tid).upper()
-        except Exception:
-            continue
-        read_st = aligned_read.pos
-        read_end = read_st + aligned_read.rlen  # not exactly the end position in case of splicing, insertion,etc
-
-        if not aligned_read.is_paired:  # if read is NOT paired in sequencing (single-end sequencing)
-            total_frags += 1
-            if (chrom in gene_ranges) and len(gene_ranges[chrom].find(read_st, read_end)) > 0:
-                exonic_frags += 1
-        elif aligned_read.is_paired:  # for pair-end sequencing
-            if aligned_read.is_read2:
-                continue  # only count read1
-            mate_st = aligned_read.pnext
-            mate_end = mate_st + aligned_read.rlen
-
-            if aligned_read.is_unmapped:  # read1 unmapped
-                if aligned_read.mate_is_unmapped:
-                    continue  # both unmap
-                else:  # read2 is mapped
-                    total_frags += args.single_read
-                    if (chrom in gene_ranges) and (len(gene_ranges[chrom].find(mate_st, mate_end)) > 0):
-                        exonic_frags += args.single_read
-            else:
-                if aligned_read.mate_is_unmapped:
-                    total_frags += args.single_read
-                    if (chrom in gene_ranges) and (len(gene_ranges[chrom].find(read_st, read_end)) > 0):
-                        exonic_frags += args.single_read
-                else:
-                    total_frags += 1
-                    if (
-                        (chrom in gene_ranges)
-                        and (len(gene_ranges[chrom].find(read_st, read_end)) > 0)
-                        and (len(gene_ranges[chrom].find(mate_st, mate_end)) > 0)
-                    ):
-                        exonic_frags += 1
-
-    print("Done", file=sys.stderr)
-    print("Total fragment = %-20s" % (str(total_frags)), file=sys.stderr)
-    print("Total exonic fragment = %-20s" % (str(exonic_frags)), file=sys.stderr)
-
-    if total_frags > 0 and exonic_frags > 0:
-        if args.only_exon:
-            denominator = exonic_frags
+        # ++++++++++++++++++++++++++++++++++++determine strand rule
+        strandRule = {}
+        if args.strand_rule is None:  # Not strand-specific
+            pass
+        elif len(args.strand_rule.split(",")) == 4:  # PairEnd, strand-specific
+            for i in args.strand_rule.split(","):
+                strandRule[i[0] + i[1]] = i[2]
+        elif len(args.strand_rule.split(",")) == 2:  # singeEnd, strand-specific
+            for i in args.strand_rule.split(","):
+                strandRule[i[0]] = i[1]
         else:
-            denominator = total_frags
-    else:
-        print("Total tags cannot be 0 or negative number", file=sys.stderr)
-        sys.exit(1)
+            print("Unknown value of option :'strand_rule' " + args.strand_rule, file=sys.stderr)
+            sys.exit(1)
 
-    # ++++++++++++++++++++++++++++++++++++++++++++++++
-    obj = SAM.ParseBAM(args.input_file)
-    print(
-        "\t".join(("#chrom", "st", "end", "accession", "mRNA_size", "gene_strand", "Frag_count", "FPM", "FPKM")),
-        file=OUT,
-    )
+        # ++++++++++++++++++++++++++++++++++++counting fragments
+        print("Extract exon regions from  " + args.refgene_bed + "...", file=sys.stderr)
+        gene_ranges = build_range(args.refgene_bed)
+        print("Counting total fragment ... ", end=" ", file=sys.stderr)
 
-    gene_finished = 0
+        total_frags = 0.0
+        exonic_frags = 0.0
 
-    # calculate raw count, FPM, FPKM for each gene
-    for line in open(args.refgene_bed, "r"):
-        frag_count_f = 0.0
-        frag_count_r = 0.0
-        frag_count_fr = 0.0
-        mRNA_size = 0.0
-        exon_ranges = Intersecter()
-        if line.startswith(("#", "track", "browser")):
-            continue
-        fields = line.split()
-        chrom = fields[0]
-        tx_start = int(fields[1])
-        tx_end = int(fields[2])
-        geneName = fields[3]
-        gstrand = fields[5].replace(" ", "_")
-
-        exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-        exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-        exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-        exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-        for st, end in zip(exon_starts, exon_ends):
-            mRNA_size += end - st
-            exon_ranges.add_interval(Interval(st, end))
-
-        # extract reads mapped gene region
-        try:
-            alignedReads = obj.samfile.fetch(chrom, tx_start, tx_end)
-        except Exception:
-            continue
-        for aligned_read in alignedReads:
+        for aligned_read in _pysam_iter(obj.samfile):
             if aligned_read.is_qcfail:
                 continue  # skip low quanlity
             if aligned_read.is_duplicate:
@@ -294,138 +197,238 @@ def main():
             if args.skip_multi:
                 if aligned_read.mapq < args.map_qual:
                     continue
+            try:
+                chrom = obj.samfile.getrname(aligned_read.tid).upper()
+            except Exception:
+                continue
+            read_st = aligned_read.pos
+            read_end = read_st + aligned_read.rlen  # not exactly the end position in case of splicing, insertion,etc
 
-            # single end sequencing
-            if not aligned_read.is_paired:
-                frag_st = aligned_read.pos
-                frag_end = (
-                    frag_st + aligned_read.rlen
-                )  # not exactly the end position in case of splicing, insertion,etc
-                if aligned_read.is_reverse:
-                    strand_key = "-"
-                else:
-                    strand_key = "+"
-
-                if len(exon_ranges.find(frag_st, frag_end)) > 0:
-                    if args.strand_rule is None:
-                        frag_count_fr += 1
-                    elif strand_key in strandRule and strandRule[strand_key] == "+":
-                        frag_count_f += 1
-                    elif strand_key in strandRule and strandRule[strand_key] == "-":
-                        frag_count_r += 1
-
-            # pair-end sequencing
-            if aligned_read.is_paired:
-                frag_st = aligned_read.pos
-                frag_end = aligned_read.pnext
-                if (
-                    len(exon_ranges.find(frag_st, frag_st + 1)) < 1
-                    and len(exon_ranges.find(frag_end, frag_end + 1)) < 1
-                ):
-                    continue
+            if not aligned_read.is_paired:  # if read is NOT paired in sequencing (single-end sequencing)
+                total_frags += 1
+                if (chrom in gene_ranges) and len(gene_ranges[chrom].find(read_st, read_end)) > 0:
+                    exonic_frags += 1
+            elif aligned_read.is_paired:  # for pair-end sequencing
                 if aligned_read.is_read2:
-                    continue
-                if aligned_read.is_reverse:
-                    strand_key = "1-"
-                else:
-                    strand_key = "1+"
+                    continue  # only count read1
+                mate_st = aligned_read.pnext
+                mate_end = mate_st + aligned_read.rlen
 
-                if args.strand_rule is None:
-                    if aligned_read.is_unmapped:
-                        if aligned_read.mate_is_unmapped:  # both unmapped
-                            continue
-                        else:  # only read2 mapped
-                            frag_count_fr += args.single_read
-                    else:
-                        if aligned_read.mate_is_unmapped:  # only read1 mapped
-                            frag_count_fr += args.single_read
-                        else:  # both mapped
-                            frag_count_fr += 1
+                if aligned_read.is_unmapped:  # read1 unmapped
+                    if aligned_read.mate_is_unmapped:
+                        continue  # both unmap
+                    else:  # read2 is mapped
+                        total_frags += args.single_read
+                        if (chrom in gene_ranges) and (len(gene_ranges[chrom].find(mate_st, mate_end)) > 0):
+                            exonic_frags += args.single_read
                 else:
-                    if strand_key in strandRule and strandRule[strand_key] == "+":
-                        if aligned_read.is_unmapped:
-                            if aligned_read.mate_is_unmapped:  # both unmapped
-                                continue
-                            else:  # only read2 mapped
-                                frag_count_f += args.single_read
+                    if aligned_read.mate_is_unmapped:
+                        total_frags += args.single_read
+                        if (chrom in gene_ranges) and (len(gene_ranges[chrom].find(read_st, read_end)) > 0):
+                            exonic_frags += args.single_read
+                    else:
+                        total_frags += 1
+                        if (
+                            (chrom in gene_ranges)
+                            and (len(gene_ranges[chrom].find(read_st, read_end)) > 0)
+                            and (len(gene_ranges[chrom].find(mate_st, mate_end)) > 0)
+                        ):
+                            exonic_frags += 1
+
+        print("Done", file=sys.stderr)
+        print("Total fragment = %-20s" % (str(total_frags)), file=sys.stderr)
+        print("Total exonic fragment = %-20s" % (str(exonic_frags)), file=sys.stderr)
+
+        if total_frags > 0 and exonic_frags > 0:
+            if args.only_exon:
+                denominator = exonic_frags
+            else:
+                denominator = total_frags
+        else:
+            print("Total tags cannot be 0 or negative number", file=sys.stderr)
+            sys.exit(1)
+
+        # ++++++++++++++++++++++++++++++++++++++++++++++++
+        obj = SAM.ParseBAM(args.input_file)
+        print(
+            "\t".join(("#chrom", "st", "end", "accession", "mRNA_size", "gene_strand", "Frag_count", "FPM", "FPKM")),
+            file=OUT,
+        )
+
+        gene_finished = 0
+
+        # calculate raw count, FPM, FPKM for each gene
+        with open(args.refgene_bed, "r") as _fh:
+            for line in _fh:
+                frag_count_f = 0.0
+                frag_count_r = 0.0
+                frag_count_fr = 0.0
+                mRNA_size = 0.0
+                exon_ranges = Intersecter()
+                if line.startswith(("#", "track", "browser")):
+                    continue
+                fields = line.split()
+                chrom = fields[0]
+                tx_start = int(fields[1])
+                tx_end = int(fields[2])
+                geneName = fields[3]
+                gstrand = fields[5].replace(" ", "_")
+
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                for st, end in zip(exon_starts, exon_ends):
+                    mRNA_size += end - st
+                    exon_ranges.add_interval(Interval(st, end))
+
+                # extract reads mapped gene region
+                try:
+                    alignedReads = obj.samfile.fetch(chrom, tx_start, tx_end)
+                except Exception:
+                    continue
+                for aligned_read in alignedReads:
+                    if aligned_read.is_qcfail:
+                        continue  # skip low quanlity
+                    if aligned_read.is_duplicate:
+                        continue  # skip duplicate read
+                    if aligned_read.is_secondary:
+                        continue  # skip non primary hit
+                    if args.skip_multi:
+                        if aligned_read.mapq < args.map_qual:
+                            continue
+
+                    # single end sequencing
+                    if not aligned_read.is_paired:
+                        frag_st = aligned_read.pos
+                        frag_end = (
+                            frag_st + aligned_read.rlen
+                        )  # not exactly the end position in case of splicing, insertion,etc
+                        if aligned_read.is_reverse:
+                            strand_key = "-"
                         else:
-                            if aligned_read.mate_is_unmapped:  # only read1 mapped
-                                frag_count_f += args.single_read
-                            else:  # both mapped
+                            strand_key = "+"
+
+                        if len(exon_ranges.find(frag_st, frag_end)) > 0:
+                            if args.strand_rule is None:
+                                frag_count_fr += 1
+                            elif strand_key in strandRule and strandRule[strand_key] == "+":
                                 frag_count_f += 1
-                    if strand_key in strandRule and strandRule[strand_key] == "-":
-                        if aligned_read.is_unmapped:
-                            if aligned_read.mate_is_unmapped:  # both unmapped
-                                continue
-                            else:  # only read2 mapped
-                                frag_count_r += args.single_read
-                        else:
-                            if aligned_read.mate_is_unmapped:  # only read1 mapped
-                                frag_count_r += args.single_read
-                            else:  # both mapped
+                            elif strand_key in strandRule and strandRule[strand_key] == "-":
                                 frag_count_r += 1
 
-        FPM_fr = frag_count_fr * 1000000 / denominator
-        FPM_f = frag_count_f * 1000000 / denominator
-        FPM_r = frag_count_r * 1000000 / denominator
-        FPKM_fr = frag_count_fr * 1000000000 / (denominator * mRNA_size)
-        FPKM_f = frag_count_f * 1000000000 / (denominator * mRNA_size)
-        FPKM_r = frag_count_r * 1000000000 / (denominator * mRNA_size)
+                    # pair-end sequencing
+                    if aligned_read.is_paired:
+                        frag_st = aligned_read.pos
+                        frag_end = aligned_read.pnext
+                        if (
+                            len(exon_ranges.find(frag_st, frag_st + 1)) < 1
+                            and len(exon_ranges.find(frag_end, frag_end + 1)) < 1
+                        ):
+                            continue
+                        if aligned_read.is_read2:
+                            continue
+                        if aligned_read.is_reverse:
+                            strand_key = "1-"
+                        else:
+                            strand_key = "1+"
 
-        if args.strand_rule is None:
-            print(
-                "\t".join(
-                    [
-                        str(i)
-                        for i in (chrom, tx_start, tx_end, geneName, mRNA_size, gstrand, frag_count_fr, FPM_fr, FPKM_fr)
-                    ]
-                ),
-                file=OUT,
-            )
-        else:
-            if gstrand == "+":
-                print(
-                    "\t".join(
-                        [
-                            str(i)
-                            for i in (
-                                chrom,
-                                tx_start,
-                                tx_end,
-                                geneName,
-                                mRNA_size,
-                                gstrand,
-                                frag_count_f,
-                                FPM_f,
-                                FPKM_f,
-                            )
-                        ]
-                    ),
-                    file=OUT,
-                )
-            elif gstrand == "-":
-                print(
-                    "\t".join(
-                        [
-                            str(i)
-                            for i in (
-                                chrom,
-                                tx_start,
-                                tx_end,
-                                geneName,
-                                mRNA_size,
-                                gstrand,
-                                frag_count_r,
-                                FPM_r,
-                                FPKM_r,
-                            )
-                        ]
-                    ),
-                    file=OUT,
-                )
+                        if args.strand_rule is None:
+                            if aligned_read.is_unmapped:
+                                if aligned_read.mate_is_unmapped:  # both unmapped
+                                    continue
+                                else:  # only read2 mapped
+                                    frag_count_fr += args.single_read
+                            else:
+                                if aligned_read.mate_is_unmapped:  # only read1 mapped
+                                    frag_count_fr += args.single_read
+                                else:  # both mapped
+                                    frag_count_fr += 1
+                        else:
+                            if strand_key in strandRule and strandRule[strand_key] == "+":
+                                if aligned_read.is_unmapped:
+                                    if aligned_read.mate_is_unmapped:  # both unmapped
+                                        continue
+                                    else:  # only read2 mapped
+                                        frag_count_f += args.single_read
+                                else:
+                                    if aligned_read.mate_is_unmapped:  # only read1 mapped
+                                        frag_count_f += args.single_read
+                                    else:  # both mapped
+                                        frag_count_f += 1
+                            if strand_key in strandRule and strandRule[strand_key] == "-":
+                                if aligned_read.is_unmapped:
+                                    if aligned_read.mate_is_unmapped:  # both unmapped
+                                        continue
+                                    else:  # only read2 mapped
+                                        frag_count_r += args.single_read
+                                else:
+                                    if aligned_read.mate_is_unmapped:  # only read1 mapped
+                                        frag_count_r += args.single_read
+                                    else:  # both mapped
+                                        frag_count_r += 1
 
-        gene_finished += 1
-        print(" %d transcripts finished\r" % (gene_finished), end=" ", file=sys.stderr)
+                FPM_fr = frag_count_fr * 1000000 / denominator
+                FPM_f = frag_count_f * 1000000 / denominator
+                FPM_r = frag_count_r * 1000000 / denominator
+                FPKM_fr = frag_count_fr * 1000000000 / (denominator * mRNA_size)
+                FPKM_f = frag_count_f * 1000000000 / (denominator * mRNA_size)
+                FPKM_r = frag_count_r * 1000000000 / (denominator * mRNA_size)
+
+                if args.strand_rule is None:
+                    print(
+                        "\t".join(
+                            [
+                                str(i)
+                                for i in (chrom, tx_start, tx_end, geneName, mRNA_size, gstrand, frag_count_fr, FPM_fr, FPKM_fr)
+                            ]
+                        ),
+                        file=OUT,
+                    )
+                else:
+                    if gstrand == "+":
+                        print(
+                            "\t".join(
+                                [
+                                    str(i)
+                                    for i in (
+                                        chrom,
+                                        tx_start,
+                                        tx_end,
+                                        geneName,
+                                        mRNA_size,
+                                        gstrand,
+                                        frag_count_f,
+                                        FPM_f,
+                                        FPKM_f,
+                                    )
+                                ]
+                            ),
+                            file=OUT,
+                        )
+                    elif gstrand == "-":
+                        print(
+                            "\t".join(
+                                [
+                                    str(i)
+                                    for i in (
+                                        chrom,
+                                        tx_start,
+                                        tx_end,
+                                        geneName,
+                                        mRNA_size,
+                                        gstrand,
+                                        frag_count_r,
+                                        FPM_r,
+                                        FPKM_r,
+                                    )
+                                ]
+                            ),
+                            file=OUT,
+                        )
+
+                gene_finished += 1
+                print(" %d transcripts finished\r" % (gene_finished), end=" ", file=sys.stderr)
 
 
 if __name__ == "__main__":

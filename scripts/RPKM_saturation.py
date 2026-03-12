@@ -21,9 +21,9 @@ from rseqc import SAM
 def printlog(mesg):
     """print progress into stderr and log file"""
     mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    LOG = open("class.log", "a")
     print(mesg, file=sys.stderr)
-    print(mesg, file=LOG)
+    with open("class.log", "a") as LOG:
+        print(mesg, file=LOG)
 
 
 def normalize(lst):
@@ -58,49 +58,49 @@ def show_saturation(infile, outfile, rpkm_cut=0.01):
     RPKM_mean = {}
     gene_count = 0
     Quan = {"Q1": [0, 0.25], "Q2": [0.25, 0.5], "Q3": [0.5, 0.75], "Q4": [0.75, 1]}
-    ROUT = open(outfile, "w")
+    with open(infile) as _fh:
+        for line in _fh:
+            line = line.strip()
+            fields = line.split()
+            if fields[0].startswith("#"):
+                head = [i.replace("%", "") for i in fields[6:]]
+                continue
+            mykey = "\t".join(fields[0:6])
+            myvalue = [float(i) for i in fields[6:]]
+            if max(myvalue) == 0:
+                continue
+            if max(myvalue) - min(myvalue) == 0:
+                continue
+            if np.mean(myvalue) < rpkm_cut:
+                continue
 
-    for line in open(infile):
-        line = line.strip()
-        fields = line.split()
-        if fields[0].startswith("#"):
-            head = [i.replace("%", "") for i in fields[6:]]
-            continue
-        mykey = "\t".join(fields[0:6])
-        myvalue = [float(i) for i in fields[6:]]
-        if max(myvalue) == 0:
-            continue
-        if max(myvalue) - min(myvalue) == 0:
-            continue
-        if np.mean(myvalue) < rpkm_cut:
-            continue
+            RPKM_values[mykey] = square_error(myvalue)
+            RPKM_mean[mykey] = np.mean(myvalue)
+            gene_count += 1
+            if len(head) == 0:
+                print("No head line found, exit.", file=sys.stderr)
+                sys.exit(1)
 
-        RPKM_values[mykey] = square_error(myvalue)
-        RPKM_mean[mykey] = np.mean(myvalue)
-        gene_count += 1
-        if len(head) == 0:
-            print("No head line found, exit.", file=sys.stderr)
-            sys.exit(1)
-
-    print("pdf('%s')" % (outfile.replace(".r", ".pdf")), file=ROUT)
-    print("par(mfrow=c(2,2))", file=ROUT)
-    for quantile in sorted(Quan):
-        line_count = 0
-        norm_RPKM = collections.defaultdict(list)
-        for k, v in sorted(iter(RPKM_mean.items()), key=operator.itemgetter(1)):
-            line_count += 1
-            if (line_count > gene_count * Quan[quantile][0]) and (line_count <= gene_count * Quan[quantile][1]):
-                for i, j in enumerate(RPKM_values[k]):
-                    norm_RPKM[head[i]].append(str(j))
-        print("name=c(%s)" % (",".join(head[:-1])), file=ROUT)
-        for i in head[:-1]:
-            print("S%s=c(%s)" % (i, ",".join(norm_RPKM[i])), file=ROUT)
-        print(
-            "boxplot(%s,names=name,outline=F,ylab='Percent Relative Error',main='%s',xlab='Resampling percentage')"
-            % (",".join(["100*S" + i for i in head[:-1]]), quantile),
-            file=ROUT,
-        )
-    print("dev.off()", file=ROUT)
+    with open(outfile, "w") as ROUT:
+        print("pdf('%s')" % (outfile.replace(".r", ".pdf")), file=ROUT)
+        print("par(mfrow=c(2,2))", file=ROUT)
+        for quantile in sorted(Quan):
+            line_count = 0
+            norm_RPKM = collections.defaultdict(list)
+            for k, v in sorted(iter(RPKM_mean.items()), key=operator.itemgetter(1)):
+                line_count += 1
+                if (line_count > gene_count * Quan[quantile][0]) and (line_count <= gene_count * Quan[quantile][1]):
+                    for i, j in enumerate(RPKM_values[k]):
+                        norm_RPKM[head[i]].append(str(j))
+            print("name=c(%s)" % (",".join(head[:-1])), file=ROUT)
+            for i in head[:-1]:
+                print("S%s=c(%s)" % (i, ",".join(norm_RPKM[i])), file=ROUT)
+            print(
+                "boxplot(%s,names=name,outline=F,ylab='Percent Relative Error',main='%s',xlab='Resampling percentage')"
+                % (",".join(["100*S" + i for i in head[:-1]]), quantile),
+                file=ROUT,
+            )
+        print("dev.off()", file=ROUT)
 
 
 def main():

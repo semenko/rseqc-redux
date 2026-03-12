@@ -47,12 +47,13 @@ def get_bam_files(input, printit=False):
     # plain text file
     elif os.path.isfile(input):
         try:
-            for line in open(input):
-                line = line.strip()
-                if line.startswith("#"):
-                    continue
-                if isbamfile(line):
-                    bam_files.append(line)
+            with open(input) as _fh:
+                for line in _fh:
+                    line = line.strip()
+                    if line.startswith("#"):
+                        continue
+                    if isbamfile(line):
+                        bam_files.append(line)
         except Exception:
             pass
     else:

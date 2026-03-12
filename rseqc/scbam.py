@@ -271,75 +271,72 @@ def mapping_stat(
         chrom_total_reads = set()  # total reads in BAM file
         chrom_confi_reads = set()  # reads marked as confidently mapped to transcriptome by xf:i:1 tag
 
-        ALL = open(chr_id + ".all_reads_id.txt", "w")
-        CONF = open(chr_id + ".confident_reads_id.txt", "w")
-        for aligned_read in samfile.fetch(chr_id):
-            total_alignments += 1
-            chrom_count += 1
-            read_id = aligned_read.query_name
-            tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
-            cigar_str = list2str(aligned_read.cigar)
-            chrom_total_reads.add(read_id)
-
-            # confident alignments
-            if xf_tag in tag_dict and tag_dict[xf_tag] & 0x1 != 0:
-                if chr_id == chrM_id:
-                    chrM_reads += 1
-                # with or without CB/UMI barcode
-                if CB_tag in tag_dict:
-                    confi_CB += 1
-                if UMI_tag in tag_dict:
-                    confi_UB += 1
-
-                # duplicate or not
-                if aligned_read.is_duplicate:
-                    confi_reads_dup += 1
-                else:
-                    confi_reads_nondup += 1
-
-                # forward or reverse
-                if aligned_read.is_reverse:
-                    confi_reads_rev += 1
-                else:
-                    confi_reads_fwd += 1
-
-                # Single character indicating the region type of this alignment
-                # (E = exonic, N = intronic, I = intergenic).
-                if RE_tag in tag_dict:
-                    if tag_dict[RE_tag] == "E":
-                        exon_reads += 1
-                    elif tag_dict[RE_tag] == "I":
-                        intron_reads += 1
-                elif tag_dict[RE_tag] == "N":
-                    intergenic_reads += 1
-                else:
-                    other_reads1 += 1
-
-                # sense or antisense
-                if TX_tag in tag_dict:
-                    sense_reads += 1
-                elif AN_tag in tag_dict:
-                    anti_reads += 1
-                else:
-                    other_reads2 += 1
-
-                # map type
+        with open(chr_id + ".all_reads_id.txt", "w") as ALL, open(chr_id + ".confident_reads_id.txt", "w") as CONF:
+            for aligned_read in samfile.fetch(chr_id):
+                total_alignments += 1
+                chrom_count += 1
+                read_id = aligned_read.query_name
+                tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
                 cigar_str = list2str(aligned_read.cigar)
-                tmp = read_match_type(cigar_str)
-                read_type[tmp] += 1
+                chrom_total_reads.add(read_id)
 
-                confi_alignments += 1
-                chrom_confi_reads.add(read_id)
+                # confident alignments
+                if xf_tag in tag_dict and tag_dict[xf_tag] & 0x1 != 0:
+                    if chr_id == chrM_id:
+                        chrM_reads += 1
+                    # with or without CB/UMI barcode
+                    if CB_tag in tag_dict:
+                        confi_CB += 1
+                    if UMI_tag in tag_dict:
+                        confi_UB += 1
 
-            if chrom_count % step_size == 0:
-                print("%d alignments processed.\r" % chrom_count, end=" ", file=sys.stderr)
-        logging.info('Processed %d alignments from "%s"' % (chrom_count, chr_id))
-        for i in chrom_total_reads:
-            print(i, file=ALL)
-        for i in chrom_confi_reads:
-            print(i, file=CONF)
-        ALL.close()
-        CONF.close()
+                    # duplicate or not
+                    if aligned_read.is_duplicate:
+                        confi_reads_dup += 1
+                    else:
+                        confi_reads_nondup += 1
+
+                    # forward or reverse
+                    if aligned_read.is_reverse:
+                        confi_reads_rev += 1
+                    else:
+                        confi_reads_fwd += 1
+
+                    # Single character indicating the region type of this alignment
+                    # (E = exonic, N = intronic, I = intergenic).
+                    if RE_tag in tag_dict:
+                        if tag_dict[RE_tag] == "E":
+                            exon_reads += 1
+                        elif tag_dict[RE_tag] == "I":
+                            intron_reads += 1
+                    elif tag_dict[RE_tag] == "N":
+                        intergenic_reads += 1
+                    else:
+                        other_reads1 += 1
+
+                    # sense or antisense
+                    if TX_tag in tag_dict:
+                        sense_reads += 1
+                    elif AN_tag in tag_dict:
+                        anti_reads += 1
+                    else:
+                        other_reads2 += 1
+
+                    # map type
+                    cigar_str = list2str(aligned_read.cigar)
+                    tmp = read_match_type(cigar_str)
+                    read_type[tmp] += 1
+
+                    confi_alignments += 1
+                    chrom_confi_reads.add(read_id)
+
+                if chrom_count % step_size == 0:
+                    print("%d alignments processed.\r" % chrom_count, end=" ", file=sys.stderr)
+            logging.info('Processed %d alignments from "%s"' % (chrom_count, chr_id))
+            for i in chrom_total_reads:
+                print(i, file=ALL)
+            for i in chrom_confi_reads:
+                print(i, file=CONF)
 
     logging.info("Processing total %d alignments mapped to all chromosomes." % total_alignments)
 
@@ -625,27 +622,26 @@ def CBC_UMIcount(
         temp = len(v)
         CB_gene_freq[k] = temp
 
-    OUT = open(outfile + ".Read_UMI_freq.tsv", "w")
-    logging.info('Writing cell barcodes\' reads and UMI frequencies to "%s"' % (outfile + ".Read_UMI_freq.tsv"))
-    print(
-        "\t".join(["Serial", "Cell_barcode", "Read_count", "UMI_count", "Gene_count"]), file=OUT
-    )  # do NOT change the header
-    count = 0
-    for k in sorted(CB_UMI_freq, key=CB_UMI_freq.get, reverse=True):
-        count += 1
-        if CB_UMI_freq[k] < UMI_num:
-            continue
-        if k in CB_gene_freq:
-            if CB_gene_freq[k] < gene_num:
+    with open(outfile + ".Read_UMI_freq.tsv", "w") as OUT:
+        logging.info('Writing cell barcodes\' reads and UMI frequencies to "%s"' % (outfile + ".Read_UMI_freq.tsv"))
+        print(
+            "\t".join(["Serial", "Cell_barcode", "Read_count", "UMI_count", "Gene_count"]), file=OUT
+        )  # do NOT change the header
+        count = 0
+        for k in sorted(CB_UMI_freq, key=CB_UMI_freq.get, reverse=True):
+            count += 1
+            if CB_UMI_freq[k] < UMI_num:
                 continue
+            if k in CB_gene_freq:
+                if CB_gene_freq[k] < gene_num:
+                    continue
+                else:
+                    print(
+                        "\t".join([str(count), k, str(CB_read_freq[k]), str(CB_UMI_freq[k]), str(CB_gene_freq[k])]),
+                        file=OUT,
+                    )
             else:
-                print(
-                    "\t".join([str(count), k, str(CB_read_freq[k]), str(CB_UMI_freq[k]), str(CB_gene_freq[k])]),
-                    file=OUT,
-                )
-        else:
-            continue
-        if count > CB_cutoff:
-            break
-    OUT.close()
-    logging.info("Done.")
+                continue
+            if count > CB_cutoff:
+                break
+        logging.info("Done.")

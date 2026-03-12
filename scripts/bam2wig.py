@@ -15,21 +15,22 @@ from rseqc import SAM
 def printlog(mesg):
     """print progress into stderr and log file"""
     mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    LOG = open("class.log", "a")
     print(mesg, file=sys.stderr)
-    print(mesg, file=LOG)
+    with open("class.log", "a") as LOG:
+        print(mesg, file=LOG)
 
 
 def load_chromsize(file):
     """read chrom.size file"""
     chromSize = {}
-    for line in open(file, "r"):
-        if line.startswith("#"):
-            continue
-        if not line.strip():
-            continue
-        fields = line.strip().split()
-        chromSize[fields[0]] = int(fields[1])
+    with open(file, "r") as _fh:
+        for line in _fh:
+            if line.startswith("#"):
+                continue
+            if not line.strip():
+                continue
+            fields = line.strip().split()
+            chromSize[fields[0]] = int(fields[1])
     return chromSize
 
 

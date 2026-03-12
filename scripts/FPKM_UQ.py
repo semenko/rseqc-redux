@@ -108,30 +108,32 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
     gene_sizes = {}  # mRNA size for all genes
     gene_infor = {}
     protein_coding = set()  # list of protein coding genes
-    for line in open(infor_file):
-        line = line.strip()
-        if line.startswith("gene_id"):
-            continue
-        f = line.split()
-        gene_sizes[f[0]] = int(f[10])
-        gene_infor[f[0]] = "\t".join(f[1:6])
-        if f[6] == "protein_coding":
-            protein_coding.add(f[0])
+    with open(infor_file) as _fh:
+        for line in _fh:
+            line = line.strip()
+            if line.startswith("gene_id"):
+                continue
+            f = line.split()
+            gene_sizes[f[0]] = int(f[10])
+            gene_infor[f[0]] = "\t".join(f[1:6])
+            if f[6] == "protein_coding":
+                protein_coding.add(f[0])
 
     print("\tTotal genes: %d" % len(gene_sizes), file=sys.stderr)
     print("\tTotal protein-coding genes: %d" % len(protein_coding), file=sys.stderr)
 
     printlog("Read gene count file to calculate 75 percentile count and total count: %s" % count_file)
     gene_counts = []
-    for line in open(count_file):
-        line = line.strip()
-        if line.startswith("__"):
-            continue
-        f = line.split()
-        gene_id = f[0]
-        if gene_id not in protein_coding:
-            continue
-        gene_counts.append(int(f[1]))
+    with open(count_file) as _fh:
+        for line in _fh:
+            line = line.strip()
+            if line.startswith("__"):
+                continue
+            f = line.split()
+            gene_id = f[0]
+            if gene_id not in protein_coding:
+                continue
+            gene_counts.append(int(f[1]))
 
     uq_count = np.percentile(sorted(gene_counts), 75)
     total_count = sum(gene_counts)
@@ -139,58 +141,58 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
     print("\tThe 75 perentile count of protein-coding genes: %f" % (uq_count), file=sys.stderr)
     print("\tThe total count of protein-coding genes: %f" % (total_count), file=sys.stderr)
 
-    FPKM_OUT = open(out_file, "w")
-    if log2_flag is True:
-        print(
-            "\t".join(
-                [
-                    "gene_ID",
-                    "symbol",
-                    "chrom",
-                    "start",
-                    "end",
-                    "strand",
-                    "raw_count",
-                    "FPKM(log2(x+1))",
-                    "FPKM-UQ(log2(x+1))",
-                ]
-            ),
-            file=FPKM_OUT,
-        )
-    else:
-        print(
-            "\t".join(["gene_ID", "symbol", "chrom", "start", "end", "strand", "raw_count", "FPKM", "FPKM-UQ"]),
-            file=FPKM_OUT,
-        )
-    print("Read gene count file to calculate FPKM and FPKM-UQ: %s" % count_file, file=sys.stderr)
-    for line in open(count_file):
-        line = line.strip()
-        if line.startswith("__"):
-            continue
-        f = line.split()
-        gene = f[0]
-        count = int(f[1])
-        if gene in gene_sizes:
-            try:
-                if log2_flag is True:
-                    fpkm_uq = np.log2((count * 1000000000) / (gene_sizes[gene] * uq_count) + 1)
-                    fpkm = np.log2((count * 1000000000) / (gene_sizes[gene] * total_count) + 1)
-                else:
-                    fpkm_uq = (count * 1000000000) / (gene_sizes[gene] * uq_count)
-                    fpkm = (count * 1000000000) / (gene_sizes[gene] * total_count)
-
-            except Exception:
-                fpkm_uq = "NA"
-                fpkm = "NA"
-
+    with open(out_file, "w") as FPKM_OUT:
+        if log2_flag is True:
+            print(
+                "\t".join(
+                    [
+                        "gene_ID",
+                        "symbol",
+                        "chrom",
+                        "start",
+                        "end",
+                        "strand",
+                        "raw_count",
+                        "FPKM(log2(x+1))",
+                        "FPKM-UQ(log2(x+1))",
+                    ]
+                ),
+                file=FPKM_OUT,
+            )
         else:
-            fpkm_uq = "NA"
-            fpkm = "NA"
-        print(
-            gene + "\t" + gene_infor[gene] + "\t" + "\t".join([str(i) for i in (count, fpkm, fpkm_uq)]), file=FPKM_OUT
-        )
+            print(
+                "\t".join(["gene_ID", "symbol", "chrom", "start", "end", "strand", "raw_count", "FPKM", "FPKM-UQ"]),
+                file=FPKM_OUT,
+            )
+        print("Read gene count file to calculate FPKM and FPKM-UQ: %s" % count_file, file=sys.stderr)
+        with open(count_file) as _fh:
+            for line in _fh:
+                line = line.strip()
+                if line.startswith("__"):
+                    continue
+                f = line.split()
+                gene = f[0]
+                count = int(f[1])
+                if gene in gene_sizes:
+                    try:
+                        if log2_flag is True:
+                            fpkm_uq = np.log2((count * 1000000000) / (gene_sizes[gene] * uq_count) + 1)
+                            fpkm = np.log2((count * 1000000000) / (gene_sizes[gene] * total_count) + 1)
+                        else:
+                            fpkm_uq = (count * 1000000000) / (gene_sizes[gene] * uq_count)
+                            fpkm = (count * 1000000000) / (gene_sizes[gene] * total_count)
 
-    FPKM_OUT.close()
+                    except Exception:
+                        fpkm_uq = "NA"
+                        fpkm = "NA"
+
+                else:
+                    fpkm_uq = "NA"
+                    fpkm = "NA"
+                print(
+                    gene + "\t" + gene_infor[gene] + "\t" + "\t".join([str(i) for i in (count, fpkm, fpkm_uq)]), file=FPKM_OUT
+                )
+
 
 
 def main():

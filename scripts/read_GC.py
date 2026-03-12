@@ -15,9 +15,9 @@ from rseqc import SAM
 def printlog(mesg):
     """print progress into stderr and log file"""
     mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    LOG = open("class.log", "a")
     print(mesg, file=sys.stderr)
-    print(mesg, file=LOG)
+    with open("class.log", "a") as LOG:
+        print(mesg, file=LOG)
 
 
 def main():

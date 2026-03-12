@@ -11,12 +11,13 @@ All notable changes to this project will be documented in this file.
 - Removed `qcmodule/` backward-compatibility shim — all scripts now import directly from `rseqc`.
 - Removed Python 3 version checks from all 26 scripts (dead code on Python >=3.10).
 - Removed dead `open(outfile, "w")` call in `annoGene.py` `annotateBed()`.
-- Removed unnecessary `list()` wrappers on dict view iteration in `fasta.py` (10 sites) and `orf.py` (2 sites).
+- Removed unnecessary `list()` wrappers on dict view iteration in `fasta.py` (10 sites), `orf.py` (2 sites), `SAM.py` (5 sites), `BED.py` (2 sites), `geneBody_coverage.py` (1 site).
 - Removed dead `bootstrap()` function from `changePoint.py` (contained a list-to-float comparison bug, never called).
 - Removed dead `outfile` parameter from `annoGene.py` `annotateBed()` (never used).
 
 ### Fixed
 
+- Fixed `heatmap.py` string concatenation bug in `logging.error()` — `+` replaced with `%` format operator, was producing garbled error messages.
 - Fixed `cdsEdn_float` typo in `BED.py` `unionBED()` — was `NameError` when `boundary="cds"` (Bug #1).
 - Fixed `name` before assignment in `fasta.py` `Fasta.__init__()` — was `UnboundLocalError` on empty/malformed FASTA (Bug #2).
 - Fixed `if int(fields[9] == 1)` operator precedence in `BED.py` (6 sites) — single-exon gene guard now works correctly (Bug #3).
@@ -40,3 +41,4 @@ All notable changes to this project will be documented in this file.
 - `(v1 + 1).__div__(v2 + 1)` → `(v1 + 1) / (v2 + 1)` in `twoList.py` (Python 2 artifact).
 - Improved type annotations in `changePoint.py` (removed 2 `type: ignore` suppressions).
 - E501 (line length > 120) fully resolved and enabled in ruff config — 0 violations remaining.
+- Converted 95 bare `open()` calls to `with` statements across `rseqc/` and `scripts/` to prevent resource leaks.

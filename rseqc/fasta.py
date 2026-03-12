@@ -23,17 +23,18 @@ class Fasta:
         name = None
         tmpseq = ""
         if fastafile is not None:
-            for line in open(fastafile, "r"):
-                line = line.strip(" \n")
-                if line.startswith(">"):
-                    if name is not None and tmpseq:
-                        self.seqs[name] = tmpseq
-                    name = line[1:]
-                    tmpseq = ""
-                    self.IDs.append(name)
-                    print("\tloading " + name + " ...", file=sys.stderr)
-                else:
-                    tmpseq += line.upper()
+            with open(fastafile, "r") as _fh:
+                for line in _fh:
+                    line = line.strip(" \n")
+                    if line.startswith(">"):
+                        if name is not None and tmpseq:
+                            self.seqs[name] = tmpseq
+                        name = line[1:]
+                        tmpseq = ""
+                        self.IDs.append(name)
+                        print("\tloading " + name + " ...", file=sys.stderr)
+                    else:
+                        tmpseq += line.upper()
             if name is not None:
                 self.seqs[name] = tmpseq
 
@@ -143,46 +144,21 @@ class Fasta:
     def findPattern(self, pat, outfile, seqID=None, rev=True):
         """find pattern in all sequence unless seqID is specified, coordinates will be returned as bed format file"""
 
-        fout = open(outfile, "w")
-        length = len(pat)
+        with open(outfile, "w") as fout:
+            length = len(pat)
 
-        Pat = pat.upper()
-        start = 0
-
-        if seqID is None:
-            for k, v in self.seqs.items():
-                loopSwitch = 0
-                start = 0
-                while loopSwitch != -1:
-                    loopSwitch = v.find(Pat, start)
-                    if loopSwitch != -1:
-                        print(
-                            k + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t+",
-                            file=fout,
-                        )
-                        start = loopSwitch + 1
-
-        else:
-            loopSwitch = 0
+            Pat = pat.upper()
             start = 0
-            while loopSwitch != -1:
-                loopSwitch = self.seqs[seqID].find(Pat, start)
-                print(
-                    seqID + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t+", file=fout
-                )
-                start = loopSwitch + 1
 
-        if rev:
-            Pat_rev = Pat.translate(self.transtab)[::-1]
             if seqID is None:
                 for k, v in self.seqs.items():
                     loopSwitch = 0
                     start = 0
                     while loopSwitch != -1:
-                        loopSwitch = v.find(Pat_rev, start)
+                        loopSwitch = v.find(Pat, start)
                         if loopSwitch != -1:
                             print(
-                                k + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t-",
+                                k + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t+",
                                 file=fout,
                             )
                             start = loopSwitch + 1
@@ -191,12 +167,37 @@ class Fasta:
                 loopSwitch = 0
                 start = 0
                 while loopSwitch != -1:
-                    loopSwitch = self.seqs[seqID].find(Pat_rev, start)
+                    loopSwitch = self.seqs[seqID].find(Pat, start)
                     print(
-                        seqID + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t-",
-                        file=fout,
+                        seqID + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t+", file=fout
                     )
                     start = loopSwitch + 1
+
+            if rev:
+                Pat_rev = Pat.translate(self.transtab)[::-1]
+                if seqID is None:
+                    for k, v in self.seqs.items():
+                        loopSwitch = 0
+                        start = 0
+                        while loopSwitch != -1:
+                            loopSwitch = v.find(Pat_rev, start)
+                            if loopSwitch != -1:
+                                print(
+                                    k + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t-",
+                                    file=fout,
+                                )
+                                start = loopSwitch + 1
+
+                else:
+                    loopSwitch = 0
+                    start = 0
+                    while loopSwitch != -1:
+                        loopSwitch = self.seqs[seqID].find(Pat_rev, start)
+                        print(
+                            seqID + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t-",
+                            file=fout,
+                        )
+                        start = loopSwitch + 1
 
     def fetchSeq(self, chr=None, st=None, end=None, infile=None, outfile=None):
         """Fetching sequence based on chrName (should be exactly the same as fasta file), St, End.
@@ -204,24 +205,25 @@ class Fasta:
         should be bed3, bed6 or bed12"""
 
         if (infile is not None) and (outfile is not None):
-            fout = open(outfile, "w")
-            for line in open(infile):
-                fields = line.strip().split()
-                if len(fields) == 3:
-                    print(fields[0] + ":" + fields[1] + "-" + fields[2] + "\t" + "strand=+", file=fout)
-                    print(self.seqs[fields[0]][int(fields[1]) : int(fields[2])].upper(), file=fout)
-                elif len(fields) > 3:
-                    if fields[5] == "-":
-                        print(fields[0] + ":" + fields[1] + "-" + fields[2] + "\t" + "strand=-", file=fout)
-                        print(
-                            self.seqs[fields[0]][int(fields[1]) : int(fields[2])]
-                            .translate(self.transtab)[::-1]
-                            .upper(),
-                            file=fout,
-                        )
-                    else:
-                        print(fields[0] + ":" + fields[1] + "-" + fields[2] + "\t" + "strand=+", file=fout)
-                        print(self.seqs[fields[0]][int(fields[1]) : int(fields[2])].upper(), file=fout)
+            with open(outfile, "w") as fout:
+                with open(infile) as _fh:
+                    for line in _fh:
+                        fields = line.strip().split()
+                        if len(fields) == 3:
+                            print(fields[0] + ":" + fields[1] + "-" + fields[2] + "\t" + "strand=+", file=fout)
+                            print(self.seqs[fields[0]][int(fields[1]) : int(fields[2])].upper(), file=fout)
+                        elif len(fields) > 3:
+                            if fields[5] == "-":
+                                print(fields[0] + ":" + fields[1] + "-" + fields[2] + "\t" + "strand=-", file=fout)
+                                print(
+                                    self.seqs[fields[0]][int(fields[1]) : int(fields[2])]
+                                    .translate(self.transtab)[::-1]
+                                    .upper(),
+                                    file=fout,
+                                )
+                            else:
+                                print(fields[0] + ":" + fields[1] + "-" + fields[2] + "\t" + "strand=+", file=fout)
+                                print(self.seqs[fields[0]][int(fields[1]) : int(fields[2])].upper(), file=fout)
         else:
             try:
                 return self.seqs[chr][st:end].upper()

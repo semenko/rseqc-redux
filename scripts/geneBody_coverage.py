@@ -41,9 +41,9 @@ def valid_name(s):
 def printlog(mesg):
     """print progress into stderr and log file"""
     mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    LOG = open("log.txt", "a")
     print(mesg, file=sys.stderr)
-    print(mesg, file=LOG)
+    with open("log.txt", "a") as LOG:
+        print(mesg, file=LOG)
 
 
 def pearson_moment_coefficient(lst):
@@ -67,37 +67,38 @@ def genebody_percentile(refbed, mRNA_len_cut=100):
 
     g_percentiles = {}
     transcript_count = 0
-    for line in open(refbed, "r"):
-        try:
-            if line.startswith(("#", "track", "browser")):
-                continue
-            # Parse fields from gene tabls
-            fields = line.split()
-            chrom = fields[0]
-            tx_start = int(fields[1])
-            tx_end = int(fields[2])
-            geneName = fields[3]
-            strand = fields[5]
-            geneID = "_".join([str(j) for j in (chrom, tx_start, tx_end, geneName, strand)])
+    with open(refbed, "r") as _fh:
+        for line in _fh:
+            try:
+                if line.startswith(("#", "track", "browser")):
+                    continue
+                # Parse fields from gene tabls
+                fields = line.split()
+                chrom = fields[0]
+                tx_start = int(fields[1])
+                tx_end = int(fields[2])
+                geneName = fields[3]
+                strand = fields[5]
+                geneID = "_".join([str(j) for j in (chrom, tx_start, tx_end, geneName, strand)])
 
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
-            transcript_count += 1
-        except Exception:
-            print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-            continue
-        gene_all_base = []
-        for st, end in zip(exon_starts, exon_ends):
-            gene_all_base.extend(list(range(st + 1, end + 1)))  # 1-based coordinates on genome
-        if len(gene_all_base) < mRNA_len_cut:
-            continue
-        g_percentiles[geneID] = (
-            chrom,
-            strand,
-            mystat.percentile_list(gene_all_base),
-        )  # get 100 points from each gene's coordinates
+                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                transcript_count += 1
+            except Exception:
+                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
+                continue
+            gene_all_base = []
+            for st, end in zip(exon_starts, exon_ends):
+                gene_all_base.extend(list(range(st + 1, end + 1)))  # 1-based coordinates on genome
+            if len(gene_all_base) < mRNA_len_cut:
+                continue
+            g_percentiles[geneID] = (
+                chrom,
+                strand,
+                mystat.percentile_list(gene_all_base),
+            )  # get 100 points from each gene's coordinates
     printlog("Total " + str(transcript_count) + " transcripts loaded")
     return g_percentiles
 
@@ -111,7 +112,7 @@ def genebody_coverage(bam, position_list):
     aggreagated_cvg = collections.defaultdict(int)
 
     gene_finished = 0
-    for chrom, strand, positions in list(position_list.values()):
+    for chrom, strand, positions in position_list.values():
         coverage = {}
         for i in positions:
             coverage[i] = 0.0
@@ -159,92 +160,91 @@ def genebody_coverage(bam, position_list):
 
 def Rcode_write(dataset, file_prefix, format="pdf", colNum=100):
     """generate R script for visualization"""
-    ROUT = open(file_prefix + ".r", "w")
-    names = []
-    datas = []
-    for name, data, tmp in dataset:
-        names.append(name)
-        datas.append(data)
-        print(name + " <- c(" + ",".join([str(i) for i in data]) + ")", file=ROUT)
+    with open(file_prefix + ".r", "w") as ROUT:
+        names = []
+        datas = []
+        for name, data, tmp in dataset:
+            names.append(name)
+            datas.append(data)
+            print(name + " <- c(" + ",".join([str(i) for i in data]) + ")", file=ROUT)
 
-    tick_pos = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-    tick_lab = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+        tick_pos = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+        tick_lab = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
-    # do not generate heatmap if only 1 sample
-    if len(names) >= 3:
-        print(
-            "data_matrix" + " <- matrix(c(" + ",".join(names) + "), byrow=T, " + "ncol=" + str(colNum) + ")", file=ROUT
-        )
-        print("rowLabel <- c(" + ",".join(['"' + i + '"' for i in names]) + ")", file=ROUT)
-        print("\n", file=ROUT)
-        print('%s("%s.%s")' % (format.lower(), file_prefix + ".heatMap", format.lower()), file=ROUT)
-        print("rc <- cm.colors(ncol(data_matrix))", file=ROUT)
-        heatmap_cmd = (
-            "heatmap(data_matrix"
-            ', scale=c("none"),keep.dendro=F, labRow = rowLabel '
-            ",Colv = NA,Rowv = NA,labCol=NA,col=cm.colors(256),"
-            "margins = c(6, 8),ColSideColors = rc,"
-            "cexRow=1,cexCol=1,"
-            "xlab=\"Gene body percentile (5'->3')\", "
-            "add.expr=x_axis_expr <- axis(side=1,at=c(%s),"
-            "labels=c(%s)))"
-            % (
-                ",".join([str(i) for i in tick_pos]),
-                ",".join(['"' + str(i) + '"' for i in tick_lab]),
+        # do not generate heatmap if only 1 sample
+        if len(names) >= 3:
+            print(
+                "data_matrix" + " <- matrix(c(" + ",".join(names) + "), byrow=T, " + "ncol=" + str(colNum) + ")", file=ROUT
             )
+            print("rowLabel <- c(" + ",".join(['"' + i + '"' for i in names]) + ")", file=ROUT)
+            print("\n", file=ROUT)
+            print('%s("%s.%s")' % (format.lower(), file_prefix + ".heatMap", format.lower()), file=ROUT)
+            print("rc <- cm.colors(ncol(data_matrix))", file=ROUT)
+            heatmap_cmd = (
+                "heatmap(data_matrix"
+                ', scale=c("none"),keep.dendro=F, labRow = rowLabel '
+                ",Colv = NA,Rowv = NA,labCol=NA,col=cm.colors(256),"
+                "margins = c(6, 8),ColSideColors = rc,"
+                "cexRow=1,cexCol=1,"
+                "xlab=\"Gene body percentile (5'->3')\", "
+                "add.expr=x_axis_expr <- axis(side=1,at=c(%s),"
+                "labels=c(%s)))"
+                % (
+                    ",".join([str(i) for i in tick_pos]),
+                    ",".join(['"' + str(i) + '"' for i in tick_lab]),
+                )
+            )
+            print(heatmap_cmd, file=ROUT)
+            print("dev.off()", file=ROUT)
+
+        print("\n", file=ROUT)
+
+        print('%s("%s.%s")' % (format.lower(), file_prefix + ".curves", format.lower()), file=ROUT)
+        print("x=1:%d" % (colNum), file=ROUT)
+        print(
+            'icolor = colorRampPalette(c("#7fc97f","#beaed4","#fdc086","#ffff99","#386cb0","#f0027f"))(%d)' % (len(names)),
+            file=ROUT,
         )
-        print(heatmap_cmd, file=ROUT)
+
+        if len(names) == 1:
+            print(
+                "plot(x,%s,type='l',xlab=\"Gene body percentile (5'->3')\", ylab=\"Coverage\",lwd=0.8,col=icolor[1])"
+                % (names[0]),
+                file=ROUT,
+            )
+
+        elif len(names) >= 2 and len(names) <= 6:
+            print(
+                "plot(x,%s,type='l',xlab=\"Gene body percentile (5'->3')\", ylab=\"Coverage\",lwd=0.8,col=icolor[1])"
+                % (names[0]),
+                file=ROUT,
+            )
+            for i in range(1, len(names)):
+                print("lines(x,%s,type='l',col=icolor[%d])" % (names[i], i + 1), file=ROUT)
+            print(
+                "legend(0,1,fill=icolor[%d:%d], legend=c(%s))"
+                % (1, len(names), ",".join(["'" + str(n) + "'" for n in names])),
+                file=ROUT,
+            )
+
+        elif len(names) > 6:
+            print("layout(matrix(c(1,1,1,2,1,1,1,2,1,1,1,2), 4, 4, byrow = TRUE))", file=ROUT)
+            print(
+                "plot(x,%s,type='l',xlab=\"Gene body percentile (5'->3')\", ylab=\"Coverage\",lwd=0.8,col=icolor[1])"
+                % (names[0]),
+                file=ROUT,
+            )
+            for i in range(1, len(names)):
+                print("lines(x,%s,type='l',col=icolor[%d])" % (names[i], i + 1), file=ROUT)
+            print("par(mar=c(1,0,2,1))", file=ROUT)
+            print("plot.new()", file=ROUT)
+            print(
+                "legend(0,1,fill=icolor[%d:%d],legend=c(%s))"
+                % (1, len(names), ",".join(["'" + str(n) + "'" for n in names])),
+                file=ROUT,
+            )
+
         print("dev.off()", file=ROUT)
-
-    print("\n", file=ROUT)
-
-    print('%s("%s.%s")' % (format.lower(), file_prefix + ".curves", format.lower()), file=ROUT)
-    print("x=1:%d" % (colNum), file=ROUT)
-    print(
-        'icolor = colorRampPalette(c("#7fc97f","#beaed4","#fdc086","#ffff99","#386cb0","#f0027f"))(%d)' % (len(names)),
-        file=ROUT,
-    )
-
-    if len(names) == 1:
-        print(
-            "plot(x,%s,type='l',xlab=\"Gene body percentile (5'->3')\", ylab=\"Coverage\",lwd=0.8,col=icolor[1])"
-            % (names[0]),
-            file=ROUT,
-        )
-
-    elif len(names) >= 2 and len(names) <= 6:
-        print(
-            "plot(x,%s,type='l',xlab=\"Gene body percentile (5'->3')\", ylab=\"Coverage\",lwd=0.8,col=icolor[1])"
-            % (names[0]),
-            file=ROUT,
-        )
-        for i in range(1, len(names)):
-            print("lines(x,%s,type='l',col=icolor[%d])" % (names[i], i + 1), file=ROUT)
-        print(
-            "legend(0,1,fill=icolor[%d:%d], legend=c(%s))"
-            % (1, len(names), ",".join(["'" + str(n) + "'" for n in names])),
-            file=ROUT,
-        )
-
-    elif len(names) > 6:
-        print("layout(matrix(c(1,1,1,2,1,1,1,2,1,1,1,2), 4, 4, byrow = TRUE))", file=ROUT)
-        print(
-            "plot(x,%s,type='l',xlab=\"Gene body percentile (5'->3')\", ylab=\"Coverage\",lwd=0.8,col=icolor[1])"
-            % (names[0]),
-            file=ROUT,
-        )
-        for i in range(1, len(names)):
-            print("lines(x,%s,type='l',col=icolor[%d])" % (names[i], i + 1), file=ROUT)
-        print("par(mar=c(1,0,2,1))", file=ROUT)
-        print("plot.new()", file=ROUT)
-        print(
-            "legend(0,1,fill=icolor[%d:%d],legend=c(%s))"
-            % (1, len(names), ",".join(["'" + str(n) + "'" for n in names])),
-            file=ROUT,
-        )
-
-    print("dev.off()", file=ROUT)
-    ROUT.close()
 
 
 def main():
@@ -305,45 +305,45 @@ def main():
         print('The number specified to "-l" cannot be smaller than 100.' + "\n", file=sys.stderr)
         sys.exit(0)
 
-    OUT1 = open(args.output_prefix + ".geneBodyCoverage.txt", "w")
-    print("Percentile\t" + "\t".join([str(i) for i in range(1, 101)]), file=OUT1)
+    with open(args.output_prefix + ".geneBodyCoverage.txt", "w") as OUT1:
+        print("Percentile\t" + "\t".join([str(i) for i in range(1, 101)]), file=OUT1)
 
-    printlog("Read BED file (reference gene model) ...")
-    gene_percentiles = genebody_percentile(refbed=args.ref_gene_model, mRNA_len_cut=args.min_mRNA_length)
+        printlog("Read BED file (reference gene model) ...")
+        gene_percentiles = genebody_percentile(refbed=args.ref_gene_model, mRNA_len_cut=args.min_mRNA_length)
 
-    printlog("Get BAM file(s) ...")
-    bamfiles = getBamFiles.get_bam_files(args.input_files)
-    for f in bamfiles:
-        print("\t" + f, file=sys.stderr)
+        printlog("Get BAM file(s) ...")
+        bamfiles = getBamFiles.get_bam_files(args.input_files)
+        for f in bamfiles:
+            print("\t" + f, file=sys.stderr)
 
-    file_container = []
-    for bamfile in bamfiles:
-        printlog("Processing " + basename(bamfile) + " ...")
-        cvg = genebody_coverage(bamfile, gene_percentiles)
-        if len(cvg) == 0:
-            print("\nCannot get coverage signal from " + basename(bamfile) + " ! Skip", file=sys.stderr)
-            continue
-        tmp = valid_name(basename(bamfile).replace(".bam", ""))  # scrutinize R identifer
-        if file_container.count(tmp) == 0:
-            print(tmp + "\t" + "\t".join([str(cvg[k]) for k in sorted(cvg)]), file=OUT1)
-        else:
-            print(
-                tmp + "." + str(file_container.count(tmp)) + "\t" + "\t".join([str(cvg[k]) for k in sorted(cvg)]),
-                file=OUT1,
-            )
-        file_container.append(tmp)
-    OUT1.close()
+        file_container = []
+        for bamfile in bamfiles:
+            printlog("Processing " + basename(bamfile) + " ...")
+            cvg = genebody_coverage(bamfile, gene_percentiles)
+            if len(cvg) == 0:
+                print("\nCannot get coverage signal from " + basename(bamfile) + " ! Skip", file=sys.stderr)
+                continue
+            tmp = valid_name(basename(bamfile).replace(".bam", ""))  # scrutinize R identifer
+            if file_container.count(tmp) == 0:
+                print(tmp + "\t" + "\t".join([str(cvg[k]) for k in sorted(cvg)]), file=OUT1)
+            else:
+                print(
+                    tmp + "." + str(file_container.count(tmp)) + "\t" + "\t".join([str(cvg[k]) for k in sorted(cvg)]),
+                    file=OUT1,
+                )
+            file_container.append(tmp)
 
     dataset = []
-    for line in open(args.output_prefix + ".geneBodyCoverage.txt", "r"):
-        line = line.strip()
-        if line.startswith("Percentile"):
-            continue
-        f = line.split()
-        name = f[0]
-        dat = [float(i) for i in f[1:]]
-        skewness = pearson_moment_coefficient(dat)
-        dataset.append((name, [(i - min(dat)) / (max(dat) - min(dat)) for i in dat], skewness))
+    with open(args.output_prefix + ".geneBodyCoverage.txt", "r") as _fh:
+        for line in _fh:
+            line = line.strip()
+            if line.startswith("Percentile"):
+                continue
+            f = line.split()
+            name = f[0]
+            dat = [float(i) for i in f[1:]]
+            skewness = pearson_moment_coefficient(dat)
+            dataset.append((name, [(i - min(dat)) / (max(dat) - min(dat)) for i in dat], skewness))
     dataset.sort(key=operator.itemgetter(2), reverse=True)
 
     print("\n\n", file=sys.stderr)

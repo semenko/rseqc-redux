@@ -11,29 +11,30 @@ Compare given bed entry to reference gene model
 def getCDSExonFromFile(bedfile):
     """Only Extract CDS exon regions from input bed file (must be 12-column)."""
     ret_lst = []
-    for f in open(bedfile, "r"):
-        f = f.strip().split()
-        chrom = f[0]
-        chrom_start = int(f[1])
-        f[4]
-        strand = f[5]
-        cdsStart = int(f[6])
-        cdsEnd = int(f[7])
-        int(f[9])
-        blockSizes = [int(i) for i in f[10].strip(",").split(",")]
-        blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
-        # grab cdsStart - cdsEnd
+    with open(bedfile, "r") as _fh:
+        for f in _fh:
+            f = f.strip().split()
+            chrom = f[0]
+            chrom_start = int(f[1])
+            f[4]
+            strand = f[5]
+            cdsStart = int(f[6])
+            cdsEnd = int(f[7])
+            int(f[9])
+            blockSizes = [int(i) for i in f[10].strip(",").split(",")]
+            blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
+            # grab cdsStart - cdsEnd
 
-        chrom = chrom + ":" + strand
-        for base, offset in zip(blockStarts, blockSizes):
-            if (base + offset) < cdsStart:
-                continue
-            if base > cdsEnd:
-                continue
-            exon_start = max(base, cdsStart)
-            exon_end = min(base + offset, cdsEnd)
-            # cds_exons.append( (exon_start, exon_end) )
-            ret_lst.append([chrom, exon_start, exon_end])
+            chrom = chrom + ":" + strand
+            for base, offset in zip(blockStarts, blockSizes):
+                if (base + offset) < cdsStart:
+                    continue
+                if base > cdsEnd:
+                    continue
+                exon_start = max(base, cdsStart)
+                exon_end = min(base + offset, cdsEnd)
+                # cds_exons.append( (exon_start, exon_end) )
+                ret_lst.append([chrom, exon_start, exon_end])
     return ret_lst
 
 
@@ -43,48 +44,8 @@ def getUTRExonFromFile(bedfile, utr=35):
     only extract 5' UTR"""
 
     ret_lst = []
-    for line in open(bedfile, "r"):
-        if line.startswith("#"):
-            continue
-        if line.startswith("track"):
-            continue
-        if line.startswith("browser"):
-            continue
-        fields = line.rstrip("\r\n").split()
-        chrom = fields[0]
-        strand = fields[5]
-        txStart = int(fields[1])
-        int(fields[2])
-        cdsStart = int(fields[6])
-        cdsEnd = int(fields[7])
-        exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-        exon_start = list(map((lambda x: x + txStart), exon_start))
-
-        exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-        exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
-
-        chrom = chrom + ":" + strand
-        if utr == 35 or utr == 5:
-            for st, end in zip(exon_start, exon_end):
-                if st < cdsStart:
-                    utr_st = st
-                    utr_end = min(end, cdsStart)
-                    ret_lst.append([chrom, utr_st, utr_end])
-        if utr == 35 or utr == 3:
-            for st, end in zip(exon_start, exon_end):
-                if end > cdsEnd:
-                    utr_st = max(st, cdsEnd)
-                    utr_end = end
-                    ret_lst.append([chrom, utr_st, utr_end])
-    return ret_lst
-
-
-def getExonFromFile(bedfile):
-    """Extract ALL exon regions from input bed file (must be 12-column). return list of [chrom:+ st end]"""
-
-    ret_lst = []
-    for line in open(bedfile, "r"):
-        try:
+    with open(bedfile, "r") as _fh:
+        for line in _fh:
             if line.startswith("#"):
                 continue
             if line.startswith("track"):
@@ -92,21 +53,63 @@ def getExonFromFile(bedfile):
             if line.startswith("browser"):
                 continue
             fields = line.rstrip("\r\n").split()
-            txStart = int(fields[1])
             chrom = fields[0]
             strand = fields[5]
-            fields[3]
-            fields[4]
+            txStart = int(fields[1])
+            int(fields[2])
+            cdsStart = int(fields[6])
+            cdsEnd = int(fields[7])
             exon_start = list(map(int, fields[11].rstrip(",").split(",")))
             exon_start = list(map((lambda x: x + txStart), exon_start))
+
             exon_end = list(map(int, fields[10].rstrip(",").split(",")))
             exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
-        except Exception:
-            print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-            continue
-        chrom = chrom + ":" + strand
-        for st, end in zip(exon_start, exon_end):
-            ret_lst.append([chrom, st, end])
+
+            chrom = chrom + ":" + strand
+            if utr == 35 or utr == 5:
+                for st, end in zip(exon_start, exon_end):
+                    if st < cdsStart:
+                        utr_st = st
+                        utr_end = min(end, cdsStart)
+                        ret_lst.append([chrom, utr_st, utr_end])
+            if utr == 35 or utr == 3:
+                for st, end in zip(exon_start, exon_end):
+                    if end > cdsEnd:
+                        utr_st = max(st, cdsEnd)
+                        utr_end = end
+                        ret_lst.append([chrom, utr_st, utr_end])
+    return ret_lst
+
+
+def getExonFromFile(bedfile):
+    """Extract ALL exon regions from input bed file (must be 12-column). return list of [chrom:+ st end]"""
+
+    ret_lst = []
+    with open(bedfile, "r") as _fh:
+        for line in _fh:
+            try:
+                if line.startswith("#"):
+                    continue
+                if line.startswith("track"):
+                    continue
+                if line.startswith("browser"):
+                    continue
+                fields = line.rstrip("\r\n").split()
+                txStart = int(fields[1])
+                chrom = fields[0]
+                strand = fields[5]
+                fields[3]
+                fields[4]
+                exon_start = list(map(int, fields[11].rstrip(",").split(",")))
+                exon_start = list(map((lambda x: x + txStart), exon_start))
+                exon_end = list(map(int, fields[10].rstrip(",").split(",")))
+                exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+            except Exception:
+                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
+                continue
+            chrom = chrom + ":" + strand
+            for st, end in zip(exon_start, exon_end):
+                ret_lst.append([chrom, st, end])
     return ret_lst
 
 
@@ -115,34 +118,35 @@ def getExonFromFile2(bedfile):
 
     ret_dict_full = collections.defaultdict(set)
     # ret_dict_inner = collections.defaultdict(set)  #trim off start_of_1st_exon and end_of_last_exon
-    for line in open(bedfile, "r"):
-        tmp = []
-        try:
-            if line.startswith("#"):
+    with open(bedfile, "r") as _fh:
+        for line in _fh:
+            tmp = []
+            try:
+                if line.startswith("#"):
+                    continue
+                if line.startswith("track"):
+                    continue
+                if line.startswith("browser"):
+                    continue
+                fields = line.rstrip("\r\n").split()
+                txStart = int(fields[1])
+                chrom = fields[0]
+                strand = fields[5]
+                geneName = fields[3]
+                fields[4]
+                exon_start = list(map(int, fields[11].rstrip(",").split(",")))
+                exon_start = list(map((lambda x: x + txStart), exon_start))
+                exon_end = list(map(int, fields[10].rstrip(",").split(",")))
+                exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+                txEnd = int(fields[2])
+                key = chrom + ":" + str(txStart) + "-" + str(txEnd) + ":" + strand + ":" + geneName
+            except Exception:
+                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
-            if line.startswith("track"):
-                continue
-            if line.startswith("browser"):
-                continue
-            fields = line.rstrip("\r\n").split()
-            txStart = int(fields[1])
-            chrom = fields[0]
-            strand = fields[5]
-            geneName = fields[3]
-            fields[4]
-            exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-            exon_start = list(map((lambda x: x + txStart), exon_start))
-            exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-            exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
-            txEnd = int(fields[2])
-            key = chrom + ":" + str(txStart) + "-" + str(txEnd) + ":" + strand + ":" + geneName
-        except Exception:
-            print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-            continue
-        for st, end in zip(exon_start, exon_end):
-            tmp.append((st, end))
-        ret_dict_full[key] = set(tmp)
-        # ret_dict_inner[key] = set(tmp[1:-1])
+            for st, end in zip(exon_start, exon_end):
+                tmp.append((st, end))
+            ret_dict_full[key] = set(tmp)
+            # ret_dict_inner[key] = set(tmp[1:-1])
     return ret_dict_full
 
 
@@ -279,32 +283,33 @@ def annotateBed(inputbed, refbed):
     getExonFromFile2(refbed)
 
     # read input bed
-    for line in open(inputbed, "r"):
-        if line.startswith("#"):
-            continue
-        if line.startswith("track"):
-            continue
-        if line.startswith("browser"):
-            continue
-        if not line.strip():
-            continue
-        line = line.strip()
-        fields = line.split()
+    with open(inputbed, "r") as _fh:
+        for line in _fh:
+            if line.startswith("#"):
+                continue
+            if line.startswith("track"):
+                continue
+            if line.startswith("browser"):
+                continue
+            if not line.strip():
+                continue
+            line = line.strip()
+            fields = line.split()
 
-        chrom = fields[0]
-        strand = fields[5]
-        tx_start = int(fields[1])
-        tx_end = int(fields[2])
-        key = chrom + ":" + strand
-        if key in ref_exon_ranges:
-            if (
-                len(ref_exon_ranges[key].find(tx_start, tx_end)) == 0
-            ):  # input gene does NOT overlap with any known exons
-                print(line + "\t" + "novel(intergenic)")
+            chrom = fields[0]
+            strand = fields[5]
+            tx_start = int(fields[1])
+            tx_end = int(fields[2])
+            key = chrom + ":" + strand
+            if key in ref_exon_ranges:
+                if (
+                    len(ref_exon_ranges[key].find(tx_start, tx_end)) == 0
+                ):  # input gene does NOT overlap with any known exons
+                    print(line + "\t" + "novel(intergenic)")
+                else:
+                    getExonFromLine(line)
+                    # utr_3_exons = getUTRExon(line,utr=3)
+                    # utr_5_exons = getUTRExon(line,utr=5)
+                    # cds_exons = getCDSExon(line)
             else:
-                getExonFromLine(line)
-                # utr_3_exons = getUTRExon(line,utr=3)
-                # utr_5_exons = getUTRExon(line,utr=5)
-                # cds_exons = getCDSExon(line)
-        else:
-            print(line + "\t" + "unknownChrom")
+                print(line + "\t" + "unknownChrom")
