@@ -13,6 +13,8 @@ This program generates *exactly* the same FPKM and FPKM-UQ values as TCGA, if:
 
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import shutil
@@ -24,7 +26,7 @@ import numpy as np
 from rseqc.cli_common import printlog
 
 
-def run_HTseq(bam_file, gtf_file, out_file, print_cmd=False):
+def run_HTseq(bam_file: str, gtf_file: str, out_file: str, print_cmd: bool = False) -> str | None:
     """
     parameters
     ----------
@@ -41,16 +43,16 @@ def run_HTseq(bam_file, gtf_file, out_file, print_cmd=False):
     # processing and checking
     if not os.path.exists(bam_file):
         print("%s does not exist!" % bam_file)
-        sys.exit()
+        sys.exit(1)
     if not os.path.exists(gtf_file):
         print("%s does not exist!" % gtf_file)
-        sys.exit()
+        sys.exit(1)
 
     # find htseq-count command
     htseq_cmd = shutil.which("htseq-count")
     if htseq_cmd is None:
         print('Cannot find "htseq-count" command!', file=sys.stderr)
-        sys.exit()
+        sys.exit(1)
 
     # Set parameters used by TCGA workflow
     # https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/Expression_mRNA_Pipeline/
@@ -79,7 +81,7 @@ def run_HTseq(bam_file, gtf_file, out_file, print_cmd=False):
             subprocess.run(htseq_args, stdout=fout, check=False)
 
 
-def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
+def cal_fpkm(count_file: str, infor_file: str, out_file: str, log2_flag: bool = False) -> None:
     """
     parameters
     ----------

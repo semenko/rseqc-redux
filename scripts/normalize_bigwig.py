@@ -5,7 +5,6 @@ import argparse
 import collections
 import sys
 from itertools import groupby
-from operator import itemgetter
 
 import numpy
 import pyBigWig
@@ -92,7 +91,7 @@ def main() -> None:
             print("Total wigsum is %.2f\n" % WIG_SUM, file=sys.stderr)
         else:
             print("Calculate wigsum from " + args.BigWig_File, file=sys.stderr)
-            for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
+            for chr_name, chr_size in chrom_sizes.items():  # iterate each chrom
                 if bw.stats(chr_name, 0, chr_size)[0] is None:
                     print("Skip " + chr_name + "!", file=sys.stderr)
                     continue
@@ -116,7 +115,7 @@ def main() -> None:
 
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         print("Normalizing bigwig file ...", file=sys.stderr)
-        for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
+        for chr_name, chr_size in chrom_sizes.items():  # iterate each chrom
             if bw.stats(chr_name, 0, chr_size)[0] is None:
                 print("Skip " + chr_name + "!", file=sys.stderr)
                 continue
@@ -153,8 +152,8 @@ def main() -> None:
                             v2p[v].append(coord)
                     for v in v2p:
                         for k, g in groupby(enumerate(v2p[v]), lambda i_x: i_x[0] - i_x[1]):
-                            for group in [list(map(itemgetter(1), g))]:
-                                range2p[group[0] - 1] = [len(group), v]
+                            group = [item[1] for item in g]
+                            range2p[group[0] - 1] = [len(group), v]
                     for i in sorted(range2p):
                         print(
                             chr_name + "\t" + str(i) + "\t" + str(i + range2p[i][0]) + "\t" + str(range2p[i][1]),

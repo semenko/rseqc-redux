@@ -50,9 +50,9 @@ def coverageGeneBody_bigwig(bigFile: str, refbed: str, outfile: str, gtype: str 
                 if chrom not in chroms:
                     continue
 
-                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = [int(x) for x in fields[11].rstrip(",\n").split(",")]
                 exon_starts = [x + tx_start for x in exon_starts]
-                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = [int(x) for x in fields[10].rstrip(",\n").split(",")]
                 exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
             except (IndexError, ValueError):
                 print("[NOTE: input bed must be 12-column] skipped this line: " + line, end="\n", file=sys.stderr)

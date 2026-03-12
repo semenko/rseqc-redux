@@ -67,7 +67,7 @@ def main() -> None:
         for chr, size in bw2.chroms().items():
             chrom_sizes[chr] = size
 
-        for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
+        for chr_name, chr_size in chrom_sizes.items():  # iterate each chrom
             print("Processing " + chr_name + " ...", file=sys.stderr)
             OUT.write("variableStep chrom=" + chr_name + "\n")
             for interval in BED.tillingBed(chrName=chr_name, chrSize=chr_size, stepSize=args.chunk_size):

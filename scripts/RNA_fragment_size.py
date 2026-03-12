@@ -40,15 +40,14 @@ def fragment_size(
             tx_start = int(fields[1])
             tx_end = int(fields[2])
             geneName = fields[3]
-            exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+            exon_starts = [int(x) for x in fields[11].rstrip(",\n").split(",")]
             exon_starts = [x + tx_start for x in exon_starts]
-            exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+            exon_ends = [int(x) for x in fields[10].rstrip(",\n").split(",")]
             exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
             geneID = "\t".join([str(i) for i in (chrom, tx_start, tx_end, geneName)])
 
             for st, end in zip(exon_starts, exon_ends):
                 exon_range.append([st + 1, end + 1])
-                # exon_range.append([chrom, st,end])
 
             try:
                 alignedReads = samfile.fetch(chrom, tx_start, tx_end)
@@ -81,7 +80,6 @@ def fragment_size(
                     continue
                 read_len = aligned_read.qlen
                 map_range = [[read_st + 1, mate_st]]
-                # map_range = [[chrom, read_st, mate_st]]
                 frag_len = overlap_length2(exon_range, map_range) + read_len
                 frag_sizes.append(frag_len)
             if len(frag_sizes) < ncut:

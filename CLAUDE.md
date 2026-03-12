@@ -23,7 +23,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 
 **Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
 
-**Tests:** 544 passing. SAM.py 41%, BED.py 92%, scbam.py 66%, utility modules 83–100% (bam_cigar, quantile, twoList, changePoint, wiggle all 100%). Script helper functions tested (RPKM_saturation, geneBody_coverage, read_distribution, RNA_fragment_size, tin, FPKM_count, read_hexamer).
+**Tests:** 550 passing. SAM.py 41%, BED.py 92%, scbam.py 66%, utility modules 83–100% (bam_cigar, quantile, twoList, changePoint, wiggle all 100%). Script helper functions tested (RPKM_saturation, geneBody_coverage, read_distribution, RNA_fragment_size, tin, FPKM_count, read_hexamer, junction_annotation).
 
 **Lint/Type:** CI green — ruff (0 errors, E741/E712/E501 all enabled), mypy (0 errors), ruff format clean. Type hints on all 33 scripts' `main()` and all helper functions.
 

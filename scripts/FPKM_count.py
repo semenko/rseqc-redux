@@ -29,9 +29,9 @@ def build_range(refgene: str) -> dict:
                 chrom = fields[0].upper()
                 tx_start = int(fields[1])
 
-                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = [int(x) for x in fields[11].rstrip(",\n").split(",")]
                 exon_starts = [x + tx_start for x in exon_starts]
-                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = [int(x) for x in fields[10].rstrip(",\n").split(",")]
                 exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
             except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
@@ -249,9 +249,9 @@ def main() -> None:
                 geneName = fields[3]
                 gstrand = fields[5].replace(" ", "_")
 
-                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = [int(x) for x in fields[11].rstrip(",\n").split(",")]
                 exon_starts = [x + tx_start for x in exon_starts]
-                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = [int(x) for x in fields[10].rstrip(",\n").split(",")]
                 exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 for st, end in zip(exon_starts, exon_ends):
                     mRNA_size += end - st

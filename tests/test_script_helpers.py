@@ -6,6 +6,7 @@ from bx.intervals import Intersecter, Interval
 
 from scripts.FPKM_count import build_range
 from scripts.geneBody_coverage import pearson_moment_coefficient, valid_name
+from scripts.junction_annotation import generate_bed12, generate_interact
 from scripts.read_distribution import cal_size, foundone
 from scripts.read_hexamer import file_exist
 from scripts.RNA_fragment_size import overlap_length2
@@ -282,3 +283,77 @@ def test_file_exist_true(tmp_path):
 
 def test_file_exist_false():
     assert file_exist("/nonexistent/file.txt") is False
+
+
+# --- scripts.junction_annotation: generate_bed12, generate_interact ---
+
+JUNCTION_XLS_CONTENT = (
+    "chrom\tintron_st(0-based)\tintron_end(1-based)\tread_count\tannotation\n"
+    "chr1\t1000\t2000\t50\tannotated\n"
+    "chr1\t3000\t4000\t25\tpartial_novel\n"
+    "chr1\t5000\t6000\t10\tcomplete_novel\n"
+)
+
+
+def test_generate_bed12_basic(tmp_path):
+    xls = tmp_path / "test.junction.xls"
+    xls.write_text(JUNCTION_XLS_CONTENT)
+    generate_bed12(str(xls))
+    bed = tmp_path / "test.junction.bed"
+    assert bed.exists()
+    lines = bed.read_text().strip().split("\n")
+    assert len(lines) == 3
+    # Check first line is annotated (red)
+    fields = lines[0].split("\t")
+    assert fields[0] == "chr1"
+    assert fields[8] == "205,0,0"  # annotated = red
+    assert fields[9] == "2"  # blockCount
+
+
+def test_generate_bed12_colors(tmp_path):
+    xls = tmp_path / "test.junction.xls"
+    xls.write_text(JUNCTION_XLS_CONTENT)
+    generate_bed12(str(xls))
+    bed = tmp_path / "test.junction.bed"
+    lines = bed.read_text().strip().split("\n")
+    colors = [line.split("\t")[8] for line in lines]
+    assert colors == ["205,0,0", "0,205,0", "0,0,205"]
+
+
+def test_generate_bed12_empty(tmp_path):
+    xls = tmp_path / "test.junction.xls"
+    xls.write_text("chrom\tintron_st(0-based)\tintron_end(1-based)\tread_count\tannotation\n")
+    generate_bed12(str(xls))
+    bed = tmp_path / "test.junction.bed"
+    assert bed.exists()
+    assert bed.read_text().strip() == ""
+
+
+def test_generate_interact_basic(tmp_path):
+    xls = tmp_path / "test.junction.xls"
+    xls.write_text(JUNCTION_XLS_CONTENT)
+    generate_interact(str(xls), "sample.bam")
+    interact = tmp_path / "test.junction.Interact.bed"
+    assert interact.exists()
+    lines = interact.read_text().strip().split("\n")
+    assert lines[0].startswith("track type=interact")
+    assert len(lines) == 4  # 1 header + 3 junctions
+
+
+def test_generate_interact_colors(tmp_path):
+    xls = tmp_path / "test.junction.xls"
+    xls.write_text(JUNCTION_XLS_CONTENT)
+    generate_interact(str(xls), "sample.bam")
+    interact = tmp_path / "test.junction.Interact.bed"
+    lines = interact.read_text().strip().split("\n")[1:]  # skip header
+    colors = [line.split("\t")[7] for line in lines]
+    assert colors == ["205,0,0", "0,205,0", "0,0,205"]
+
+
+def test_generate_interact_bam_in_header(tmp_path):
+    xls = tmp_path / "test.junction.xls"
+    xls.write_text(JUNCTION_XLS_CONTENT)
+    generate_interact(str(xls), "my_sample.bam")
+    interact = tmp_path / "test.junction.Interact.bed"
+    header = interact.read_text().split("\n")[0]
+    assert "my_sample.bam" in header

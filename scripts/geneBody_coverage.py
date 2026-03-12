@@ -81,9 +81,9 @@ def genebody_percentile(refbed: str, mRNA_len_cut: int = 100) -> dict:
                 strand = fields[5]
                 geneID = "_".join([str(j) for j in (chrom, tx_start, tx_end, geneName, strand)])
 
-                exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
+                exon_starts = [int(x) for x in fields[11].rstrip(",\n").split(",")]
                 exon_starts = [x + tx_start for x in exon_starts]
-                exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
+                exon_ends = [int(x) for x in fields[10].rstrip(",\n").split(",")]
                 exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 transcript_count += 1
             except (IndexError, ValueError):
