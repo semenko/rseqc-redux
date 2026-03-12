@@ -159,7 +159,8 @@ def main():
                                 range2p[group[0] - 1] = [len(group), v]
                     for i in sorted(range2p):
                         print(
-                            chr_name + "\t" + str(i) + "\t" + str(i + range2p[i][0]) + "\t" + str(range2p[i][1]), file=OUT
+                            chr_name + "\t" + str(i) + "\t" + str(i + range2p[i][0]) + "\t" + str(range2p[i][1]),
+                            file=OUT,
                         )
             else:
                 print("unknown output format", file=sys.stderr)

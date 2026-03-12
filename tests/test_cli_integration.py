@@ -79,11 +79,17 @@ def test_junction_annotation(mini_bam, tmp_path):
     outprefix = str(tmp_path / "junc_anno")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.junction_annotation",
-            "-i", str(mini_bam),
-            "-r", bed_file,
-            "-o", outprefix,
-            "-q", "0",
+            sys.executable,
+            "-m",
+            "scripts.junction_annotation",
+            "-i",
+            str(mini_bam),
+            "-r",
+            bed_file,
+            "-o",
+            outprefix,
+            "-q",
+            "0",
         ],
         capture_output=True,
         text=True,
@@ -98,11 +104,17 @@ def test_junction_saturation(mini_bam, tmp_path):
     outprefix = str(tmp_path / "junc_sat")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.junction_saturation",
-            "-i", str(mini_bam),
-            "-r", bed_file,
-            "-o", outprefix,
-            "-q", "0",
+            sys.executable,
+            "-m",
+            "scripts.junction_saturation",
+            "-i",
+            str(mini_bam),
+            "-r",
+            bed_file,
+            "-o",
+            outprefix,
+            "-q",
+            "0",
         ],
         capture_output=True,
         text=True,
@@ -117,10 +129,15 @@ def test_inner_distance(mini_bam, tmp_path):
     outprefix = str(tmp_path / "inner_dist")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.inner_distance",
-            "-i", str(mini_bam),
-            "-r", bed_file,
-            "-o", outprefix,
+            sys.executable,
+            "-m",
+            "scripts.inner_distance",
+            "-i",
+            str(mini_bam),
+            "-r",
+            bed_file,
+            "-o",
+            outprefix,
         ],
         capture_output=True,
         text=True,
@@ -138,11 +155,17 @@ def test_mismatch_profile(mini_bam, tmp_path):
     outprefix = str(tmp_path / "mismatch")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.mismatch_profile",
-            "-i", str(mini_bam),
-            "-l", "50",
-            "-o", outprefix,
-            "-q", "0",
+            sys.executable,
+            "-m",
+            "scripts.mismatch_profile",
+            "-i",
+            str(mini_bam),
+            "-l",
+            "50",
+            "-o",
+            outprefix,
+            "-q",
+            "0",
         ],
         capture_output=True,
         text=True,
@@ -158,11 +181,17 @@ def test_deletion_profile(mini_bam, tmp_path):
     outprefix = str(tmp_path / "deletion")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.deletion_profile",
-            "-i", str(mini_bam),
-            "-l", "50",
-            "-o", outprefix,
-            "-q", "0",
+            sys.executable,
+            "-m",
+            "scripts.deletion_profile",
+            "-i",
+            str(mini_bam),
+            "-l",
+            "50",
+            "-o",
+            outprefix,
+            "-q",
+            "0",
         ],
         capture_output=True,
         text=True,
@@ -176,10 +205,15 @@ def test_read_duplication(mini_bam, tmp_path):
     outprefix = str(tmp_path / "dup_test")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.read_duplication",
-            "-i", str(mini_bam),
-            "-o", outprefix,
-            "-q", "0",
+            sys.executable,
+            "-m",
+            "scripts.read_duplication",
+            "-i",
+            str(mini_bam),
+            "-o",
+            outprefix,
+            "-q",
+            "0",
         ],
         capture_output=True,
         text=True,
@@ -197,11 +231,17 @@ def test_clipping_profile(mini_bam, tmp_path):
     outprefix = str(tmp_path / "clip_test")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.clipping_profile",
-            "-i", str(mini_bam),
-            "-o", outprefix,
-            "-q", "0",
-            "-s", "SE",
+            sys.executable,
+            "-m",
+            "scripts.clipping_profile",
+            "-i",
+            str(mini_bam),
+            "-o",
+            outprefix,
+            "-q",
+            "0",
+            "-s",
+            "SE",
         ],
         capture_output=True,
         text=True,
@@ -209,11 +249,9 @@ def test_clipping_profile(mini_bam, tmp_path):
     )
     # returncode 0 = normal; returncode 1 acceptable if no clipped reads found
     if result.returncode != 0:
-        assert (
-            "No clipping" in result.stderr
-            or "clipping" in result.stderr.lower()
-            or result.returncode == 1
-        ), f"clipping_profile failed unexpectedly: {result.stderr}"
+        assert "No clipping" in result.stderr or "clipping" in result.stderr.lower() or result.returncode == 1, (
+            f"clipping_profile failed unexpectedly: {result.stderr}"
+        )
 
 
 def test_insertion_profile(mini_bam, tmp_path):
@@ -225,11 +263,17 @@ def test_insertion_profile(mini_bam, tmp_path):
     outprefix = str(tmp_path / "ins_test")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.insertion_profile",
-            "-i", str(mini_bam),
-            "-o", outprefix,
-            "-q", "0",
-            "-s", "SE",
+            sys.executable,
+            "-m",
+            "scripts.insertion_profile",
+            "-i",
+            str(mini_bam),
+            "-o",
+            outprefix,
+            "-q",
+            "0",
+            "-s",
+            "SE",
         ],
         capture_output=True,
         text=True,
@@ -237,11 +281,9 @@ def test_insertion_profile(mini_bam, tmp_path):
     )
     # returncode 0 = normal; returncode 1 acceptable if no insertions found
     if result.returncode != 0:
-        assert (
-            "No insertion" in result.stderr
-            or "insertion" in result.stderr.lower()
-            or result.returncode == 1
-        ), f"insertion_profile failed unexpectedly: {result.stderr}"
+        assert "No insertion" in result.stderr or "insertion" in result.stderr.lower() or result.returncode == 1, (
+            f"insertion_profile failed unexpectedly: {result.stderr}"
+        )
 
 
 def test_read_NVC(mini_bam, tmp_path):
@@ -249,10 +291,15 @@ def test_read_NVC(mini_bam, tmp_path):
     outprefix = str(tmp_path / "nvc_test")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.read_NVC",
-            "-i", str(mini_bam),
-            "-o", outprefix,
-            "-q", "0",
+            sys.executable,
+            "-m",
+            "scripts.read_NVC",
+            "-i",
+            str(mini_bam),
+            "-o",
+            outprefix,
+            "-q",
+            "0",
         ],
         capture_output=True,
         text=True,
@@ -271,10 +318,15 @@ def test_tin(mini_bam, tmp_path):
     bed_file = str(FIXTURES_DIR / "mini.bed")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.tin",
-            "-i", str(mini_bam),
-            "-r", bed_file,
-            "-c", "0",
+            sys.executable,
+            "-m",
+            "scripts.tin",
+            "-i",
+            str(mini_bam),
+            "-r",
+            bed_file,
+            "-c",
+            "0",
         ],
         capture_output=True,
         text=True,
@@ -290,11 +342,17 @@ def test_geneBody_coverage(mini_bam, tmp_path):
     outprefix = str(tmp_path / "genebody")
     result = subprocess.run(
         [
-            sys.executable, "-m", "scripts.geneBody_coverage",
-            "-i", str(mini_bam),
-            "-r", bed_file,
-            "-o", outprefix,
-            "-l", "100",
+            sys.executable,
+            "-m",
+            "scripts.geneBody_coverage",
+            "-i",
+            str(mini_bam),
+            "-r",
+            bed_file,
+            "-o",
+            outprefix,
+            "-l",
+            "100",
         ],
         capture_output=True,
         text=True,

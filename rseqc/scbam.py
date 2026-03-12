@@ -5,6 +5,7 @@ Analzye 10X genomics single cell BAM files.
 from __future__ import annotations
 
 import collections
+import csv
 import glob
 import logging
 import os
@@ -14,7 +15,6 @@ import sys
 from collections.abc import Generator
 from typing import Any
 
-import pandas as pd
 import pysam
 
 
@@ -24,6 +24,25 @@ def _pysam_iter(samfile: pysam.AlignmentFile) -> Generator[pysam.AlignedSegment,
         yield from samfile
     except ValueError:
         return
+
+
+def _write_edits_csv(mat: dict[int, dict[str, int]], outfile: str) -> None:
+    """Write a nucleotide editing matrix (dict of dicts) to CSV.
+
+    Rows = sorted row keys (edit types), Columns = sorted column keys (positions).
+    Missing values filled with 0.
+    """
+    all_col_keys: set[str] = set()
+    for row_dict in mat.values():
+        all_col_keys.update(row_dict.keys())
+    row_keys = sorted(mat.keys())
+    col_keys = sorted(all_col_keys)
+
+    with open(outfile, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Edits"] + col_keys)
+        for rk in row_keys:
+            writer.writerow([rk] + [mat[rk].get(ck, 0) for ck in col_keys])
 
 
 def diff_str(s1: str, s2: str) -> list[list[Any]]:
@@ -80,7 +99,16 @@ def list2str(lst: list[tuple[int, int]]) -> str:
     return cigar_str
 
 
-def barcode_edits(infile: str, outfile: str, step_size: int = 10000, limit: int = 2000000, CR_tag: str = "CR", CB_tag: str = "CB", UR_tag: str = "UR", UB_tag: str = "UB") -> None:
+def barcode_edits(
+    infile: str,
+    outfile: str,
+    step_size: int = 10000,
+    limit: int = 2000000,
+    CR_tag: str = "CR",
+    CB_tag: str = "CB",
+    UR_tag: str = "UR",
+    UB_tag: str = "UB",
+) -> None:
     """
     Analzye barcode in BAM file.
 
@@ -179,23 +207,11 @@ def barcode_edits(infile: str, outfile: str, step_size: int = 10000, limit: int 
 
     CB_mat_file = outfile + ".CB_edits_count.csv"
     logging.info('Writing the nucleotide editing matrix (count) of cell barcode to "%s"' % CB_mat_file)
-    CB_diff_mat = pd.DataFrame.from_dict(CB_corrected_bases)
-    CB_diff_mat = CB_diff_mat.fillna(0)
-    # CB_diff_mat = CB_diff_mat.T
-    CB_diff_mat.sort_index(inplace=True)
-    CB_diff_mat = CB_diff_mat.sort_index(axis=1)
-    CB_diff_mat.index.name = "Edits"
-    CB_diff_mat.to_csv(CB_mat_file, index=True, index_label="Index")
+    _write_edits_csv(CB_corrected_bases, CB_mat_file)
 
     UMI_mat_file = outfile + ".UMI_edits_count.csv"
     logging.info('Writing the nucleotide editing matrix of molecular barcode (UMI) to "%s"' % UMI_mat_file)
-    UMI_diff_mat = pd.DataFrame.from_dict(UMI_corrected_bases)
-    UMI_diff_mat = UMI_diff_mat.fillna(0)
-    # UMI_diff_mat = UMI_diff_mat.T
-    UMI_diff_mat.sort_index(inplace=True)
-    UMI_diff_mat = UMI_diff_mat.sort_index(axis=1)
-    UMI_diff_mat.index.name = "Edits"
-    UMI_diff_mat.to_csv(UMI_mat_file, index=True, index_label="Index")
+    _write_edits_csv(UMI_corrected_bases, UMI_mat_file)
 
 
 def mapping_stat(

@@ -125,7 +125,6 @@ def make_heatmap(
                     file=ROUT,
                 )
 
-
     logging.info('Running R script file "%s"' % (outfile + ".r"))
     try:
         subprocess.run(["Rscript", outfile + ".r"], check=False)

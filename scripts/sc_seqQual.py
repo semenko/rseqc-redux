@@ -103,23 +103,24 @@ def main():
 
     file_iter = fastq.fastq_iter(args.in_file, mode="qual")
     qual_mat = fastq.qual2countMat(file_iter, limit=args.max_seq)
-    qual_mat = qual_mat.T
-    qual_mat.sort_index(inplace=True, ascending=False)
 
-    logging.debug("Sequence quality score matrix (raw reads count)")
-    if args.debug:
-        print(qual_mat)
-    qual_mat_per = qual_mat / qual_mat.sum()
-
-    # for c in qual_mat_per.columns:
-    # qual_mat_per[c] = qual_mat_per[c].apply(lambda x: ("%.2f" % x).lstrip('0'))
-
-    logging.debug("Sequence quality score matrix (percent of reads)")
-    if args.debug:
-        print(qual_mat_per)
-
-    qual_mat.to_csv(args.out_file + ".qual_count.csv", index=True, index_label="Index")
-    qual_mat_per.to_csv(args.out_file + ".qual_percent.csv", index=True, index_label="Index")
+    # Write count CSV (rows=quality_scores descending, cols=positions)
+    fastq.write_matrix_csv(
+        qual_mat,
+        args.out_file + ".qual_count.csv",
+        index_label="Index",
+        transpose=True,
+        sort_index_descending=True,
+    )
+    # Write percent CSV (same layout, normalized per column)
+    fastq.write_matrix_csv(
+        qual_mat,
+        args.out_file + ".qual_percent.csv",
+        index_label="Index",
+        transpose=True,
+        sort_index_descending=True,
+        normalize=True,
+    )
 
     heatmap.make_heatmap(
         infile=args.out_file + ".qual_percent.csv",

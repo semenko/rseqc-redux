@@ -161,7 +161,6 @@ def main():
 
     obj = SAM.ParseBAM(args.input_file)
     with open(args.output_prefix + ".FPKM.xls", "w") as OUT:
-
         # ++++++++++++++++++++++++++++++++++++determine strand rule
         strandRule = {}
         if args.strand_rule is None:  # Not strand-specific
@@ -377,7 +376,17 @@ def main():
                         "\t".join(
                             [
                                 str(i)
-                                for i in (chrom, tx_start, tx_end, geneName, mRNA_size, gstrand, frag_count_fr, FPM_fr, FPKM_fr)
+                                for i in (
+                                    chrom,
+                                    tx_start,
+                                    tx_end,
+                                    geneName,
+                                    mRNA_size,
+                                    gstrand,
+                                    frag_count_fr,
+                                    FPM_fr,
+                                    FPKM_fr,
+                                )
                             ]
                         ),
                         file=OUT,

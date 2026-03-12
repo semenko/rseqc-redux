@@ -174,7 +174,8 @@ class Fasta:
                 while loopSwitch != -1:
                     loopSwitch = self.seqs[seqID].find(Pat, start)
                     print(
-                        seqID + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t+", file=fout
+                        seqID + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t+",
+                        file=fout,
                     )
                     start = loopSwitch + 1
 
@@ -188,7 +189,14 @@ class Fasta:
                             loopSwitch = v.find(Pat_rev, start)
                             if loopSwitch != -1:
                                 print(
-                                    k + "\t" + str(loopSwitch) + "\t" + str(loopSwitch + length) + "\t" + Pat + "\t0\t-",
+                                    k
+                                    + "\t"
+                                    + str(loopSwitch)
+                                    + "\t"
+                                    + str(loopSwitch + length)
+                                    + "\t"
+                                    + Pat
+                                    + "\t0\t-",
                                     file=fout,
                                 )
                                 start = loopSwitch + 1
@@ -204,7 +212,14 @@ class Fasta:
                         )
                         start = loopSwitch + 1
 
-    def fetchSeq(self, chr: str | None = None, st: int | None = None, end: int | None = None, infile: str | None = None, outfile: str | None = None) -> str | None:
+    def fetchSeq(
+        self,
+        chr: str | None = None,
+        st: int | None = None,
+        end: int | None = None,
+        infile: str | None = None,
+        outfile: str | None = None,
+    ) -> str | None:
         """Fetching sequence based on chrName (should be exactly the same as fasta file), St, End.
         NOTE: the coordinate is 0-based,half-open. use infile to specify multiple coordinates. infile
         should be bed3, bed6 or bed12"""
@@ -235,7 +250,14 @@ class Fasta:
                 return self.seqs[chr][st:end].upper()  # type: ignore[index]
             except KeyError:
                 print(
-                    "cannot fetch sequence from " + str(self.filename) + " for " + str(chr) + ":" + str(st) + "-" + str(end),
+                    "cannot fetch sequence from "
+                    + str(self.filename)
+                    + " for "
+                    + str(chr)
+                    + ":"
+                    + str(st)
+                    + "-"
+                    + str(end),
                     file=sys.stderr,
                 )
                 return ""

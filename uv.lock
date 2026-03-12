@@ -1924,8 +1924,6 @@ dependencies = [
     { name = "matplotlib" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "pandas", version = "3.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pybigwig" },
     { name = "pysam" },
 ]
@@ -1949,7 +1947,6 @@ requires-dist = [
     { name = "logomaker" },
     { name = "matplotlib" },
     { name = "numpy" },
-    { name = "pandas" },
     { name = "pybigwig" },
     { name = "pysam" },
 ]

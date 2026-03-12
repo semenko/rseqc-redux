@@ -152,7 +152,7 @@ default=%(default)s (no highlight)",
     else:
         file_iter = fastq.fasta_iter(args.in_file)
     mat = fastq.seq2countMat(file_iter, step_size=10000, exclude_N=args.exclude_N, limit=args.max_seq)
-    mat.to_csv(args.out_file + ".count_matrix.csv", index=True, index_label="Index")
+    fastq.write_matrix_csv(mat, args.out_file + ".count_matrix.csv", index_label="Index")
     fastq.make_logo(
         mat,
         outfile=args.out_file,

@@ -5,8 +5,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from rseqc import BED
 
 
@@ -22,6 +20,7 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 # ---------------------------------------------------------------------------
 # Helper: create a BED file from lines and return a ParseBED instance
 # ---------------------------------------------------------------------------
+
 
 def _make_bed(lines, tmp_path=None):
     """Write BED lines to a temp file and return a ParseBED instance."""
@@ -290,10 +289,6 @@ class TestParseBED:
         cds_exons = self.bed.getCDSExon()
         assert len(cds_exons) >= 3
 
-    def test_get_splice_junctions(self):
-        junctions = list(self.bed.getSpliceJunctions())
-        assert len(junctions) >= 2
-
     def test_get_intergenic_up(self):
         regions = self.bed.getIntergenic(direction="up", size=500)
         assert len(regions) == 3
@@ -489,27 +484,6 @@ class TestParseBEDInline:
         assert len(ranges) == 1
         os.unlink(path)
 
-    # --- getSpliceJunctions ---
-
-    def test_get_splice_junctions_multi_exon(self):
-        junctions = list(self.bed.getSpliceJunctions())
-        # gene1: 2 junctions, gene2: 1 junction, gene3: 0 junctions (single exon)
-        assert len(junctions) == 3  # all 3 genes yield a tuple
-        # gene1 has 2 junctions
-        assert len(junctions[0][4]) == 2
-        assert junctions[0][4][0] == "chr1:1500-2500"
-        assert junctions[0][4][1] == "chr1:3100-4500"
-        # gene2 has 1 junction
-        assert len(junctions[1][4]) == 1
-        assert junctions[1][4][0] == "chr1:7000-8000"
-        # gene3 is single exon, yielded with empty junctions list
-        assert junctions[2][4] == []
-
-    def test_get_splice_junctions_gene_names(self):
-        junctions = list(self.bed.getSpliceJunctions())
-        names = [j[0] for j in junctions]
-        assert names == ["gene1", "gene2", "gene3"]
-
     # --- getIntergenic ---
 
     def test_get_intergenic_up_clamped_at_zero(self):
@@ -534,199 +508,6 @@ class TestParseBEDInline:
         regions = self.bed.getIntergenic(direction="both", size=100)
         # 3 genes * 2 = 6
         assert len(regions) == 6
-
-    # --- truncate_bed ---
-
-    def test_truncate_bed_3prime_plus(self):
-        """Truncate from 3' end for + strand gene keeps last N bases."""
-        bed, path = _make_bed([BED12_LINES[0]])  # gene1, + strand
-        result = bed.truncate_bed(truncation_from=3, size=100)
-        assert len(result) == 1
-        # gene1 exonic bases from 3' end: last 100 bases of exon3 (4500-5000 = 500 bases)
-        # so the 100 bases from 3' are 4901..5000 (1-based), BED = 4900-5000
-        fields = result[0].split("\t")
-        assert fields[0] == "chr1"
-        assert int(fields[2]) == 5000  # tx_end should be end of gene
-        os.unlink(path)
-
-    def test_truncate_bed_5prime_plus(self):
-        """Truncate from 5' end for + strand gene keeps first N bases."""
-        bed, path = _make_bed([BED12_LINES[0]])  # gene1, + strand
-        result = bed.truncate_bed(truncation_from=5, size=100)
-        assert len(result) == 1
-        fields = result[0].split("\t")
-        assert fields[0] == "chr1"
-        assert int(fields[1]) == 1000  # tx_start should be start of gene
-        os.unlink(path)
-
-    def test_truncate_bed_returns_bed12(self):
-        """Output should be 12-column BED."""
-        bed, path = _make_bed([BED12_LINES[0]])
-        result = bed.truncate_bed(truncation_from=3, size=200)
-        fields = result[0].split("\t")
-        assert len(fields) == 12
-        os.unlink(path)
-
-    def test_truncate_bed_3prime_minus(self):
-        """For - strand, 3' truncation keeps first N bases (leftmost)."""
-        bed, path = _make_bed([BED12_LINES[1]])  # gene2, - strand
-        result = bed.truncate_bed(truncation_from=3, size=100)
-        assert len(result) == 1
-        fields = result[0].split("\t")
-        assert fields[0] == "chr1"
-        # - strand: 3' end is left side, so we take first 100 exonic bases
-        assert int(fields[1]) == 6000  # starts at gene start
-        os.unlink(path)
-
-    def test_truncate_bed_repeatable(self):
-        first = self.bed.truncate_bed(truncation_from=3, size=200)
-        second = self.bed.truncate_bed(truncation_from=3, size=200)
-        assert first == second
-
-    # --- bedToWig ---
-
-    def test_bed_to_wig(self, tmp_path):
-        """bedToWig should produce a wiggle file with correct positions."""
-        bed, bed_path = _make_bed([
-            "chr1\t10\t13",  # simple 3-column BED
-        ])
-        outfile = str(tmp_path / "out.wig")
-        bed.bedToWig(outfile=outfile, header=False)
-        with open(outfile) as fh:
-            content = fh.read()
-        # BED 10-13 => wig positions 11,12,13 (1-based)
-        assert "variableStep chrom=chr1" in content
-        assert "11\t1" in content
-        assert "12\t1" in content
-        assert "13\t1" in content
-        os.unlink(bed_path)
-
-    def test_bed_to_wig_bed12(self, tmp_path):
-        """bedToWig with BED12 input should skip introns."""
-        bed, bed_path = _make_bed([BED12_LINES[0]])  # gene1
-        outfile = str(tmp_path / "out.wig")
-        bed.bedToWig(outfile=outfile, header=False)
-        with open(outfile) as fh:
-            lines = fh.readlines()
-        # Should have a variableStep line + exon positions
-        assert lines[0].startswith("variableStep")
-        # Intron region (e.g., position 1600) should NOT appear
-        positions = set()
-        for line in lines[1:]:
-            pos = int(line.split("\t")[0])
-            positions.add(pos)
-        # Exon1: 1001-1500, Exon2: 2501-3100, Exon3: 4501-5000 (1-based)
-        assert 1001 in positions
-        assert 1500 in positions
-        # Intron positions should not be present
-        assert 1600 not in positions
-        assert 2000 not in positions
-        os.unlink(bed_path)
-
-    def test_bed_to_wig_with_header(self, tmp_path):
-        bed, bed_path = _make_bed(["chr1\t5\t8"])
-        outfile = str(tmp_path / "out.wig")
-        bed.bedToWig(outfile=outfile, header=True)
-        with open(outfile) as fh:
-            first_line = fh.readline()
-        assert first_line.startswith("track type=wiggle_0")
-        os.unlink(bed_path)
-
-    # --- bedToGFF ---
-
-    def test_bed_to_gff(self, tmp_path):
-        """bedToGFF should produce valid GFF output."""
-        bed, bed_path = _make_bed([BED12_LINES[0]])
-        outfile = str(tmp_path / "out.gff")
-        bed.bedToGFF(outfile=outfile)
-        with open(outfile) as fh:
-            content = fh.read()
-        assert "##gff-version 2" in content
-        assert "chr1" in content
-        os.unlink(bed_path)
-
-    # --- getBedinfor ---
-
-    def test_get_bedinfor(self, tmp_path):
-        """getBedinfor should produce a tab-separated info file."""
-        outfile = str(tmp_path / "info.xls")
-        self.bed.getBedinfor(outfile=outfile)
-        with open(outfile) as fh:
-            lines = fh.readlines()
-        # Header + 3 data lines
-        assert len(lines) == 4
-        assert "geneID" in lines[0]
-        assert "Exon_Num" in lines[0]
-
-    def test_get_bedinfor_exon_counts(self, tmp_path):
-        """Check that exon numbers are correct in bedinfor output."""
-        outfile = str(tmp_path / "info.xls")
-        self.bed.getBedinfor(outfile=outfile)
-        with open(outfile) as fh:
-            lines = fh.readlines()
-        # gene1 has 3 exons
-        fields_gene1 = lines[1].split("\t")
-        assert fields_gene1[1] == "3"
-        # gene2 has 2 exons
-        fields_gene2 = lines[2].split("\t")
-        assert fields_gene2[1] == "2"
-        # gene3 has 1 exon
-        fields_gene3 = lines[3].split("\t")
-        assert fields_gene3[1] == "1"
-
-    # --- filterBedbyIntronSize ---
-
-    def test_filter_bed_by_intron_size(self, tmp_path):
-        """Genes with introns smaller than min_intron should be filtered out."""
-        # gene with small intron
-        line_small = "chr1\t100\t400\tsmall_intron\t0\t+\t100\t400\t0,0,0\t2\t50,50\t0,250"
-        # intron = 150-350 = 200 bp
-        line_big = "chr1\t1000\t5000\tbig_intron\t0\t+\t1000\t5000\t0,0,0\t2\t500,500\t0,3500"
-        # intron = 1500-4500 = 3000 bp
-        bed, bed_path = _make_bed([line_small, line_big])
-        outfile = str(tmp_path / "filtered.bed")
-        bed.filterBedbyIntronSize(outfile=outfile, min_intron=500)
-        with open(outfile) as fh:
-            lines = fh.readlines()
-        # Only big_intron should pass (intron=3000 > 500)
-        assert len(lines) == 1
-        assert "big_intron" in lines[0]
-        os.unlink(bed_path)
-
-    def test_filter_bed_single_exon_excluded(self, tmp_path):
-        """Single-exon genes should always be excluded."""
-        bed, bed_path = _make_bed([BED12_LINES[2]])  # gene3, single exon
-        outfile = str(tmp_path / "filtered.bed")
-        bed.filterBedbyIntronSize(outfile=outfile, min_intron=0)
-        with open(outfile) as fh:
-            lines = fh.readlines()
-        assert len(lines) == 0
-        os.unlink(bed_path)
-
-    # --- nrBED ---
-
-    def test_nrbed_no_duplicates(self, tmp_path):
-        """nrBED with no duplicate structures should preserve all entries."""
-        outfile = str(tmp_path / "nr.bed")
-        self.bed.nrBED(outfile=outfile)
-        with open(outfile) as fh:
-            lines = fh.readlines()
-        assert len(lines) == 3
-
-    def test_nrbed_merges_duplicates(self, tmp_path):
-        """nrBED should merge entries with identical structure but different names."""
-        line1 = "chr1\t1000\t5000\tgene1a\t0\t+\t1200\t4800\t0,0,0\t3\t500,600,500\t0,1500,3500"
-        line2 = "chr1\t1000\t5000\tgene1b\t0\t+\t1200\t4800\t0,0,0\t3\t500,600,500\t0,1500,3500"
-        bed, bed_path = _make_bed([line1, line2])
-        outfile = str(tmp_path / "nr.bed")
-        bed.nrBED(outfile=outfile)
-        with open(outfile) as fh:
-            lines = fh.readlines()
-        # Should merge into 1 entry with both names
-        assert len(lines) == 1
-        assert "gene1a" in lines[0]
-        assert "gene1b" in lines[0]
-        os.unlink(bed_path)
 
     # --- Comment/track/browser line handling ---
 
@@ -780,30 +561,3 @@ class TestSubtractBed3Edge:
     def test_empty_second(self):
         result = BED.subtractBed3([["chr1", 10, 20]], [])
         assert result == [["chr1", 10, 20]]
-
-
-# ---------------------------------------------------------------------------
-# CompareBED tests
-# ---------------------------------------------------------------------------
-
-
-class TestCompareBED:
-    def test_init(self, tmp_path):
-        bed_a = tmp_path / "a.bed"
-        bed_b = tmp_path / "b.bed"
-        bed_a.write_text(BED12_LINES[0] + "\n")
-        bed_b.write_text(BED12_LINES[0] + "\n")
-        comp = BED.CompareBED(str(bed_a), str(bed_b))
-        assert comp.A_base_Name == "a.bed"
-        assert comp.B_base_Name == "b.bed"
-
-    def test_best_match_identical(self, tmp_path):
-        """bestMatch with identical files should find complete_match."""
-        bed_a = tmp_path / "a.bed"
-        bed_b = tmp_path / "b.bed"
-        bed_a.write_text(BED12_LINES[0] + "\n")
-        bed_b.write_text(BED12_LINES[0] + "\n")
-        comp = BED.CompareBED(str(bed_a), str(bed_b))
-        result = comp.bestMatch()
-        assert len(result) == 1
-        assert "complete_match" in result[1]

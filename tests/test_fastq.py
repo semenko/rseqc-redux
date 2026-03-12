@@ -53,6 +53,6 @@ def test_seq2countmat_basic(tmp_path):
     fq.write_text("@r1\nACGT\n+\nIIII\n@r2\nACGT\n+\nIIII\n")
     s_obj = fastq.fastq_iter(str(fq), mode="seq")
     mat = fastq.seq2countMat(s_obj, limit=None)
-    assert mat.shape[0] == 4  # 4 positions
-    assert mat.loc[0, "A"] == 2
-    assert mat.loc[1, "C"] == 2
+    assert len(mat) == 4  # 4 positions
+    assert mat[0]["A"] == 2
+    assert mat[1]["C"] == 2

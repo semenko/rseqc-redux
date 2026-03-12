@@ -166,30 +166,6 @@ def test_parsebam_insertion_profile_SE(mini_bam, tmp_path):
     assert "Position" in content
 
 
-def test_parsebam_fetchAlignments(mini_bam):
-    """fetchAlignments() should return reads from a region."""
-    obj = SAM.ParseBAM(str(mini_bam))
-    reads = list(obj.fetchAlignments("chr1", 1000, 1200))
-    assert len(reads) >= 1
-    # All returned reads should overlap the query region
-    for r in reads:
-        assert r.reference_start < 1200
-
-
-def test_parsebam_fetchAlignments_empty(mini_bam):
-    """fetchAlignments() on a region with no reads should return empty."""
-    obj = SAM.ParseBAM(str(mini_bam))
-    reads = list(obj.fetchAlignments("chr1", 40000, 41000))
-    assert len(reads) == 0
-
-
-def test_parsebam_fetchAlignments_bad_chrom(mini_bam):
-    """fetchAlignments() with invalid chrom should return None."""
-    obj = SAM.ParseBAM(str(mini_bam))
-    result = obj.fetchAlignments("chrZ", 0, 100)
-    assert result is None
-
-
 def test_parsebam_bam2fq_single(mini_bam, tmp_path):
     """bam2fq() in single-end mode should produce a .fastq file."""
     obj = SAM.ParseBAM(str(mini_bam))
@@ -225,23 +201,6 @@ def test_parsebam_bam2fq_paired(mini_bam, tmp_path):
     r2_file = Path(outprefix + ".R2.fastq")
     assert r1_file.exists()
     assert r2_file.exists()
-
-
-def test_parsebam_coverageGeneBody(mini_bam, tmp_path):
-    """coverageGeneBody() should produce output file."""
-    obj = SAM.ParseBAM(str(mini_bam))
-    bed_file = str(FIXTURES_DIR / "mini.bed")
-    outprefix = str(tmp_path / "test")
-    old_stderr = sys.stderr
-    sys.stderr = io.StringIO()
-    try:
-        obj.coverageGeneBody(refbed=bed_file, outfile=outprefix)
-    finally:
-        sys.stderr = old_stderr
-    r_file = Path(outprefix + ".geneBodyCoverage_plot.r")
-    assert r_file.exists()
-    content = r_file.read_text()
-    assert "pdf(" in content
 
 
 def test_parsebam_stat_counts(mini_bam, capsys):

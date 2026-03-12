@@ -33,7 +33,6 @@ dependencies = [
     "logomaker",
     "matplotlib",
     "numpy",
-    "pandas",
     "pyBigWig",
 ]
 

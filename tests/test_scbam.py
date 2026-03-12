@@ -257,32 +257,80 @@ def sc_bam(tmp_path_factory):
         return a
 
     reads = [
-        _sc_read("read_cb_same", 100, tags=[
-            ("CR", "ACGT"), ("CB", "ACGT"),
-            ("UR", "AAAA"), ("UB", "AAAA"),
-            ("xf", 1), ("GX", "GENE1"), ("GN", "Gene1"), ("RE", "E"),
-        ]),
-        _sc_read("read_cb_diff", 200, tags=[
-            ("CR", "ACGT"), ("CB", "ACTT"),
-            ("UR", "AAAA"), ("UB", "AAAT"),
-            ("xf", 1), ("GX", "GENE2"), ("GN", "Gene2"), ("RE", "N"),
-        ]),
-        _sc_read("read_no_cb", 300, tags=[
-            ("xf", 1), ("RE", "I"),
-        ]),
-        _sc_read("read_no_xf", 400, tags=[
-            ("CB", "TTTT"), ("UB", "CCCC"),
-        ]),
-        _sc_read("read_dup", 500, flag=0x400, tags=[
-            ("CR", "GGGG"), ("CB", "GGGG"),
-            ("UR", "CCCC"), ("UB", "CCCC"),
-            ("xf", 1), ("GX", "GENE1"), ("GN", "Gene1"), ("RE", "E"), ("TX", "tx1"),
-        ]),
-        _sc_read("read_antisense", 600, tags=[
-            ("CR", "AAAA"), ("CB", "AAAA"),
-            ("UR", "TTTT"), ("UB", "TTTT"),
-            ("xf", 1), ("GX", "GENE3"), ("GN", "Gene3"), ("AN", "anti1"),
-        ]),
+        _sc_read(
+            "read_cb_same",
+            100,
+            tags=[
+                ("CR", "ACGT"),
+                ("CB", "ACGT"),
+                ("UR", "AAAA"),
+                ("UB", "AAAA"),
+                ("xf", 1),
+                ("GX", "GENE1"),
+                ("GN", "Gene1"),
+                ("RE", "E"),
+            ],
+        ),
+        _sc_read(
+            "read_cb_diff",
+            200,
+            tags=[
+                ("CR", "ACGT"),
+                ("CB", "ACTT"),
+                ("UR", "AAAA"),
+                ("UB", "AAAT"),
+                ("xf", 1),
+                ("GX", "GENE2"),
+                ("GN", "Gene2"),
+                ("RE", "N"),
+            ],
+        ),
+        _sc_read(
+            "read_no_cb",
+            300,
+            tags=[
+                ("xf", 1),
+                ("RE", "I"),
+            ],
+        ),
+        _sc_read(
+            "read_no_xf",
+            400,
+            tags=[
+                ("CB", "TTTT"),
+                ("UB", "CCCC"),
+            ],
+        ),
+        _sc_read(
+            "read_dup",
+            500,
+            flag=0x400,
+            tags=[
+                ("CR", "GGGG"),
+                ("CB", "GGGG"),
+                ("UR", "CCCC"),
+                ("UB", "CCCC"),
+                ("xf", 1),
+                ("GX", "GENE1"),
+                ("GN", "Gene1"),
+                ("RE", "E"),
+                ("TX", "tx1"),
+            ],
+        ),
+        _sc_read(
+            "read_antisense",
+            600,
+            tags=[
+                ("CR", "AAAA"),
+                ("CB", "AAAA"),
+                ("UR", "TTTT"),
+                ("UB", "TTTT"),
+                ("xf", 1),
+                ("GX", "GENE3"),
+                ("GN", "Gene3"),
+                ("AN", "anti1"),
+            ],
+        ),
     ]
 
     with pysam.AlignmentFile(str(unsorted), "wb", header=header) as outf:
@@ -383,10 +431,16 @@ class TestCBCUMIcount:
         """CBC_UMIcount should produce a Read_UMI_freq.tsv file."""
         outprefix = str(tmp_path / "cbc_out")
         scbam.CBC_UMIcount(
-            str(sc_bam), outprefix,
+            str(sc_bam),
+            outprefix,
             step_size=100,
-            CB_tag="CB", UMI_tag="UB", gene_tag="GN",
-            CB_num=100, read_num=1, UMI_num=1, gene_num=1,
+            CB_tag="CB",
+            UMI_tag="UB",
+            gene_tag="GN",
+            CB_num=100,
+            read_num=1,
+            UMI_num=1,
+            gene_num=1,
         )
         outfile = outprefix + ".Read_UMI_freq.tsv"
         assert os.path.exists(outfile)
@@ -402,10 +456,16 @@ class TestCBCUMIcount:
         """With read_num=1000, no barcodes should pass the filter."""
         outprefix = str(tmp_path / "cbc_filt")
         scbam.CBC_UMIcount(
-            str(sc_bam), outprefix,
+            str(sc_bam),
+            outprefix,
             step_size=100,
-            CB_tag="CB", UMI_tag="UB", gene_tag="GN",
-            CB_num=100, read_num=1000, UMI_num=1, gene_num=1,
+            CB_tag="CB",
+            UMI_tag="UB",
+            gene_tag="GN",
+            CB_num=100,
+            read_num=1000,
+            UMI_num=1,
+            gene_num=1,
         )
         outfile = outprefix + ".Read_UMI_freq.tsv"
         with open(outfile) as fh:
@@ -417,10 +477,16 @@ class TestCBCUMIcount:
         """With UMI_num=1000, no barcodes should pass the UMI filter."""
         outprefix = str(tmp_path / "cbc_umi_filt")
         scbam.CBC_UMIcount(
-            str(sc_bam), outprefix,
+            str(sc_bam),
+            outprefix,
             step_size=100,
-            CB_tag="CB", UMI_tag="UB", gene_tag="GN",
-            CB_num=100, read_num=1, UMI_num=1000, gene_num=1,
+            CB_tag="CB",
+            UMI_tag="UB",
+            gene_tag="GN",
+            CB_num=100,
+            read_num=1,
+            UMI_num=1000,
+            gene_num=1,
         )
         outfile = outprefix + ".Read_UMI_freq.tsv"
         with open(outfile) as fh:

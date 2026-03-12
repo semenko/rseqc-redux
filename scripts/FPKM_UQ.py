@@ -185,9 +185,9 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
                     fpkm_uq = "NA"
                     fpkm = "NA"
                 print(
-                    gene + "\t" + gene_infor[gene] + "\t" + "\t".join([str(i) for i in (count, fpkm, fpkm_uq)]), file=FPKM_OUT
+                    gene + "\t" + gene_infor[gene] + "\t" + "\t".join([str(i) for i in (count, fpkm, fpkm_uq)]),
+                    file=FPKM_OUT,
                 )
-
 
 
 def main():

@@ -7,13 +7,14 @@ Created on Sun Aug  2 15:43:45 2020
 from __future__ import annotations
 
 import collections
+import csv
 import logging
 import sys
 from collections.abc import Generator, Iterable
+from typing import Any
 
 import logomaker
 import matplotlib.pyplot as plt
-import pandas as pd
 
 from rseqc import ireader
 
@@ -78,9 +79,9 @@ def fastq_iter(infile: str, mode: str = "seq") -> Generator[str, None, None]:
             count = 0
 
 
-def qual2countMat(q_obj: Iterable[str], limit: int | None, step_size: int = 100000) -> pd.DataFrame:
+def qual2countMat(q_obj: Iterable[str], limit: int | None, step_size: int = 100000) -> dict[int, dict[int, int]]:
     """
-    Generate count data frame.
+    Generate quality-score count matrix as a nested dict.
 
     Parameters
     ----------
@@ -93,7 +94,7 @@ def qual2countMat(q_obj: Iterable[str], limit: int | None, step_size: int = 1000
 
     Return
     ------
-    Data frame
+    dict mapping position -> {quality_score: count}
     """
     dat: dict[int, dict[int, int]] = collections.defaultdict(dict)
     count = 0
@@ -112,19 +113,14 @@ def qual2countMat(q_obj: Iterable[str], limit: int | None, step_size: int = 1000
                 break
 
     logging.info("%d quality sequences finished" % count)
-
-    logging.info("Make data frame from dict of dict ...")
-    qual_mat = pd.DataFrame.from_dict(dat)
-
-    logging.info("Filling NA as zero ...")
-    qual_mat = qual_mat.fillna(0)
-    qual_mat.index.name = "pos"
-    return qual_mat.T
+    return dict(dat)
 
 
-def seq2countMat(s_obj: Iterable[str], limit: int | None, step_size: int = 100000, exclude_N: bool = False) -> pd.DataFrame:
+def seq2countMat(
+    s_obj: Iterable[str], limit: int | None, step_size: int = 100000, exclude_N: bool = False
+) -> dict[int, dict[str, int]]:
     """
-    Generate count data frame.
+    Generate nucleotide count matrix as a nested dict.
 
     Parameters
     ----------
@@ -136,9 +132,10 @@ def seq2countMat(s_obj: Iterable[str], limit: int | None, step_size: int = 10000
             Output progress report when step_size sequences have been processed.
     exclude_N : bool
             If True, sequences containing "N" will be skipped.
+
     Return
     ------
-    Data frame
+    dict mapping position -> {base: count}
     """
     mat: dict[int, dict[str, int]] = collections.defaultdict(dict)
     count = 0
@@ -157,18 +154,75 @@ def seq2countMat(s_obj: Iterable[str], limit: int | None, step_size: int = 10000
             if count >= limit:
                 break
     logging.info("%d sequences finished" % count)
+    return dict(mat)
 
-    logging.info("Make data frame from dict of dict ...")
-    count_mat = pd.DataFrame.from_dict(mat)
 
-    logging.info("Filling NA as zero ...")
-    count_mat = count_mat.fillna(0)
-    count_mat.index.name = "pos"
-    return count_mat.T
+def write_matrix_csv(
+    mat: dict[int, dict[Any, int]],
+    outfile: str,
+    index_label: str = "Index",
+    transpose: bool = False,
+    sort_index_descending: bool = False,
+    normalize: bool = False,
+) -> None:
+    """Write a nested dict matrix to CSV.
+
+    Parameters
+    ----------
+    mat : dict
+        Nested dict {outer_key: {inner_key: value}}.
+    outfile : str
+        Output CSV file path.
+    index_label : str
+        Label for the index column.
+    transpose : bool
+        If True, inner keys become rows and outer keys become columns.
+    sort_index_descending : bool
+        If True, sort row keys in descending order.
+    normalize : bool
+        If True, normalize each column to sum to 1.
+    """
+    if transpose:
+        # Rows = inner keys, Columns = outer keys (sorted)
+        col_keys = sorted(mat.keys())
+        row_keys_set: set[Any] = set()
+        for d in mat.values():
+            row_keys_set.update(d.keys())
+        row_keys = sorted(row_keys_set, reverse=sort_index_descending)
+
+        # Build column sums for normalization
+        col_sums: dict[int, float] = {}
+        if normalize:
+            for ck in col_keys:
+                col_sums[ck] = sum(mat[ck].get(rk, 0) for rk in row_keys)
+
+        with open(outfile, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([index_label] + [str(c) for c in col_keys])
+            for rk in row_keys:
+                if normalize:
+                    row = [mat[ck].get(rk, 0) / col_sums[ck] if col_sums[ck] else 0 for ck in col_keys]
+                else:
+                    row = [mat[ck].get(rk, 0) for ck in col_keys]
+                writer.writerow([rk] + row)
+    else:
+        # Rows = outer keys, Columns = inner keys (sorted)
+        row_keys_2 = sorted(mat.keys(), reverse=sort_index_descending)
+        col_keys_set: set[Any] = set()
+        for d in mat.values():
+            col_keys_set.update(d.keys())
+        col_keys_2 = sorted(col_keys_set)
+
+        with open(outfile, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([index_label] + [str(c) for c in col_keys_2])
+            for rk in row_keys_2:
+                row = [mat[rk].get(ck, 0) for ck in col_keys_2]
+                writer.writerow([rk] + row)
 
 
 def make_logo(
-    mat: pd.DataFrame,
+    mat: dict[int, dict[str, int]],
     outfile: str,
     exclude_N: bool = False,
     font_name: str = "sans",
@@ -185,8 +239,8 @@ def make_logo(
 
     Parameters
     ----------
-    mat : data frame
-            Nucleotide frequencies table.
+    mat : dict
+            Nested dict {position: {base: count}}.
     exclude_N : bool
             If True, sequences containing "N" will be skipped.
     font_name : str
@@ -212,6 +266,12 @@ def make_logo(
     highlight_end : int
             Highlight logo to this position. Must be within [0, len(logo)-1].
     """
+    import pandas as pd
+
+    # Convert dict to DataFrame for logomaker (rows=positions, columns=bases)
+    df = pd.DataFrame.from_dict(mat, orient="index").fillna(0)
+    df.sort_index(inplace=True)
+
     logging.info("Making logo ...")
     logging.debug("Font name is: %s" % font_name)
     logging.debug("Stack order is: %s" % stack_order)
@@ -230,7 +290,7 @@ def make_logo(
             sys.exit(1)
     logging.info('Mean-centered logo saved to "%s".' % (outfile + ".logo_mean_centered." + oformat))
     logo = logomaker.Logo(
-        mat,
+        df,
         center_values=True,
         color_scheme=color,
         font_name=font_name,
@@ -246,7 +306,7 @@ def make_logo(
 
     logging.info('Logo saved to "%s".' % (outfile + ".logo." + oformat))
     logo = logomaker.Logo(
-        mat,
+        df,
         center_values=False,
         color_scheme=color,
         font_name=font_name,

@@ -174,7 +174,8 @@ def Rcode_write(dataset, file_prefix, format="pdf", colNum=100):
         # do not generate heatmap if only 1 sample
         if len(names) >= 3:
             print(
-                "data_matrix" + " <- matrix(c(" + ",".join(names) + "), byrow=T, " + "ncol=" + str(colNum) + ")", file=ROUT
+                "data_matrix" + " <- matrix(c(" + ",".join(names) + "), byrow=T, " + "ncol=" + str(colNum) + ")",
+                file=ROUT,
             )
             print("rowLabel <- c(" + ",".join(['"' + i + '"' for i in names]) + ")", file=ROUT)
             print("\n", file=ROUT)
@@ -202,7 +203,8 @@ def Rcode_write(dataset, file_prefix, format="pdf", colNum=100):
         print('%s("%s.%s")' % (format.lower(), file_prefix + ".curves", format.lower()), file=ROUT)
         print("x=1:%d" % (colNum), file=ROUT)
         print(
-            'icolor = colorRampPalette(c("#7fc97f","#beaed4","#fdc086","#ffff99","#386cb0","#f0027f"))(%d)' % (len(names)),
+            'icolor = colorRampPalette(c("#7fc97f","#beaed4","#fdc086","#ffff99","#386cb0","#f0027f"))(%d)'
+            % (len(names)),
             file=ROUT,
         )
 
