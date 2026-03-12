@@ -59,23 +59,6 @@ def test_all_possible_kmer_3():
     assert len(kmers) == 125  # 5^3
 
 
-# --- kmer_ratio ---
-
-
-def test_kmer_ratio_basic():
-    seq = "ATGATGATGATGATG"
-    # build coding/noncoding frequency tables
-    coding = {"ATG": 10, "TGA": 5, "GAT": 8}
-    noncoding = {"ATG": 5, "TGA": 10, "GAT": 8}
-    result = FrameKmer.kmer_ratio(seq, word_size=3, step_size=3, coding=coding, noncoding=noncoding)
-    assert isinstance(result, float)
-
-
-def test_kmer_ratio_short_seq():
-    result = FrameKmer.kmer_ratio("AT", word_size=3, step_size=3, coding={}, noncoding={})
-    assert result == 0
-
-
 # --- seq_generator ---
 
 
@@ -159,50 +142,3 @@ def test_kmer_freq_file_with_frame(tmp_path):
     result = FrameKmer.kmer_freq_file(str(fa), word_size=3, step_size=3, frame=0)
     assert isinstance(result, dict)
     assert "ACG" in result
-
-
-# --- kmer_ratio edge cases ---
-
-
-def test_kmer_ratio_coding_only():
-    """coding > 0, noncoding == 0 → adds 1."""
-    coding = {"ATG": 10}
-    noncoding = {"ATG": 0}
-    result = FrameKmer.kmer_ratio("ATGATG", word_size=3, step_size=3, coding=coding, noncoding=noncoding)
-    assert result == 1.0
-
-
-def test_kmer_ratio_noncoding_only():
-    """coding == 0, noncoding > 0 → subtracts 1."""
-    coding = {"ATG": 0}
-    noncoding = {"ATG": 10}
-    result = FrameKmer.kmer_ratio("ATGATG", word_size=3, step_size=3, coding=coding, noncoding=noncoding)
-    assert result == -1.0
-
-
-def test_kmer_ratio_both_zero():
-    """coding == 0, noncoding == 0 → skipped."""
-    coding = {"ATG": 0, "TGA": 5}
-    noncoding = {"ATG": 0, "TGA": 5}
-    # Only TGA contributes: log(5/5) = 0
-    result = FrameKmer.kmer_ratio("ATGTGA", word_size=3, step_size=3, coding=coding, noncoding=noncoding)
-    assert result == 0.0
-
-
-def test_kmer_ratio_missing_kmer():
-    """kmer not in coding or noncoding → skipped, causing ZeroDivisionError."""
-    import pytest
-
-    coding = {"AAA": 5}
-    noncoding = {"AAA": 5}
-    # ATG not in either dict → all words skipped → frame0_count stays 0 → ZeroDivisionError
-    with pytest.raises(ZeroDivisionError):
-        FrameKmer.kmer_ratio("ATGATG", word_size=3, step_size=3, coding=coding, noncoding=noncoding)
-
-
-def test_kmer_ratio_equal_frequencies():
-    """Equal coding and noncoding → log(1) = 0."""
-    coding = {"ATG": 5, "TGA": 5}
-    noncoding = {"ATG": 5, "TGA": 5}
-    result = FrameKmer.kmer_ratio("ATGTGA", word_size=3, step_size=3, coding=coding, noncoding=noncoding)
-    assert abs(result) < 1e-10

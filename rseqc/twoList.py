@@ -57,9 +57,3 @@ def Min(v1: NDArray[Any], v2: NDArray[Any]) -> map:
     """pairwise comparison two list. return  the max one between two paried number"""
     check_list(v1, v2)
     return map(min, zip(v1, v2))
-
-
-def euclidean_distance(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
-    """return euclidean distance"""
-    check_list(v1, v2)
-    return (sum((v1.__sub__(v2)) ** 2) / v1.size) ** 0.5

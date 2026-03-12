@@ -2,7 +2,6 @@
 """deal with Kmer. DNA sequence should only A, C, G, T."""
 
 import itertools
-import math
 import re
 from collections import Counter
 from collections.abc import Generator
@@ -63,26 +62,3 @@ def kmer_freq_file(
                 continue
             ret_dict[kmer] = count_table[kmer]
     return ret_dict
-
-
-def kmer_ratio(seq: str, word_size: int, step_size: int, coding: dict[str, int], noncoding: dict[str, int]) -> float:
-    if len(seq) < word_size:
-        return 0
-
-    sum_of_log_ratio_0 = 0.0
-    frame0_count = 0.0
-    for k in word_generator(seq=seq, word_size=word_size, step_size=step_size, frame=0):
-        if (k not in coding) or (k not in noncoding):
-            continue
-        if coding[k] > 0 and noncoding[k] > 0:
-            sum_of_log_ratio_0 += math.log(coding[k] / noncoding[k])
-        elif coding[k] > 0 and noncoding[k] == 0:
-            sum_of_log_ratio_0 += 1
-        elif coding[k] == 0 and noncoding[k] == 0:
-            continue
-        elif coding[k] == 0 and noncoding[k] > 0:
-            sum_of_log_ratio_0 -= 1
-        else:
-            continue
-        frame0_count += 1
-    return sum_of_log_ratio_0 / frame0_count

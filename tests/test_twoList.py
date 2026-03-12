@@ -80,23 +80,6 @@ def test_geometric_mean():
     np.testing.assert_array_almost_equal(result, [8.0, 3.0])
 
 
-# --- euclidean_distance ---
-
-
-def test_euclidean_distance_same():
-    v1 = np.array([1.0, 2.0, 3.0])
-    v2 = np.array([1.0, 2.0, 3.0])
-    assert twoList.euclidean_distance(v1, v2) == 0.0
-
-
-def test_euclidean_distance_basic():
-    v1 = np.array([0.0, 0.0])
-    v2 = np.array([3.0, 4.0])
-    # sqrt((9+16)/2) = sqrt(12.5)
-    expected = (25 / 2) ** 0.5
-    assert abs(twoList.euclidean_distance(v1, v2) - expected) < 1e-10
-
-
 # --- Division ---
 
 
