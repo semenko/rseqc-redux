@@ -9,7 +9,6 @@ def check_list(v1: NDArray[Any], v2: NDArray[Any]) -> None:
     """check if the length of two list is same"""
     if v1.size != v2.size:
         raise ValueError("the lenght of both arrays must be the same")
-    pass
 
 
 def Add(v1: NDArray[Any], v2: NDArray[Any]) -> Any:

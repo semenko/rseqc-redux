@@ -7,10 +7,10 @@ Note that to use this funciton, CIGAR strings within SAM/BAM file should have 'S
 
 import argparse
 import os
-import subprocess
 import sys
 
 from rseqc import SAM
+from rseqc.cli_common import run_rscript
 
 
 def main():
@@ -58,11 +58,7 @@ def main():
         obj.clipping_profile(outfile=args.output_prefix, q_cut=args.map_qual, type="S", PE=True)
     else:
         print('unknow sequencing layout. Must be "SE" or "PE"', file=sys.stderr)
-    try:
-        subprocess.run(["Rscript", args.output_prefix + ".clipping_profile.r"], check=False)
-    except OSError:
-        print("Cannot generate pdf file from " + args.output_prefix + ".clipping_profile.r", file=sys.stderr)
-        pass
+    run_rscript(args.output_prefix + ".clipping_profile.r")
 
 
 if __name__ == "__main__":

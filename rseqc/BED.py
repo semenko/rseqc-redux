@@ -92,11 +92,6 @@ class ParseBED:
             f = f.strip().split()
             chrom = f[0]
             chrom_start = int(f[1])
-            f[4]
-            f[5]
-            int(f[6])
-            int(f[7])
-            int(f[9])
             blockSizes = [int(i) for i in f[10].strip(",").split(",")]
             blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
             for base, offset in zip(blockStarts, blockSizes):
@@ -135,11 +130,8 @@ class ParseBED:
             f = f.strip().split()
             chrom = f[0]
             chrom_start = int(f[1])
-            f[4]
-            f[5]
             cdsStart = int(f[6])
             cdsEnd = int(f[7])
-            int(f[9])
             blockSizes = [int(i) for i in f[10].strip(",").split(",")]
             blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
             # grab cdsStart - cdsEnd
@@ -184,7 +176,6 @@ class ParseBED:
                 intron_end = exon_starts[1:]
 
                 if strand == "-":
-                    len(intron_start)
                     for st, end in zip(intron_start, intron_end):
                         ret_lst.append([chrom, st, end])
                 else:
@@ -235,7 +226,7 @@ def unionBed3(lst: list[list[Any]]) -> list[list[Any]]:
     for chrom in bitsets:
         bits = bitsets[chrom]
         end = 0
-        while 1:
+        while True:
             start = bits.next_set(end)
             if start == bits.size:
                 break
@@ -260,7 +251,7 @@ def intersectBed3(lst1: list[list[Any]], lst2: list[list[Any]]) -> list[list[Any
     for chrom in bitsets:
         bits = bitsets[chrom]
         end = 0
-        while 1:
+        while True:
             start = bits.next_set(end)
             if start == bits.size:
                 break
@@ -285,7 +276,7 @@ def subtractBed3(lst1: list[list[Any]], lst2: list[list[Any]]) -> list[list[Any]
             bits2.invert()
             bits1.iand(bits2)
         end = 0
-        while 1:
+        while True:
             start = bits1.next_set(end)
             if start == bits1.size:
                 break

@@ -251,9 +251,7 @@ def mapping_stat(
     except (TypeError, ValueError):
         # latest verion of pysam (v0.19.1)
         samfile = pysam.AlignmentFile(infile, mode="rb", require_index=True, threads=n_thread)
-    if samfile.check_index():
-        pass
-    else:
+    if not samfile.check_index():
         logging.error("Cannot find the index file")
         sys.exit(1)
     chrom_info = zip(samfile.references, samfile.lengths)  # [('chr1', 195471971), ('chr10', 130694993),...]

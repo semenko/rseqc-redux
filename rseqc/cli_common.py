@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from time import strftime
 from typing import Any
@@ -40,3 +41,11 @@ def load_chromsize(file: str) -> dict[str, int]:
             fields = line.strip().split()
             chromSize[fields[0]] = int(fields[1])
     return chromSize
+
+
+def run_rscript(script_path: str) -> None:
+    """Run an R script via Rscript, silently handling missing Rscript."""
+    try:
+        subprocess.run(["Rscript", script_path], check=False)
+    except OSError:
+        print("Cannot generate pdf file from " + script_path, file=sys.stderr)

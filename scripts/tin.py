@@ -200,7 +200,6 @@ def genebody_coverage(samfile, chrom, positions, bg_level=0):
                     continue
                 if pileupread.alignment.is_unmapped:
                     continue
-                # if pileupread.alignment.is_duplicate:continue
                 cover_read += 1.0
             cvg.append(cover_read)
     except (KeyError, ValueError):
@@ -351,9 +350,6 @@ def main():
                         noise_level = intron_signals / intron_size
 
                 coverage = genebody_coverage(samfile, i_chr, sorted(pick_positions), noise_level)
-
-                # for a,b in zip(sorted(pick_positions),coverage):
-                # print str(a) + '\t' + str(b)
 
                 tin1 = tin_score(cvg=coverage, length=len(pick_positions))
                 sample_TINs.append(tin1)

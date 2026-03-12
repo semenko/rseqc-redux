@@ -65,18 +65,6 @@ def kmer_freq_file(
     return ret_dict
 
 
-def kmer_freq_seq(seq: str, word_size: int, step_size: int = 1, frame: int = 0, min_count: int = 0) -> None:
-    """Calculate kmer frequency from DNA sequence. coding. genome is hexamer table calculated
-    from coding region and whole genome (as background control)
-    """
-    count_table = Counter(word_generator(seq, word_size=word_size, step_size=step_size, frame=frame))
-    for kmer in all_possible_kmer(word_size):
-        if kmer not in count_table:
-            count_table[kmer] = 0
-        if count_table[kmer] >= min_count:
-            print(kmer + "\t" + str(count_table[kmer]))
-
-
 def kmer_ratio(seq: str, word_size: int, step_size: int, coding: dict[str, int], noncoding: dict[str, int]) -> float:
     if len(seq) < word_size:
         return 0

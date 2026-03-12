@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 This program generates heatmaps to visualize the **positions** (X-axis),
 type of edits (Y-axis, such as "C" to "T") and  **frequencies** (color)
@@ -12,8 +11,6 @@ import logging
 import sys
 
 from rseqc import heatmap, scbam
-
-__contributor__ = "Liguo Wang"
 
 
 def main():

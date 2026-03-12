@@ -363,7 +363,6 @@ class ParseBAM:
                 subprocess.run(["wigToBigWig", "-clip", outfile + ".wig", chrom_file, outfile + ".bw"], check=False)
             except OSError:
                 print('Failed to call "wigToBigWig".', file=sys.stderr)
-                pass
         else:
             try:
                 import subprocess
@@ -378,7 +377,6 @@ class ParseBAM:
                 )
             except OSError:
                 print('Failed to call "wigToBigWig".', file=sys.stderr)
-                pass
 
     def calWigSum(self, chrom_sizes: dict[str, int], skip_multi: bool = True) -> float:
         """Calculate wigsum from BAM file"""
@@ -1356,7 +1354,7 @@ class ParseBAM:
                         inner_distance_bitsets.set_range(read1_end, read2_start - read1_end)
                         inner_distance_bitsets.iand(exon_bitsets[chrom])
                         end = 0
-                        while 1:
+                        while True:
                             start = inner_distance_bitsets.next_set(end)
                             if start == inner_distance_bitsets.size:
                                 break

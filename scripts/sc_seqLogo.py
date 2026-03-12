@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 This program generates a DNA sequence logo from fasta or fastq format file.
 It is useful to visualize the nucleotide compositions of sample barcodes,
@@ -11,8 +10,6 @@ import logging
 import sys
 
 from rseqc import fastq
-
-__contributor__ = "Liguo Wang"
 
 
 def main():

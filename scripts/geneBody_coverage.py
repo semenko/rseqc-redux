@@ -11,7 +11,6 @@ import argparse
 import collections
 import operator
 import os
-import subprocess
 import sys
 from os.path import basename
 from time import strftime
@@ -20,6 +19,7 @@ import pysam
 from numpy import mean, std
 
 from rseqc import getBamFiles, mystat
+from rseqc.cli_common import run_rscript
 
 
 def valid_name(s):
@@ -354,11 +354,7 @@ def main():
     Rcode_write(dataset, args.output_prefix + ".geneBodyCoverage", format=args.output_format)
 
     printlog("Running R script ...")
-    try:
-        subprocess.run(["Rscript", args.output_prefix + ".geneBodyCoverage.r"], check=False)
-    except OSError:
-        print("Cannot generate pdf file from " + args.output_prefix + ".geneBodyCoverage.r", file=sys.stderr)
-        pass
+    run_rscript(args.output_prefix + ".geneBodyCoverage.r")
 
 
 if __name__ == "__main__":

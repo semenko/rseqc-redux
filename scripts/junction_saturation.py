@@ -7,10 +7,10 @@ See http://rseqc.sourceforge.net/ for details.
 
 import argparse
 import os
-import subprocess
 import sys
 
 from rseqc import SAM
+from rseqc.cli_common import run_rscript
 
 
 def main():
@@ -122,11 +122,7 @@ def main():
             recur=args.minimum_splice_read,
             q_cut=args.map_qual,
         )
-        try:
-            subprocess.run(["Rscript", args.output_prefix + ".junctionSaturation_plot.r"], check=False)
-        except OSError:
-            print("Cannot generate pdf file from " + ".junctionSaturation_plot.r", file=sys.stderr)
-            pass
+        run_rscript(args.output_prefix + ".junctionSaturation_plot.r")
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(1)

@@ -238,7 +238,6 @@ def main():
         totalFrags += len(exons)
 
         for exn in exons:
-            # print chrom + '\t' + str(exn[1]) + '\t' + str(exn[2])
             mid = int(exn[1]) + int((int(exn[2]) - int(exn[1])) / 2)
             if foundone(chrom, cds_exon_r, mid, mid) > 0:
                 cds_exon_read += 1

@@ -5,10 +5,10 @@ Calculate the distribution of mismatches across reads. Note that the "MD" tag mu
 
 import argparse
 import os
-import subprocess
 import sys
 
 from rseqc import SAM
+from rseqc.cli_common import run_rscript
 
 
 def main():
@@ -77,11 +77,7 @@ def main():
         q_cut=args.map_qual,
         outfile=args.output_prefix,
     )
-    try:
-        subprocess.run(["Rscript", args.output_prefix + ".mismatch_profile.r"], check=False)
-    except OSError:
-        print("Cannot generate pdf file from " + args.output_prefix + ".mismatch_profile.r", file=sys.stderr)
-        pass
+    run_rscript(args.output_prefix + ".mismatch_profile.r")
 
 
 if __name__ == "__main__":

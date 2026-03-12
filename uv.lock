@@ -1916,7 +1916,7 @@ wheels = [
 
 [[package]]
 name = "rseqc-redux"
-version = "5.0.2"
+version = "5.0.3"
 source = { editable = "." }
 dependencies = [
     { name = "bx-python" },

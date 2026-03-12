@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Calculate count, FPKM, and FPKM-UQ values.
 FPKM and FPKM-UQ were defined here:

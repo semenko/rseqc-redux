@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 This program generates heatmap from a FASTQ file to visualize the sequencing quality.
 """
@@ -9,8 +8,6 @@ import logging
 import sys
 
 from rseqc import fastq, heatmap
-
-__contributor__ = "Liguo Wang"
 
 
 def main():

@@ -5,24 +5,12 @@ import argparse
 import collections
 import operator
 import os
-import subprocess
 import sys
 
 import numpy as np
 
 from rseqc import SAM
-
-
-def normalize(lst):
-    """normalize all numbers between 0 and 1"""
-    norm_lst = []
-    if max(lst) == min(lst):
-        return norm_lst
-    if max(lst) - min(lst) == 0:
-        return norm_lst
-    for i in lst:
-        norm_lst.append((i - min(lst)) / (max(lst) - min(lst)))
-    return norm_lst
+from rseqc.cli_common import run_rscript
 
 
 def square_error(lst):
@@ -211,10 +199,7 @@ def main():
             outfile=args.output_prefix + ".saturation.r",
             rpkm_cut=args.rpkm_cutoff,
         )
-        try:
-            subprocess.run(["Rscript", args.output_prefix + ".saturation.r"], check=False)
-        except OSError:
-            pass
+        run_rscript(args.output_prefix + ".saturation.r")
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(1)

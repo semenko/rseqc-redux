@@ -14,10 +14,10 @@ fragment size = read_1 + insert_size + read_2
 
 import argparse
 import os
-import subprocess
 import sys
 
 from rseqc import SAM
+from rseqc.cli_common import run_rscript
 
 
 def main():
@@ -98,11 +98,7 @@ def main():
         sample_size=args.sampleSize,
         q_cut=args.map_qual,
     )
-    try:
-        subprocess.run(["Rscript", args.output_prefix + ".inner_distance_plot.r"], check=False)
-    except OSError:
-        print("Cannot generate pdf file from " + args.output_prefix + ".inner_distance_plot.r", file=sys.stderr)
-        pass
+    run_rscript(args.output_prefix + ".inner_distance_plot.r")
 
 
 if __name__ == "__main__":

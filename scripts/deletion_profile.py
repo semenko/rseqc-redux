@@ -5,10 +5,10 @@ Calculate the distributions of deleted nucleotides across reads.
 
 import argparse
 import os
-import subprocess
 import sys
 
 from rseqc import SAM
+from rseqc.cli_common import run_rscript
 
 
 def main():
@@ -78,11 +78,7 @@ def main():
         outfile=args.output_prefix,
     )
 
-    try:
-        subprocess.run(["Rscript", args.output_prefix + ".deletion_profile.r"], check=False)
-    except OSError:
-        print("Cannot generate pdf file from " + args.output_prefix + ".deletion_profile.r", file=sys.stderr)
-        pass
+    run_rscript(args.output_prefix + ".deletion_profile.r")
 
 
 if __name__ == "__main__":

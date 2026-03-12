@@ -58,8 +58,6 @@ def get_bam_files(input: str, printit: bool = False) -> list[str]:
             pass
     else:
         tmp = input.split(",")
-        if len(tmp) < 2:
-            pass
         for i in tmp:
             if isbamfile(i):
                 bam_files.append(i)

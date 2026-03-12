@@ -8,10 +8,10 @@ Note:
 
 import argparse
 import os
-import subprocess
 import sys
 
 from rseqc import SAM
+from rseqc.cli_common import run_rscript
 
 
 def generate_bed12(infile, size=1):
@@ -216,11 +216,7 @@ def main():
             min_intron=args.min_intron,
             q_cut=args.map_qual,
         )
-        try:
-            subprocess.run(["Rscript", args.output_prefix + ".junction_plot.r"], check=False)
-        except OSError:
-            print("Cannot generate pdf file from " + ".junction_plot.r", file=sys.stderr)
-            pass
+        run_rscript(args.output_prefix + ".junction_plot.r")
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(1)

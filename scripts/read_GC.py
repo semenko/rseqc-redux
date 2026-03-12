@@ -3,10 +3,10 @@
 
 import argparse
 import os
-import subprocess
 import sys
 
 from rseqc import SAM
+from rseqc.cli_common import run_rscript
 
 
 def main():
@@ -38,10 +38,7 @@ def main():
     if os.path.exists(args.input_file):
         obj = SAM.ParseBAM(args.input_file)
         obj.readGC(outfile=args.output_prefix, q_cut=args.map_qual)
-        try:
-            subprocess.run(["Rscript", args.output_prefix + ".GC_plot.r"], check=False)
-        except OSError:
-            pass
+        run_rscript(args.output_prefix + ".GC_plot.r")
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(1)

@@ -61,9 +61,7 @@ def main():
     with open(args.output_wig, "w") as OUT:
         bw = pyBigWig.open(args.BigWig_File)
 
-        if bw.isBigWig():
-            pass
-        else:
+        if not bw.isBigWig():
             print("%s is not a bigwig file!" % args.BigWig_File, file=sys.stderr)
             sys.exit(1)
 

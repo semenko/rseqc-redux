@@ -12,16 +12,6 @@ from rseqc.cli_common import build_bitsets
 from rseqc.SAM import _pysam_iter
 
 
-def searchit(exon_range, exon_list):
-    """return 1 if find, return 0 if cannot find"""
-    for chrom, st, end in exon_list:
-        if chrom.upper() not in exon_range:
-            return 0
-        elif len(exon_range[chrom].find(st, end)) >= 1:
-            return 1
-    return 0
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
@@ -106,7 +96,6 @@ def main():
         read_start = aligned_read.pos
         mate_start = aligned_read.mpos
 
-        # read_exons = bam_cigar.fetch_exon(chrom, aligned_read.pos, aligned_read.cigar)
         if aligned_read.mate_is_unmapped:  # only one end mapped
             if chrom not in exon_ranges:
                 out2.write(aligned_read)
