@@ -1598,10 +1598,7 @@ class TestReadHexamerDetailed:
 
         # read_hexamer expects FASTA/FASTQ input, not BAM
         fq = tmp_path / "reads.fq"
-        fq.write_text(
-            "@read1\nACGTACGTACGTACGT\n+\nIIIIIIIIIIIIIIII\n"
-            "@read2\nTTTTTTAAAAAAAACC\n+\nIIIIIIIIIIIIIIII\n"
-        )
+        fq.write_text("@read1\nACGTACGTACGTACGT\n+\nIIIIIIIIIIIIIIII\n@read2\nTTTTTTAAAAAAAACC\n+\nIIIIIIIIIIIIIIII\n")
         monkeypatch.setattr(
             sys,
             "argv",
