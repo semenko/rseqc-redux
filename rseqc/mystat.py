@@ -116,7 +116,7 @@ def Hill_number(arg: str, qvalue: int | float = 1) -> float:
     try:
         return (sum(freq)) ** (1 / (1 - qvalue))  # type: ignore[no-any-return]
     except Exception:
-        return math.exp(shannon_entropy(arg))  # type: ignore[arg-type]  # Bug: passes str to list-expecting function
+        return math.exp(shannon_entropy([float(i) for i in arg.split(",") if float(i) > 0]))
 
 
 def percentile(N: list[Any], percent: float, key: Callable[[Any], float] = lambda x: x) -> float | None:

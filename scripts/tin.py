@@ -13,10 +13,10 @@ level measurement of RNA quality and is more sensitive to measure low quality RN
    cutoff.
 -------------------------------------------------------------------------------------------------"""
 
+import argparse
 import math
 import os
 import sys
-from optparse import OptionParser
 from time import strftime
 
 import pysam
@@ -62,10 +62,10 @@ def build_bitsets(list):
     build intevalTree from list
     """
     ranges = {}
-    for l in list:
-        chrom = l[0]
-        st = l[1]
-        end = l[2]
+    for entry in list:
+        chrom = entry[0]
+        st = entry[1]
+        end = entry[2]
         if chrom not in ranges:
             ranges[chrom] = Intersecter()
         ranges[chrom].add_interval(Interval(st, end))
@@ -243,7 +243,7 @@ def genebody_coverage(samfile, chrom, positions, bg_level=0):
         return tmp
 
 
-def tin_score(cvg, l):
+def tin_score(cvg, length):
     """calcualte TIN score"""
 
     if len(cvg) == 0:
@@ -253,77 +253,71 @@ def tin_score(cvg, l):
     cvg_eff = [float(i) for i in cvg if float(i) > 0]  # remove positions with 0 read coverage
     entropy = shannon_entropy(cvg_eff)
 
-    tin = 100 * (math.exp(entropy)) / l
+    tin = 100 * (math.exp(entropy)) / length
     return tin
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input",
-        action="store",
-        type="string",
         dest="input_files",
         help='Input BAM file(s). "-i" takes these input: 1) a single BAM file. 2) "," separated BAM files (no spaces allowed). 3) directory containing one or more bam files. 4) plain text file containing the path of one or more bam files (Each row is a BAM file path). All BAM files should be sorted and indexed using samtools. [required]',
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--refgene",
-        action="store",
-        type="string",
         dest="ref_gene_model",
         help="Reference gene model in BED format. Must be strandard 12-column BED file. [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-c",
         "--minCov",
-        action="store",
-        type="int",
+        type=int,
         dest="minimum_coverage",
         default=10,
-        help="Minimum number of read mapped to a transcript. default=%default",
+        help="Minimum number of read mapped to a transcript. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-n",
         "--sample-size",
-        action="store",
-        type="int",
+        type=int,
         dest="sample_size",
         default=100,
-        help="Number of equal-spaced nucleotide positions picked from mRNA. Note: if this number is larger than the length of mRNA (L), it will be halved until it's smaller than L. default=%default",
+        help="Number of equal-spaced nucleotide positions picked from mRNA. Note: if this number is larger than the length of mRNA (L), it will be halved until it's smaller than L. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-s",
         "--subtract-background",
         action="store_true",
         dest="subtract_bg",
         help="Subtract background noise (estimated from intronic reads). Only use this option if there are substantial intronic reads.",
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
     # if '-s' was set
-    if options.subtract_bg:
-        exon_ranges = union_exons(options.ref_gene_model)
+    if args.subtract_bg:
+        exon_ranges = union_exons(args.ref_gene_model)
 
-    if options.sample_size < 0:
+    if args.sample_size < 0:
         print("Number of nucleotide can't be negative", file=sys.stderr)
         sys.exit(0)
-    elif options.sample_size > 1000:
+    elif args.sample_size > 1000:
         print("Warning: '-n' is too large! Please try smaller '-n' valeu if program is running slow.", file=sys.stderr)
 
-    if not (options.input_files and options.ref_gene_model):
+    if not (args.input_files and args.ref_gene_model):
         parser.print_help()
         sys.exit(0)
 
-    if not os.path.exists(options.ref_gene_model):
-        print("\n\n" + options.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
+    if not os.path.exists(args.ref_gene_model):
+        print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
         parser.print_help()
         sys.exit(0)
 
     printlog("Get BAM file(s) ...")
-    bamfiles = sorted(getBamFiles.get_bam_files(options.input_files))
+    bamfiles = sorted(getBamFiles.get_bam_files(args.input_files))
 
     if len(bamfiles) <= 0:
         print("No BAM file found, exit.", file=sys.stderr)
@@ -347,17 +341,17 @@ def main():
         finish = 0
         noise_level = 0.0
         for gname, i_chr, i_tx_start, i_tx_end, intron_size, pick_positions in genomic_positions(
-            refbed=options.ref_gene_model, sample_size=options.sample_size
+            refbed=args.ref_gene_model, sample_size=args.sample_size
         ):
             finish += 1
 
             # check minimum reads coverage
-            if check_min_reads(samfile, i_chr, i_tx_start, i_tx_end, options.minimum_coverage) is not True:
+            if check_min_reads(samfile, i_chr, i_tx_start, i_tx_end, args.minimum_coverage) is not True:
                 print("\t".join([str(i) for i in (gname, i_chr, i_tx_start, i_tx_end, 0.0)]), file=OUT)
                 continue
 
             # estimate background noise if '-s' was specified
-            if options.subtract_bg:
+            if args.subtract_bg:
                 intron_signals = estimate_bg_noise(i_chr, i_tx_start, i_tx_end, samfile, exon_ranges)
                 if intron_size > 0:
                     noise_level = intron_signals / intron_size
@@ -367,7 +361,7 @@ def main():
             # for a,b in zip(sorted(pick_positions),coverage):
             # print str(a) + '\t' + str(b)
 
-            tin1 = tin_score(cvg=coverage, l=len(pick_positions))
+            tin1 = tin_score(cvg=coverage, length=len(pick_positions))
             sample_TINs.append(tin1)
             print("\t".join([str(i) for i in (gname, i_chr, i_tx_start, i_tx_end, tin1)]), file=OUT)
             print(" %d transcripts finished\r" % (finish), end=" ", file=sys.stderr)

@@ -44,3 +44,34 @@ def test_get_exon_from_file():
     result = annoGene.getExonFromFile(str(FIXTURES_DIR / "mini.bed"))
     assert len(result) == 6
     assert ":" in result[0][0]
+
+
+# --- getUTRExonFromLine (Bug #5 regression) ---
+
+
+def test_get_utr_exon_from_line():
+    """Bug #5 regression: chromm typo was NameError."""
+    bedline = "chr1\t1000\t5000\tgene1\t0\t+\t1200\t4800\t0,0,0\t3\t500,600,500\t0,1500,3500"
+    result = annoGene.getUTRExonFromLine(bedline, utr=35)
+    assert result is not None
+    assert len(result) >= 1
+
+
+# --- getCDSExonFromLine (Bug #5 regression) ---
+
+
+def test_get_cds_exon_from_line():
+    """Bug #5 regression: chromm typo was NameError."""
+    bedline = "chr1\t1000\t5000\tgene1\t0\t+\t1200\t4800\t0,0,0\t3\t500,600,500\t0,1500,3500"
+    result = annoGene.getCDSExonFromLine(bedline)
+    assert result is not None
+    assert len(result) >= 1
+
+
+# --- getExonFromFile2 (Bug #6 regression) ---
+
+
+def test_get_exon_from_file2():
+    """Bug #6 regression: txstart/txEnd undefined, append() wrong args."""
+    result = annoGene.getExonFromFile2(str(FIXTURES_DIR / "mini.bed"))
+    assert len(result) >= 1

@@ -138,8 +138,6 @@ line-length = 120
 select = ["E", "F", "W", "I"]
 ignore = [
     "E501",   # line-too-long — reformatting legacy lines risks breaking string literals
-    "E712",   # comparison to True — suppress until test coverage exists
-    "E741",   # ambiguous variable name (l, O, etc.) — renaming is risky without tests
 ]
 
 [tool.mypy]

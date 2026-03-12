@@ -18,8 +18,8 @@ if sys.version_info[0] != 3:
     )
     sys.exit()
 
+import argparse
 from collections import defaultdict
-from optparse import OptionParser
 from os import path
 from subprocess import call
 
@@ -128,73 +128,63 @@ def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Coverage signal file in bigwig format",
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--refgene",
-        action="store",
-        type="string",
         dest="ref_gene_model",
         help="Reference gene model in bed format. [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-o",
         "--out-prefix",
-        action="store",
-        type="string",
         dest="output_prefix",
         help="Prefix of output files(s). [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-t",
         "--graph-type",
-        action="store",
-        type="string",
         dest="graph_type",
         default="pdf",
-        help='Graphic file type in "pdf", "jpeg", "bmp", "bmp", "tiff" or "png".default=%default [optional]',
+        help='Graphic file type in "pdf", "jpeg", "bmp", "bmp", "tiff" or "png".default=%(default)s [optional]',
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    gt = options.graph_type.lower()
+    gt = args.graph_type.lower()
     if gt not in ("pdf", "png", "bmp", "jpeg", "tiff"):
         print("graphic file type must be 'pdf' or 'png'", end="\n", file=sys.stderr)
         parser.print_help()
         exit(0)
 
-    if not (options.output_prefix and options.input_file and options.ref_gene_model):
+    if not (args.output_prefix and args.input_file and args.ref_gene_model):
         parser.print_help()
         exit(0)
 
-    if not path.exists(options.ref_gene_model):
-        print("\n\n" + options.ref_gene_model + " does NOT exists", end="\n", file=sys.stderr)
+    if not path.exists(args.ref_gene_model):
+        print("\n\n" + args.ref_gene_model + " does NOT exists", end="\n", file=sys.stderr)
         # parser.print_help()
         exit(0)
 
-    if path.exists(options.input_file):
-        coverageGeneBody_bigwig(
-            options.input_file, options.ref_gene_model, options.output_prefix, gtype=options.graph_type
-        )
+    if path.exists(args.input_file):
+        coverageGeneBody_bigwig(args.input_file, args.ref_gene_model, args.output_prefix, gtype=args.graph_type)
         try:
-            call("Rscript " + options.output_prefix + ".geneBodyCoverage_plot.r", shell=True)
+            call("Rscript " + args.output_prefix + ".geneBodyCoverage_plot.r", shell=True)
         except Exception:
             print(
-                "Cannot generate plot from " + options.output_prefix + ".geneBodyCoverage_plot.r",
+                "Cannot generate plot from " + args.output_prefix + ".geneBodyCoverage_plot.r",
                 end="\n",
                 file=sys.stderr,
             )
             pass
     else:
-        print("\n\n" + options.input_file + " does NOT exists", end="\n", file=sys.stderr)
+        print("\n\n" + args.input_file + " does NOT exists", end="\n", file=sys.stderr)
         # parser.print_help()
         exit(0)
 

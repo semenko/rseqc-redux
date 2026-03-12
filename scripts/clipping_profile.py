@@ -19,63 +19,57 @@ if sys.version_info[0] != 3:
     )
     sys.exit()
 
+import argparse
 import subprocess
-from optparse import OptionParser
 
 from qcmodule import SAM
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Alignment file in BAM or SAM format.",
     )
-    parser.add_option(
-        "-o", "--out-prefix", action="store", type="string", dest="output_prefix", help="Prefix of output files(s)."
-    )
-    parser.add_option(
+    parser.add_argument("-o", "--out-prefix", dest="output_prefix", help="Prefix of output files(s).")
+    parser.add_argument(
         "-q",
         "--mapq",
-        action="store",
-        type="int",
+        type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be considered as "uniquely mapped". default=%default',
+        help='Minimum mapping quality (phred scaled) for an alignment to be considered as "uniquely mapped". default=%(default)s',
     )
-    parser.add_option(
+    parser.add_argument(
         "-s",
         "--sequencing",
-        action="store",
         dest="layout",
         help='Sequencing layout. "SE"(single-end) or "PE"(pair-end). ',
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.input_file and options.output_prefix and options.layout):
+    if not (args.input_file and args.output_prefix and args.layout):
         parser.print_help()
         sys.exit(0)
-    for input_file in [options.input_file]:
+    for input_file in [args.input_file]:
         if not os.path.exists(input_file):
             print("\n\n" + input_file + " does NOT exists" + "\n", file=sys.stderr)
             sys.exit(0)
 
-    obj = SAM.ParseBAM(options.input_file)
-    if options.layout == "SE":
-        obj.clipping_profile(outfile=options.output_prefix, q_cut=options.map_qual, type="S", PE=False)
-    elif options.layout == "PE":
-        obj.clipping_profile(outfile=options.output_prefix, q_cut=options.map_qual, type="S", PE=True)
+    obj = SAM.ParseBAM(args.input_file)
+    if args.layout == "SE":
+        obj.clipping_profile(outfile=args.output_prefix, q_cut=args.map_qual, type="S", PE=False)
+    elif args.layout == "PE":
+        obj.clipping_profile(outfile=args.output_prefix, q_cut=args.map_qual, type="S", PE=True)
     else:
         print('unknow sequencing layout. Must be "SE" or "PE"', file=sys.stderr)
     try:
-        subprocess.call("Rscript " + options.output_prefix + ".clipping_profile.r", shell=True)
+        subprocess.call("Rscript " + args.output_prefix + ".clipping_profile.r", shell=True)
     except Exception:
-        print("Cannot generate pdf file from " + options.output_prefix + ".clipping_profile.r", file=sys.stderr)
+        print("Cannot generate pdf file from " + args.output_prefix + ".clipping_profile.r", file=sys.stderr)
         pass
 
 

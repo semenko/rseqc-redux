@@ -30,13 +30,13 @@ def fasta_iter(infile):
             String of nucleotides or quality scores.
     """
     logging.info('Reading FASTA file "%s" ...' % infile)
-    for l in ireader.reader(infile):
-        l = l.strip()
-        if len(l) == 0:
+    for line in ireader.reader(infile):
+        line = line.strip()
+        if len(line) == 0:
             continue
-        if l.startswith(">"):
+        if line.startswith(">"):
             continue
-        yield l
+        yield line
 
 
 def fastq_iter(infile, mode="seq"):
@@ -59,15 +59,15 @@ def fastq_iter(infile, mode="seq"):
     count = 0
     s = ""
     q = ""
-    for l in ireader.reader(infile):
-        l = l.strip()
-        if len(l) == 0:
+    for line in ireader.reader(infile):
+        line = line.strip()
+        if len(line) == 0:
             continue
         count += 1
         if count == 2:
-            s = l
+            s = line
         if count == 4:
-            q = l
+            q = line
             if mode == "seq":
                 yield s
             elif mode == "qual":

@@ -18,7 +18,7 @@ if sys.version_info[0] != 3:
     sys.exit()
 
 
-from optparse import OptionParser
+import argparse
 
 import numpy
 import pyBigWig
@@ -27,63 +27,53 @@ from qcmodule import BED
 
 
 def main():
-    usage = "%prog [options]"
-    parser = OptionParser(usage, version="%prog 5.0.2")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
 
-    parser.add_option(
-        "-i", "--bwfile", action="store", type="string", dest="BigWig_File", help="Input BigWig file. [required]"
-    )
-    parser.add_option(
-        "-o", "--output", action="store", type="string", dest="output_wig", help="Output wig file. [required]"
-    )
-    parser.add_option(
+    parser.add_argument("-i", "--bwfile", dest="BigWig_File", help="Input BigWig file. [required]")
+    parser.add_argument("-o", "--output", dest="output_wig", help="Output wig file. [required]")
+    parser.add_argument(
         "-t",
         "--wigsum",
-        action="store",
-        type="int",
+        type=int,
         dest="total_wigsum",
         default=100000000,
-        help="Specified wigsum. 100000000 equals to coverage of 1 million 100nt reads. default=%default  [optional]",
+        help="Specified wigsum. 100000000 equals to coverage of 1 million 100nt reads. default=%(default)s  [optional]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--refgene",
-        action="store",
-        type="string",
         dest="refgene_bed",
         help="Reference gene model in bed format. [optional]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-c",
         "--chunk",
-        action="store",
-        type="int",
+        type=int,
         dest="chunk_size",
         default=500000,
-        help="Chromosome chunk size. Each chomosome will be cut into samll chunks of this size. Decrease chunk size will save more RAM. default=%default (bp) [optional]",
+        help="Chromosome chunk size. Each chomosome will be cut into samll chunks of this size. Decrease chunk size will save more RAM. default=%(default)s (bp) [optional]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-f",
         "--format",
-        action="store",
-        type="string",
         dest="out_format",
         default="bgr",
-        help='Output format. either "wig" or "bgr". "bgr" save disk space but make program slower. default=%default',
+        help='Output format. either "wig" or "bgr". "bgr" save disk space but make program slower. default=%(default)s',
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.BigWig_File and options.output_wig):
+    if not (args.BigWig_File and args.output_wig):
         parser.print_help()
         sys.exit(0)
 
-    OUT = open(options.output_wig, "w")
-    bw = pyBigWig.open(options.BigWig_File)
+    OUT = open(args.output_wig, "w")
+    bw = pyBigWig.open(args.BigWig_File)
 
     if bw.isBigWig():
         pass
     else:
-        print("%s is not a bigwig file!" % options.BigWig_File, file=sys.stderr)
+        print("%s is not a bigwig file!" % args.BigWig_File, file=sys.stderr)
         sys.exit(0)
 
     print("Get chromosome sizes from BigWig header ...", file=sys.stderr)
@@ -93,13 +83,13 @@ def main():
 
     exons = []
     WIG_SUM = 0.0
-    if options.refgene_bed:
-        print("Extract exons from " + options.refgene_bed, file=sys.stderr)
-        obj = BED.ParseBED(options.refgene_bed)
+    if args.refgene_bed:
+        print("Extract exons from " + args.refgene_bed, file=sys.stderr)
+        obj = BED.ParseBED(args.refgene_bed)
         exons = obj.getExon()
         print("Merge overlapping exons ...", file=sys.stderr)
         exons = BED.unionBed3(exons)
-        print("Calculate wigsum covered by " + options.refgene_bed + " only", file=sys.stderr)
+        print("Calculate wigsum covered by " + args.refgene_bed + " only", file=sys.stderr)
         for chrom, st, end in exons:
             if bw.stats(chrom, st, end)[0] is None:
                 continue
@@ -112,14 +102,14 @@ def main():
             WIG_SUM += tmp
         print("Total wigsum is %.2f\n" % WIG_SUM, file=sys.stderr)
     else:
-        print("Calculate wigsum from " + options.BigWig_File, file=sys.stderr)
+        print("Calculate wigsum from " + args.BigWig_File, file=sys.stderr)
         for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
             if bw.stats(chr_name, 0, chr_size)[0] is None:
                 print("Skip " + chr_name + "!", file=sys.stderr)
                 continue
 
             print("Processing " + chr_name + " ...", file=sys.stderr)
-            for interval in BED.tillingBed(chrName=chr_name, chrSize=chr_size, stepSize=options.chunk_size):
+            for interval in BED.tillingBed(chrName=chr_name, chrSize=chr_size, stepSize=args.chunk_size):
                 if bw.stats(interval[0], interval[1], interval[2])[0] is None:
                     continue
                 bw_signal = bw.values(interval[0], interval[1], interval[2])
@@ -130,7 +120,7 @@ def main():
         print("\nTotal wigsum is %.2f\n" % WIG_SUM, file=sys.stderr)
 
     try:
-        weight = options.total_wigsum / WIG_SUM
+        weight = args.total_wigsum / WIG_SUM
     except Exception:
         "Error, WIG_SUM cannot be 0"
         sys.exit(1)
@@ -142,10 +132,10 @@ def main():
             print("Skip " + chr_name + "!", file=sys.stderr)
             continue
 
-        if options.out_format.upper() == "WIG":
+        if args.out_format.upper() == "WIG":
             print("Writing " + chr_name + " ...", file=sys.stderr)
             OUT.write("variableStep chrom=" + chr_name + "\n")
-            for interval in BED.tillingBed(chrName=chr_name, chrSize=chr_size, stepSize=options.chunk_size):
+            for interval in BED.tillingBed(chrName=chr_name, chrSize=chr_size, stepSize=args.chunk_size):
                 coord = interval[1]
                 bw_signal = bw.values(chr_name, interval[1], interval[2])
                 tmp = numpy.nansum(bw_signal)
@@ -156,10 +146,10 @@ def main():
                     coord += 1
                     if v != 0:
                         print("%d\t%.2f" % (coord, v), file=OUT)
-        elif options.out_format.upper() == "BGR":
+        elif args.out_format.upper() == "BGR":
             print("Writing " + chr_name + " ...", file=sys.stderr)
             # OUT.write('variableStep chrom='+chr_name+'\n')
-            for interval in BED.tillingBed(chrName=chr_name, chrSize=chr_size, stepSize=options.chunk_size):
+            for interval in BED.tillingBed(chrName=chr_name, chrSize=chr_size, stepSize=args.chunk_size):
                 v2p = collections.defaultdict(list)  # value to position
                 range2p = {}  # coorindate range to value, bedgraph. #[start]=[len,value]
                 coord = interval[1]
@@ -174,8 +164,8 @@ def main():
                         v2p[v].append(coord)
                 for v in v2p:
                     for k, g in groupby(enumerate(v2p[v]), lambda i_x: i_x[0] - i_x[1]):
-                        for l in [list(map(itemgetter(1), g))]:
-                            range2p[l[0] - 1] = [len(l), v]
+                        for group in [list(map(itemgetter(1), g))]:
+                            range2p[group[0] - 1] = [len(group), v]
                 for i in sorted(range2p):
                     print(
                         chr_name + "\t" + str(i) + "\t" + str(i + range2p[i][0]) + "\t" + str(range2p[i][1]), file=OUT

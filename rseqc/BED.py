@@ -686,7 +686,7 @@ class ParseBED:
                 strand = fields[5].replace(" ", "_")
                 int(fields[6])
                 int(fields[7])
-                if int(fields[9] == 1):
+                if int(fields[9]) == 1:
                     continue
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -979,7 +979,7 @@ class ParseBED:
             strand = fields[5].replace(" ", "_")
             int(fields[6])
             int(fields[7])
-            if int(fields[9] == 1):
+            if int(fields[9]) == 1:
                 continue
 
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -1333,7 +1333,7 @@ class ParseBED:
                             txEnd_float = int(fields[2])
                         if (boundary == "utr") and (fields[0] == chrom) and (int(fields[1]) >= txEnd_float):
                             overlap_flag = 0
-                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEdn_float):  # noqa: F821 — known typo bug: should be cdsEnd_float
+                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEnd_float):
                             overlap_flag = 0
                         txStart = int(fields[1])
                         txEnd = int(fields[2])
@@ -1404,7 +1404,7 @@ class ParseBED:
                             txEnd_float = int(fields[2])
                         if (boundary == "utr") and (fields[0] == chrom) and (int(fields[1]) >= txEnd_float):
                             overlap_flag = 0
-                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEdn_float):  # noqa: F821 — known typo bug: should be cdsEnd_float
+                        if (boundary == "cds") and (fields[0] == chrom) and (int(fields[6]) > cdsEnd_float):
                             overlap_flag = 0
                         txStart = int(fields[1])
                         txEnd = int(fields[2])
@@ -1692,7 +1692,7 @@ class CompareBED:
             chrom = fields[0]
             tx_start = int(fields[1])
             int(fields[2])
-            if int(fields[9] == 1):
+            if int(fields[9]) == 1:
                 continue
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
             exon_starts = list(map((lambda x: x + tx_start), exon_starts))
@@ -1722,7 +1722,7 @@ class CompareBED:
             chrom = fields[0]
             tx_start = int(fields[1])
             int(fields[2])
-            if int(fields[9] == 1):
+            if int(fields[9]) == 1:
                 continue
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
             exon_starts = list(map((lambda x: x + tx_start), exon_starts))
@@ -1783,7 +1783,7 @@ class CompareBED:
             chrom = fields[0]
             tx_start = int(fields[1])
             int(fields[2])
-            if int(fields[9] == 1):
+            if int(fields[9]) == 1:
                 continue
 
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -1818,7 +1818,7 @@ class CompareBED:
             geneName = fields[3]
             score = fields[4]
             strand = fields[5]
-            if int(fields[9] == 1):
+            if int(fields[9]) == 1:
                 continue
             exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -2942,8 +2942,6 @@ def subtractBed3(lst1, lst2):
 
     ret_lst = []
     for chrom in bitsets1:
-        if chrom not in bitsets1:
-            continue
         bits1 = bitsets1[chrom]
         if chrom in bitsets2:
             bits2 = bitsets2[chrom]

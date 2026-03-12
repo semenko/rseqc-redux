@@ -18,48 +18,44 @@ if sys.version_info[0] != 3:
     sys.exit()
 
 
-from optparse import OptionParser
+import argparse
 
 import pysam
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Alignment file in BAM or SAM format. BAM file should be sorted and indexed",
     )
-    parser.add_option(
+    parser.add_argument(
         "-o",
         "--out-prefix",
-        action="store",
-        type="string",
         dest="output_prefix",
         help='Prefix of output BAM files. "prefix.R1.bam" file contains the 1st read, "prefix.R2.bam" file contains the 2nd read',
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.input_file):
+    if not (args.input_file):
         parser.print_help()
         sys.exit(0)
-    if not os.path.exists(options.input_file):
-        print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)
+    if not os.path.exists(args.input_file):
+        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(0)
 
-    samfile = pysam.Samfile(options.input_file, "rb")
+    samfile = pysam.Samfile(args.input_file, "rb")
     OUT1 = pysam.Samfile(
-        options.output_prefix + ".R1.bam", "wb", template=samfile
+        args.output_prefix + ".R1.bam", "wb", template=samfile
     )  # bam file containing reads hit to exon region
     OUT2 = pysam.Samfile(
-        options.output_prefix + ".R2.bam", "wb", template=samfile
+        args.output_prefix + ".R2.bam", "wb", template=samfile
     )  # bam file containing reads not hit to exon region
     OUT3 = pysam.Samfile(
-        options.output_prefix + ".unmap.bam", "wb", template=samfile
+        args.output_prefix + ".unmap.bam", "wb", template=samfile
     )  # bam file containing reads not hit to exon region
 
     total_alignment = 0
@@ -67,7 +63,7 @@ def main():
     r2_alignment = 0
     unmapped = 0
 
-    print("spliting " + options.input_file + " ...", end=" ", file=sys.stderr)
+    print("spliting " + args.input_file + " ...", end=" ", file=sys.stderr)
     try:
         while 1:
             new_alignment = pysam.AlignedRead()  # create AlignedRead object
@@ -113,9 +109,9 @@ def main():
         print("Done", file=sys.stderr)
 
     print("%-55s%d" % ("Total records:", total_alignment))
-    print("%-55s%d" % (options.output_prefix + "Read 1:", r1_alignment))
-    print("%-55s%d" % (options.output_prefix + "Read 2:", r2_alignment))
-    print("%-55s%d" % (options.output_prefix + "Unmapped:", unmapped))
+    print("%-55s%d" % (args.output_prefix + "Read 1:", r1_alignment))
+    print("%-55s%d" % (args.output_prefix + "Read 2:", r2_alignment))
+    print("%-55s%d" % (args.output_prefix + "Unmapped:", unmapped))
 
 
 if __name__ == "__main__":

@@ -17,74 +17,70 @@ if sys.version_info[0] != 3:
     )
     sys.exit()
 
+import argparse
 import subprocess
-from optparse import OptionParser
 
 from qcmodule import SAM
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Alignment file in BAM or SAM format.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-o",
         "--out-prefix",
-        action="store",
-        type="string",
         dest="output_prefix",
         help="Prefix of output fastq files(s).",
     )
-    parser.add_option(
+    parser.add_argument(
         "-s",
         "--single-end",
         action="store_true",
         dest="single",
         help="Specificy '-s' or '--single-end' for single-end sequencing.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-c",
         "--compress",
         action="store_true",
         dest="gzip",
         help="Specificy '-c' or '--compress' to compress output fastq file(s) using 'gzip' command.",
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    # print options.single
-    if not (options.output_prefix and options.input_file):
+    # print args.single
+    if not (args.output_prefix and args.input_file):
         parser.print_help()
         sys.exit(0)
-    if os.path.exists(options.input_file):
-        obj = SAM.ParseBAM(options.input_file)
-        if options.single is True:
-            obj.bam2fq(prefix=options.output_prefix, paired=False)
-            if options.gzip is True:
+    if os.path.exists(args.input_file):
+        obj = SAM.ParseBAM(args.input_file)
+        if args.single is True:
+            obj.bam2fq(prefix=args.output_prefix, paired=False)
+            if args.gzip is True:
                 try:
                     print("run gzip ... ", end=" ", file=sys.stderr)
-                    subprocess.call("gzip " + options.output_prefix + ".fastq", shell=True)
+                    subprocess.call("gzip " + args.output_prefix + ".fastq", shell=True)
                     print("Done.", file=sys.stderr)
                 except Exception:
                     pass
         else:
-            obj.bam2fq(prefix=options.output_prefix, paired=True)
-            if options.gzip is True:
+            obj.bam2fq(prefix=args.output_prefix, paired=True)
+            if args.gzip is True:
                 try:
                     print("run gzip ...", file=sys.stderr)
-                    subprocess.call("gzip " + options.output_prefix + ".R1.fastq", shell=True)
-                    subprocess.call("gzip " + options.output_prefix + ".R2.fastq", shell=True)
+                    subprocess.call("gzip " + args.output_prefix + ".R1.fastq", shell=True)
+                    subprocess.call("gzip " + args.output_prefix + ".R2.fastq", shell=True)
                     print("Done.", file=sys.stderr)
                 except Exception:
                     pass
     else:
-        print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)
+        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         # parser.print_help()
         sys.exit(0)
 

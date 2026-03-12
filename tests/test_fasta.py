@@ -86,3 +86,21 @@ def test_fasta_get_seq_len(tmp_path):
     obj = Fasta(str(fa))
     lengths = obj.getSeqLen()
     assert lengths["chr1"] == 8
+
+
+def test_fasta_empty_file(tmp_path):
+    """Bug #2 regression: empty FASTA should not raise UnboundLocalError."""
+    fa = tmp_path / "empty.fa"
+    fa.write_text("")
+    obj = Fasta(str(fa))
+    assert obj.seqs == {}
+    assert obj.IDs == []
+
+
+def test_fasta_no_header(tmp_path):
+    """Bug #2 regression: FASTA with no header lines should handle gracefully."""
+    fa = tmp_path / "noheader.fa"
+    fa.write_text("ACGTACGT\n")
+    obj = Fasta(str(fa))
+    assert obj.seqs == {}
+    assert obj.IDs == []

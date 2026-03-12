@@ -20,25 +20,29 @@ def longest_orf(seq: str, strandness: str, sc: str | None = None, tc: str | None
     largest_orf = ""
 
     if sc is not None:
-        start_coden = sc.strip(",").split(",")
-        if len(start_coden) == 0:
+        start_codons = sc.strip(",").split(",")
+        if len(start_codons) == 0:
             print("Unkown start codon", file=sys.stderr)
             sys.exit(1)
         else:
-            for cd in start_coden:
+            for cd in start_codons:
                 if len(cd) != 3:
                     print("Unkown start codon" + str(cd), file=sys.stderr)
                     sys.exit(1)
+    else:
+        start_codons = start_coden
     if tc is not None:
-        stop_coden = tc.strip(",").split(",")
-        if len(stop_coden) == 0:
+        stop_codons = tc.strip(",").split(",")
+        if len(stop_codons) == 0:
             print("Unkown stop codon", file=sys.stderr)
             sys.exit(1)
         else:
-            for cd in stop_coden:
+            for cd in stop_codons:
                 if len(cd) != 3:
                     print("Unkown stop codon" + str(cd), file=sys.stderr)
                     sys.exit(1)
+    else:
+        stop_codons = stop_coden
 
     strand = strandness
     start_pos = []
@@ -46,16 +50,16 @@ def longest_orf(seq: str, strandness: str, sc: str | None = None, tc: str | None
     orf_ranges.clear()
     if strand == "-":
         dna_seq = _reverse_comp(dna_seq)
-    for sc in start_coden:  # type: ignore[assignment]  # Bug #4: loop var shadows parameter
-        start_found = dna_seq.find(sc)  # type: ignore[arg-type]
+    for start_cd in start_codons:
+        start_found = dna_seq.find(start_cd)
         while start_found > -1:
             start_pos.append(start_found)
-            start_found = dna_seq.find(sc, start_found + 1)  # type: ignore[arg-type]
-    for sc in stop_coden:  # type: ignore[assignment]
-        end_found = dna_seq.find(sc)  # type: ignore[arg-type]
+            start_found = dna_seq.find(start_cd, start_found + 1)
+    for stop_cd in stop_codons:
+        end_found = dna_seq.find(stop_cd)
         while end_found > -1:
             end_pos.append(end_found)
-            end_found = dna_seq.find(sc, end_found + 1)  # type: ignore[arg-type]
+            end_found = dna_seq.find(stop_cd, end_found + 1)
 
     for st in start_pos:
         for end in end_pos:
@@ -66,9 +70,9 @@ def longest_orf(seq: str, strandness: str, sc: str | None = None, tc: str | None
     for k in sorted(orf_ranges):
         possible_orf[str(k) + "\t" + str(min(orf_ranges[k])) + "\t" + strand] = min(orf_ranges[k]) - k
 
-    for k, v in list(possible_orf.items()):  # type: ignore[assignment]
-        if v == max(possible_orf.values()):
-            fields = k.split()  # type: ignore[attr-defined]
+    for orf_key, orf_size in list(possible_orf.items()):
+        if orf_size == max(possible_orf.values()):
+            fields = orf_key.split()
             largest_orf = dna_seq[int(fields[0]) : int(fields[1])]
     return largest_orf  # could be None, '' or DNA sequencee
 
@@ -83,25 +87,29 @@ def longest_orf_bed(  # noqa: C901
     possible_orf = {}  # [orf-st, orf_end] ==>size
 
     if sc is not None:
-        start_coden = sc.strip(",").split(",")
-        if len(start_coden) == 0:
+        start_codons = sc.strip(",").split(",")
+        if len(start_codons) == 0:
             print("Unkown start codon", file=sys.stderr)
             sys.exit(1)
         else:
-            for cd in start_coden:
+            for cd in start_codons:
                 if len(cd) != 3:
                     print("Unkown start codon" + str(cd), file=sys.stderr)
                     sys.exit(1)
+    else:
+        start_codons = start_coden
     if tc is not None:
-        stop_coden = tc.strip(",").split(",")
-        if len(stop_coden) == 0:
+        stop_codons = tc.strip(",").split(",")
+        if len(stop_codons) == 0:
             print("Unkown stop codon", file=sys.stderr)
             sys.exit(1)
         else:
-            for cd in stop_coden:
+            for cd in stop_codons:
                 if len(cd) != 3:
                     print("Unkown stop codon" + str(cd), file=sys.stderr)
                     sys.exit(1)
+    else:
+        stop_codons = stop_coden
 
     fields = bedline.split()
     txStart = int(fields[1])
@@ -117,16 +125,16 @@ def longest_orf_bed(  # noqa: C901
     orf_ranges.clear()
     if strand == "-":
         dna_seq = _reverse_comp(dna_seq)
-    for sc in start_coden:  # type: ignore[assignment]  # Bug #4: loop var shadows parameter
-        start_found = dna_seq.find(sc)  # type: ignore[arg-type]
+    for start_cd in start_codons:
+        start_found = dna_seq.find(start_cd)
         while start_found > -1:
             start_pos.append(start_found)
-            start_found = dna_seq.find(sc, start_found + 1)  # type: ignore[arg-type]
-    for sc in stop_coden:  # type: ignore[assignment]
-        end_found = dna_seq.find(sc)  # type: ignore[arg-type]
+            start_found = dna_seq.find(start_cd, start_found + 1)
+    for stop_cd in stop_codons:
+        end_found = dna_seq.find(stop_cd)
         while end_found > -1:
             end_pos.append(end_found)
-            end_found = dna_seq.find(sc, end_found + 1)  # type: ignore[arg-type]
+            end_found = dna_seq.find(stop_cd, end_found + 1)
 
     for st in start_pos:
         for end in end_pos:
@@ -137,9 +145,9 @@ def longest_orf_bed(  # noqa: C901
     for k in sorted(orf_ranges):
         possible_orf[str(k) + "\t" + str(min(orf_ranges[k])) + "\t" + strand] = min(orf_ranges[k]) - k
 
-    for k, v in list(possible_orf.items()):  # type: ignore[assignment]
-        if v == max(possible_orf.values()):
-            col = k.split()  # type: ignore[attr-defined]
+    for orf_key, orf_size in list(possible_orf.items()):
+        if orf_size == max(possible_orf.values()):
+            col = orf_key.split()
             cds_st = int(col[0])
             cds_end = int(col[1])
             strand = col[2]

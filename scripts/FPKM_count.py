@@ -20,7 +20,7 @@ if sys.version_info[0] != 3:
     sys.exit()
 
 
-from optparse import OptionParser
+import argparse
 from time import strftime
 
 from bx.intervals import Intersecter, Interval
@@ -79,108 +79,98 @@ def build_range(refgene):
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Alignment file in BAM format (SAM is not supported). [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-o",
         "--out-prefix",
-        action="store",
-        type="string",
         dest="output_prefix",
         help="Prefix of output files(s). [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--refgene",
-        action="store",
-        type="string",
         dest="refgene_bed",
         help="Reference gene model in bed fomat. [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-d",
         "--strand",
-        action="store",
-        type="string",
         dest="strand_rule",
         default=None,
-        help="How read(s) were stranded during sequencing. For example: --strand='1++,1--,2+-,2-+' means that this is a pair-end, strand-specific RNA-seq, and the strand rule is: read1 mapped to '+' => parental gene on '+'; read1 mapped to '-' => parental gene on '-'; read2 mapped to '+' => parental gene on '-'; read2 mapped to '-' => parental gene on '+'.  If you are not sure about the strand rule, run 'infer_experiment.py' default=%default (Not a strand specific RNA-seq data)",
+        help="How read(s) were stranded during sequencing. For example: --strand='1++,1--,2+-,2-+' means that this is a pair-end, strand-specific RNA-seq, and the strand rule is: read1 mapped to '+' => parental gene on '+'; read1 mapped to '-' => parental gene on '-'; read2 mapped to '+' => parental gene on '-'; read2 mapped to '-' => parental gene on '+'.  If you are not sure about the strand rule, run 'infer_experiment.py' default=%(default)s (Not a strand specific RNA-seq data)",
     )
-    parser.add_option(
+    parser.add_argument(
         "-u",
         "--skip-multi-hits",
         action="store_true",
         dest="skip_multi",
         help="How to deal with multiple hit reads. Presence this option renders program to skip multiple hits reads.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-e",
         "--only-exonic",
         action="store_true",
         dest="only_exon",
         help="How to count total reads. Presence of this option renders program only used exonic (UTR exons and CDS exons) reads, otherwise use all reads.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-q",
         "--mapq",
-        action="store",
-        type="int",
+        type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%default',
+        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%(default)s',
     )
-    parser.add_option(
+    parser.add_argument(
         "-s",
         "--single-read",
-        action="store",
-        type="float",
+        type=float,
         dest="single_read",
         default=1,
-        help="How to count read-pairs that only have one end mapped. 0: ignore it. 0.5: treat it as half fragment. 1: treat it as whole fragment. default=%default",
+        help="How to count read-pairs that only have one end mapped. 0: ignore it. 0.5: treat it as half fragment. 1: treat it as whole fragment. default=%(default)s",
     )
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.output_prefix and options.input_file and options.refgene_bed):
+    if not (args.output_prefix and args.input_file and args.refgene_bed):
         parser.print_help()
         sys.exit(0)
-    if not os.path.exists(options.input_file + ".bai"):
+    if not os.path.exists(args.input_file + ".bai"):
         print("cannot find index file of input BAM file", file=sys.stderr)
-        print(options.input_file + ".bai" + " does not exists", file=sys.stderr)
+        print(args.input_file + ".bai" + " does not exists", file=sys.stderr)
         sys.exit(0)
-    for file in (options.input_file, options.refgene_bed):
+    for file in (args.input_file, args.refgene_bed):
         if not os.path.exists(file):
             print(file + " does NOT exists" + "\n", file=sys.stderr)
             sys.exit(0)
 
-    obj = SAM.ParseBAM(options.input_file)
-    OUT = open(options.output_prefix + ".FPKM.xls", "w")
+    obj = SAM.ParseBAM(args.input_file)
+    OUT = open(args.output_prefix + ".FPKM.xls", "w")
 
     # ++++++++++++++++++++++++++++++++++++determine strand rule
     strandRule = {}
-    if options.strand_rule is None:  # Not strand-specific
+    if args.strand_rule is None:  # Not strand-specific
         pass
-    elif len(options.strand_rule.split(",")) == 4:  # PairEnd, strand-specific
-        for i in options.strand_rule.split(","):
+    elif len(args.strand_rule.split(",")) == 4:  # PairEnd, strand-specific
+        for i in args.strand_rule.split(","):
             strandRule[i[0] + i[1]] = i[2]
-    elif len(options.strand_rule.split(",")) == 2:  # singeEnd, strand-specific
-        for i in options.strand_rule.split(","):
+    elif len(args.strand_rule.split(",")) == 2:  # singeEnd, strand-specific
+        for i in args.strand_rule.split(","):
             strandRule[i[0]] = i[1]
     else:
-        print("Unknown value of option :'strand_rule' " + options.strand_rule, file=sys.stderr)
+        print("Unknown value of option :'strand_rule' " + args.strand_rule, file=sys.stderr)
         sys.exit(1)
 
     # ++++++++++++++++++++++++++++++++++++counting fragments
-    print("Extract exon regions from  " + options.refgene_bed + "...", file=sys.stderr)
-    gene_ranges = build_range(options.refgene_bed)
+    print("Extract exon regions from  " + args.refgene_bed + "...", file=sys.stderr)
+    gene_ranges = build_range(args.refgene_bed)
     print("Counting total fragment ... ", end=" ", file=sys.stderr)
 
     total_frags = 0.0
@@ -195,8 +185,8 @@ def main():
                 continue  # skip duplicate read
             if aligned_read.is_secondary:
                 continue  # skip non primary hit
-            if options.skip_multi:
-                if aligned_read.mapq < options.map_qual:
+            if args.skip_multi:
+                if aligned_read.mapq < args.map_qual:
                     continue
             try:
                 chrom = obj.samfile.getrname(aligned_read.tid).upper()
@@ -219,14 +209,14 @@ def main():
                     if aligned_read.mate_is_unmapped:
                         continue  # both unmap
                     else:  # read2 is mapped
-                        total_frags += options.single_read
+                        total_frags += args.single_read
                         if (chrom in gene_ranges) and (len(gene_ranges[chrom].find(mate_st, mate_end)) > 0):
-                            exonic_frags += options.single_read
+                            exonic_frags += args.single_read
                 else:
                     if aligned_read.mate_is_unmapped:
-                        total_frags += options.single_read
+                        total_frags += args.single_read
                         if (chrom in gene_ranges) and (len(gene_ranges[chrom].find(read_st, read_end)) > 0):
-                            exonic_frags += options.single_read
+                            exonic_frags += args.single_read
                     else:
                         total_frags += 1
                         if (
@@ -242,7 +232,7 @@ def main():
     print("Total exonic fragment = %-20s" % (str(exonic_frags)), file=sys.stderr)
 
     if total_frags > 0 and exonic_frags > 0:
-        if options.only_exon:
+        if args.only_exon:
             denominator = exonic_frags
         else:
             denominator = total_frags
@@ -251,7 +241,7 @@ def main():
         sys.exit(1)
 
     # ++++++++++++++++++++++++++++++++++++++++++++++++
-    obj = SAM.ParseBAM(options.input_file)
+    obj = SAM.ParseBAM(args.input_file)
     print(
         "\t".join(("#chrom", "st", "end", "accession", "mRNA_size", "gene_strand", "Frag_count", "FPM", "FPKM")),
         file=OUT,
@@ -260,7 +250,7 @@ def main():
     gene_finished = 0
 
     # calculate raw count, FPM, FPKM for each gene
-    for line in open(options.refgene_bed, "r"):
+    for line in open(args.refgene_bed, "r"):
         frag_count_f = 0.0
         frag_count_r = 0.0
         frag_count_fr = 0.0
@@ -295,8 +285,8 @@ def main():
                 continue  # skip duplicate read
             if aligned_read.is_secondary:
                 continue  # skip non primary hit
-            if options.skip_multi:
-                if aligned_read.mapq < options.map_qual:
+            if args.skip_multi:
+                if aligned_read.mapq < args.map_qual:
                     continue
 
             # single end sequencing
@@ -311,7 +301,7 @@ def main():
                     strand_key = "+"
 
                 if len(exon_ranges.find(frag_st, frag_end)) > 0:
-                    if options.strand_rule is None:
+                    if args.strand_rule is None:
                         frag_count_fr += 1
                     elif strand_key in strandRule and strandRule[strand_key] == "+":
                         frag_count_f += 1
@@ -334,15 +324,15 @@ def main():
                 else:
                     strand_key = "1+"
 
-                if options.strand_rule is None:
+                if args.strand_rule is None:
                     if aligned_read.is_unmapped:
                         if aligned_read.mate_is_unmapped:  # both unmapped
                             continue
                         else:  # only read2 mapped
-                            frag_count_fr += options.single_read
+                            frag_count_fr += args.single_read
                     else:
                         if aligned_read.mate_is_unmapped:  # only read1 mapped
-                            frag_count_fr += options.single_read
+                            frag_count_fr += args.single_read
                         else:  # both mapped
                             frag_count_fr += 1
                 else:
@@ -351,10 +341,10 @@ def main():
                             if aligned_read.mate_is_unmapped:  # both unmapped
                                 continue
                             else:  # only read2 mapped
-                                frag_count_f += options.single_read
+                                frag_count_f += args.single_read
                         else:
                             if aligned_read.mate_is_unmapped:  # only read1 mapped
-                                frag_count_f += options.single_read
+                                frag_count_f += args.single_read
                             else:  # both mapped
                                 frag_count_f += 1
                     if strand_key in strandRule and strandRule[strand_key] == "-":
@@ -362,10 +352,10 @@ def main():
                             if aligned_read.mate_is_unmapped:  # both unmapped
                                 continue
                             else:  # only read2 mapped
-                                frag_count_r += options.single_read
+                                frag_count_r += args.single_read
                         else:
                             if aligned_read.mate_is_unmapped:  # only read1 mapped
-                                frag_count_r += options.single_read
+                                frag_count_r += args.single_read
                             else:  # both mapped
                                 frag_count_r += 1
 
@@ -376,7 +366,7 @@ def main():
         FPKM_f = frag_count_f * 1000000000 / (denominator * mRNA_size)
         FPKM_r = frag_count_r * 1000000000 / (denominator * mRNA_size)
 
-        if options.strand_rule is None:
+        if args.strand_rule is None:
             print(
                 "\t".join(
                     [

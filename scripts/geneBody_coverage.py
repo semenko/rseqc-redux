@@ -21,10 +21,10 @@ if sys.version_info[0] != 3:
     )
     sys.exit()
 
+import argparse
 import collections
 import operator
 import subprocess
-from optparse import OptionParser
 from os.path import basename
 from time import strftime
 
@@ -252,72 +252,63 @@ def Rcode_write(dataset, file_prefix, format="pdf", colNum=100):
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input",
-        action="store",
-        type="string",
         dest="input_files",
         help='Input file(s) in BAM format. "-i" takes these input: 1) a single BAM file. 2) "," separated BAM files. 3) directory containing one or more bam files. 4) plain text file containing the path of one or more bam file (Each row is a BAM file path). All BAM files should be sorted and indexed using samtools.',
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--refgene",
-        action="store",
-        type="string",
         dest="ref_gene_model",
         help="Reference gene model in bed format. [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-l",
         "--minimum_length",
-        action="store",
-        type="int",
+        type=int,
         default=100,
         dest="min_mRNA_length",
-        help='Minimum mRNA length (bp). mRNA smaller than "min_mRNA_length" will be skipped. default=%default',
+        help='Minimum mRNA length (bp). mRNA smaller than "min_mRNA_length" will be skipped. default=%(default)s',
     )
-    parser.add_option(
+    parser.add_argument(
         "-f",
         "--format",
-        action="store",
-        type="string",
         dest="output_format",
         default="pdf",
-        help="Output file format, 'pdf', 'png' or 'jpeg'. default=%default",
+        help="Output file format, 'pdf', 'png' or 'jpeg'. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-o",
         "--out-prefix",
-        action="store",
-        type="string",
         dest="output_prefix",
         help="Prefix of output files(s). [required]",
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.output_prefix and options.input_files and options.ref_gene_model):
+    if not (args.output_prefix and args.input_files and args.ref_gene_model):
         parser.print_help()
         sys.exit(0)
 
-    if not os.path.exists(options.ref_gene_model):
-        print("\n\n" + options.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
+    if not os.path.exists(args.ref_gene_model):
+        print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
         # parser.print_help()
         sys.exit(0)
-    if options.min_mRNA_length < 100:
+    if args.min_mRNA_length < 100:
         print('The number specified to "-l" cannot be smaller than 100.' + "\n", file=sys.stderr)
         sys.exit(0)
 
-    OUT1 = open(options.output_prefix + ".geneBodyCoverage.txt", "w")
+    OUT1 = open(args.output_prefix + ".geneBodyCoverage.txt", "w")
     print("Percentile\t" + "\t".join([str(i) for i in range(1, 101)]), file=OUT1)
 
     printlog("Read BED file (reference gene model) ...")
-    gene_percentiles = genebody_percentile(refbed=options.ref_gene_model, mRNA_len_cut=options.min_mRNA_length)
+    gene_percentiles = genebody_percentile(refbed=args.ref_gene_model, mRNA_len_cut=args.min_mRNA_length)
 
     printlog("Get BAM file(s) ...")
-    bamfiles = getBamFiles.get_bam_files(options.input_files)
+    bamfiles = getBamFiles.get_bam_files(args.input_files)
     for f in bamfiles:
         print("\t" + f, file=sys.stderr)
 
@@ -340,7 +331,7 @@ def main():
     OUT1.close()
 
     dataset = []
-    for line in open(options.output_prefix + ".geneBodyCoverage.txt", "r"):
+    for line in open(args.output_prefix + ".geneBodyCoverage.txt", "r"):
         line = line.strip()
         if line.startswith("Percentile"):
             continue
@@ -355,13 +346,13 @@ def main():
     print("\tSample\tSkewness", file=sys.stderr)
     for a, b, c in dataset:
         print("\t" + a + "\t" + str(c), file=sys.stderr)
-    Rcode_write(dataset, options.output_prefix + ".geneBodyCoverage", format=options.output_format)
+    Rcode_write(dataset, args.output_prefix + ".geneBodyCoverage", format=args.output_format)
 
     printlog("Running R script ...")
     try:
-        subprocess.call("Rscript " + options.output_prefix + ".geneBodyCoverage.r", shell=True)
+        subprocess.call("Rscript " + args.output_prefix + ".geneBodyCoverage.r", shell=True)
     except Exception:
-        print("Cannot generate pdf file from " + options.output_prefix + ".geneBodyCoverage.r", file=sys.stderr)
+        print("Cannot generate pdf file from " + args.output_prefix + ".geneBodyCoverage.r", file=sys.stderr)
         pass
 
 

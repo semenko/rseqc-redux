@@ -3,8 +3,6 @@
 import importlib
 import math
 
-import pytest
-
 from rseqc import mystat
 
 
@@ -231,11 +229,15 @@ def test_hill_number_q_half_nonuniform():
     assert result_half >= result_two
 
 
-def test_hill_number_q1_bug():
-    """q=1 triggers except branch which passes str to shannon_entropy (expects list).
-    This is a known bug — shannon_entropy iterates over characters of the string."""
-    # When q=1, 1/(1-1) raises ZeroDivisionError, falls to except
-    # which calls shannon_entropy(arg) where arg is a string
-    # shannon_entropy treats string chars as iterable, float("1") works but float(",") fails
-    with pytest.raises(ValueError):
-        mystat.Hill_number("1,1,1,1", qvalue=1)
+def test_hill_number_q1():
+    """q=1 should return exp(H) where H is Shannon entropy."""
+    # For uniform distribution [1,1,1,1], exp(log(4)) = 4.0
+    result = mystat.Hill_number("1,1,1,1", qvalue=1)
+    assert abs(result - 4.0) < 1e-10
+
+
+def test_hill_number_q1_nonuniform():
+    """q=1 for non-uniform distribution."""
+    result = mystat.Hill_number("1,2,3,4", qvalue=1)
+    assert isinstance(result, float)
+    assert result > 0

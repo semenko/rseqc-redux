@@ -2,8 +2,6 @@
 
 import importlib
 
-import pytest
-
 from rseqc import orf
 
 
@@ -71,11 +69,8 @@ def test_longest_orf_multiple():
     assert len(result) >= 6
 
 
-@pytest.mark.xfail(
-    reason="Known bug: sc parameter shadows module-level start_coden, UnboundLocalError when sc=None",
-    raises=UnboundLocalError,
-    strict=True,
-)
-def test_longest_orf_default_codons_bug():
-    """Document the bug: calling without sc/tc raises UnboundLocalError."""
-    orf.longest_orf("ATGAAATAACCC", "+")
+def test_longest_orf_default_codons():
+    """Calling without sc/tc should use module-level start/stop codons."""
+    result = orf.longest_orf("ATGAAATAACCC", "+")
+    assert "ATG" in result
+    assert len(result) % 3 == 0

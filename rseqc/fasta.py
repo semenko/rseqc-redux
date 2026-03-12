@@ -2,9 +2,9 @@
 manipulate fasta for fastq format files.
 """
 
+import argparse
 import collections
 import sys
-from optparse import OptionParser
 
 import numpy
 
@@ -20,20 +20,22 @@ class Fasta:
         self.IDs = []
         self.transtab = str.maketrans("ACGTNX", "TGCANX")
         self.filename = fastafile
+        name = None
         tmpseq = ""
         if fastafile is not None:
             for line in open(fastafile, "r"):
                 line = line.strip(" \n")
                 if line.startswith(">"):
-                    if tmpseq:
-                        self.seqs[name] = tmpseq  # noqa: F821 — known bug: `name` unbound on malformed input
+                    if name is not None and tmpseq:
+                        self.seqs[name] = tmpseq
                     name = line[1:]
                     tmpseq = ""
                     self.IDs.append(name)
                     print("\tloading " + name + " ...", file=sys.stderr)
                 else:
                     tmpseq += line.upper()
-            self.seqs[name] = tmpseq
+            if name is not None:
+                self.seqs[name] = tmpseq
 
     def addSeq(self, id, seq):
         """add sequence to current data"""
@@ -94,11 +96,11 @@ class Fasta:
                 print(str(len(v)) + "\t", end=" ")
                 print(v.count(pattern))
 
-    def cal_entropy(self, l=3):
+    def cal_entropy(self, length=3):
         """calculate entropy for each sequence"""
         for id, seq in list(self.seqs.items()):
             entropy = 0
-            dna_chars_uniq = FrameKmer.all_possible_kmer(l)
+            dna_chars_uniq = FrameKmer.all_possible_kmer(length)
             dna_len = len(seq)
 
             for c in dna_chars_uniq:
@@ -170,7 +172,7 @@ class Fasta:
                 )
                 start = loopSwitch + 1
 
-        if rev == True:
+        if rev:
             Pat_rev = Pat.translate(self.transtab)[::-1]
             if seqID is None:
                 for k, v in list(self.seqs.items()):
@@ -232,10 +234,10 @@ class Fasta:
 
 
 def main():
-    parser = OptionParser()
-    parser.add_option("-i", "--input_file", dest="in_file", help="input file name")
-    (options, args) = parser.parse_args()
-    obj = Fasta(options.in_file)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--input_file", dest="in_file", help="input file name")
+    args = parser.parse_args()
+    obj = Fasta(args.in_file)
     obj.printSeqs(n=80)
 
 

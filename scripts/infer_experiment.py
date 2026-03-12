@@ -43,7 +43,7 @@ if sys.version_info[0] != 3:
     )
     sys.exit()
 
-from optparse import OptionParser
+import argparse
 from time import strftime
 
 from qcmodule import SAM
@@ -58,53 +58,47 @@ def printlog(mesg):
 
 
 def main():
-    usage = "%prog [options]" + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Input alignment file in SAM or BAM format",
     )
-    parser.add_option(
-        "-r", "--refgene", action="store", type="string", dest="refgene_bed", help="Reference gene model in bed fomat."
-    )
-    parser.add_option(
+    parser.add_argument("-r", "--refgene", dest="refgene_bed", help="Reference gene model in bed fomat.")
+    parser.add_argument(
         "-s",
         "--sample-size",
-        action="store",
-        type="int",
+        type=int,
         dest="sample_size",
         default=200000,
-        help="Number of reads sampled from SAM/BAM file. default=%default",
+        help="Number of reads sampled from SAM/BAM file. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-q",
         "--mapq",
-        action="store",
-        type="int",
+        type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be considered as "uniquely mapped". default=%default',
+        help='Minimum mapping quality (phred scaled) for an alignment to be considered as "uniquely mapped". default=%(default)s',
     )
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.input_file and options.refgene_bed):
+    if not (args.input_file and args.refgene_bed):
         parser.print_help()
         print("\n\n" + __doc__, file=sys.stderr)
         sys.exit(0)
-    for f in (options.input_file, options.refgene_bed):
+    for f in (args.input_file, args.refgene_bed):
         if not os.path.exists(f):
             print("\n\n" + f + " does NOT exists." + "\n", file=sys.stderr)
             sys.exit(0)
-    if options.sample_size < 1000:
+    if args.sample_size < 1000:
         print("Warn: Sample Size too small to give a accurate estimation", file=sys.stderr)
-    obj = SAM.ParseBAM(options.input_file)
+    obj = SAM.ParseBAM(args.input_file)
     (protocol, sp1, sp2, other) = obj.configure_experiment(
-        refbed=options.refgene_bed, sample_size=options.sample_size, q_cut=options.map_qual
+        refbed=args.refgene_bed, sample_size=args.sample_size, q_cut=args.map_qual
     )
     if other < 0:
         other = 0.0

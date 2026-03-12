@@ -20,8 +20,8 @@ if sys.version_info[0] != 3:
     )
     sys.exit()
 
+import argparse
 import subprocess
-from optparse import OptionParser
 from time import strftime
 
 from qcmodule import SAM
@@ -175,83 +175,75 @@ def generate_interact(infile, bam_file, size=1):
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Alignment file in BAM or SAM format.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--refgene",
-        action="store",
-        type="string",
         dest="ref_gene_model",
         help="Reference gene model in bed format. This file is better to be a pooled gene model as it will be used to annotate splicing junctions [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-o",
         "--out-prefix",
-        action="store",
-        type="string",
         dest="output_prefix",
         help="Prefix of output files(s). [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-m",
         "--min-intron",
-        action="store",
-        type="int",
+        type=int,
         dest="min_intron",
         default=50,
-        help="Minimum intron length (bp). default=%default [optional]",
+        help="Minimum intron length (bp). default=%(default)s [optional]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-q",
         "--mapq",
-        action="store",
-        type="int",
+        type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be considered as "uniquely mapped". default=%default',
+        help='Minimum mapping quality (phred scaled) for an alignment to be considered as "uniquely mapped". default=%(default)s',
     )
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.output_prefix and options.input_file and options.ref_gene_model):
+    if not (args.output_prefix and args.input_file and args.ref_gene_model):
         parser.print_help()
         sys.exit(0)
-    if not os.path.exists(options.ref_gene_model):
-        print("\n\n" + options.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
+    if not os.path.exists(args.ref_gene_model):
+        print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(0)
-    if os.path.exists(options.input_file):
-        obj = SAM.ParseBAM(options.input_file)
+    if os.path.exists(args.input_file):
+        obj = SAM.ParseBAM(args.input_file)
         obj.annotate_junction(
-            outfile=options.output_prefix,
-            refgene=options.ref_gene_model,
-            min_intron=options.min_intron,
-            q_cut=options.map_qual,
+            outfile=args.output_prefix,
+            refgene=args.ref_gene_model,
+            min_intron=args.min_intron,
+            q_cut=args.map_qual,
         )
         try:
-            subprocess.call("Rscript " + options.output_prefix + ".junction_plot.r", shell=True)
+            subprocess.call("Rscript " + args.output_prefix + ".junction_plot.r", shell=True)
         except Exception:
             print("Cannot generate pdf file from " + ".junction_plot.r", file=sys.stderr)
             pass
     else:
-        print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)
+        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(0)
     try:
         print("Create BED file ...", file=sys.stderr)
-        generate_bed12(options.output_prefix + ".junction.xls")
+        generate_bed12(args.output_prefix + ".junction.xls")
     except Exception:
         pass
     try:
         print("Create Interact file ...", file=sys.stderr)
-        generate_interact(options.output_prefix + ".junction.xls", options.input_file)
+        generate_interact(args.output_prefix + ".junction.xls", args.input_file)
     except Exception:
         pass
 

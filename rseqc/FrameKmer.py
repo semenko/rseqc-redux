@@ -35,9 +35,9 @@ def seq_generator(fastafile: str) -> Generator[list[str], None, None]:
     yield [name, tmpseq]
 
 
-def all_possible_kmer(l: int) -> Generator[str, None, None]:
-    """return all possible combinations of A,C,G,T,N. only support A,C,G,T,N. l is length of kmer"""
-    for i in itertools.product(["A", "C", "G", "T", "N"], repeat=l):
+def all_possible_kmer(length: int) -> Generator[str, None, None]:
+    """return all possible combinations of A,C,G,T,N. only support A,C,G,T,N. length is length of kmer"""
+    for i in itertools.product(["A", "C", "G", "T", "N"], repeat=length):
         yield "".join(i)
 
 

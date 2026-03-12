@@ -14,11 +14,11 @@ This program generates *exactly* the same FPKM and FPKM-UQ values as TCGA, if:
 
 """
 
+import argparse
 import os
 import shutil
 import subprocess
 import sys
-from optparse import OptionParser
 from time import strftime
 
 import numpy as np
@@ -109,11 +109,11 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
     gene_sizes = {}  # mRNA size for all genes
     gene_infor = {}
     protein_coding = set()  # list of protein coding genes
-    for l in open(infor_file):
-        l = l.strip()
-        if l.startswith("gene_id"):
+    for line in open(infor_file):
+        line = line.strip()
+        if line.startswith("gene_id"):
             continue
-        f = l.split()
+        f = line.split()
         gene_sizes[f[0]] = int(f[10])
         gene_infor[f[0]] = "\t".join(f[1:6])
         if f[6] == "protein_coding":
@@ -124,11 +124,11 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
 
     printlog("Read gene count file to calculate 75 percentile count and total count: %s" % count_file)
     gene_counts = []
-    for l in open(count_file):
-        l = l.strip()
-        if l.startswith("__"):
+    for line in open(count_file):
+        line = line.strip()
+        if line.startswith("__"):
             continue
-        f = l.split()
+        f = line.split()
         gene_id = f[0]
         if gene_id not in protein_coding:
             continue
@@ -164,11 +164,11 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
             file=FPKM_OUT,
         )
     print("Read gene count file to calculate FPKM and FPKM-UQ: %s" % count_file, file=sys.stderr)
-    for l in open(count_file):
-        l = l.strip()
-        if l.startswith("__"):
+    for line in open(count_file):
+        line = line.strip()
+        if line.startswith("__"):
             continue
-        f = l.split()
+        f = line.split()
         gene = f[0]
         count = int(f[1])
         if gene in gene_sizes:
@@ -196,57 +196,51 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
 
 def main():
 
-    usage = "%prog [options]" + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "--bam",
-        action="store",
-        type="string",
         dest="bam_file",
         help="Alignment file in BAM format. BAM file shoul be sorted and indexed. Ideally, the BAM file should generaet from the TCGA RNA-seq analysis workflow described here https://docs.gdc.cancer.gov/Data/Bioinformatics_Pipelines/Expression_mRNA_Pipeline/.",
     )
-    parser.add_option("--gtf", action="store", type="string", dest="GTF_file", help="Gene model in GTF format.")
-    parser.add_option(
-        "--info", action="store", type="string", dest="infor_file", default=5, help="Gene model information file."
-    )
-    parser.add_option(
-        "-o", "--output", action="store", type="string", dest="out_file", help="The prefix of the output file."
-    )
-    parser.add_option(
+    parser.add_argument("--gtf", dest="GTF_file", help="Gene model in GTF format.")
+    parser.add_argument("--info", dest="infor_file", default=5, help="Gene model information file.")
+    parser.add_argument("-o", "--output", dest="out_file", help="The prefix of the output file.")
+    parser.add_argument(
         "--log2",
         action="store_true",
         dest="log_scale",
         default=False,
         help="Convert FPKM and FPKM-UQ values into log2 (x+1) scale. A pseudo count 1 will be added to each gene/transcript.",
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.bam_file):
+    if not (args.bam_file):
         print(__doc__)
         parser.print_help()
         sys.exit(101)
-    (options, args) = parser.parse_args()
-    if not (options.GTF_file):
+    args = parser.parse_args()
+    if not (args.GTF_file):
         print(__doc__)
         parser.print_help()
         sys.exit(102)
-    (options, args) = parser.parse_args()
-    if not (options.infor_file):
+    args = parser.parse_args()
+    if not (args.infor_file):
         print(__doc__)
         parser.print_help()
         sys.exit(102)
     printlog("Running htseq-count ...")
-    run_HTseq(bam_file=options.bam_file, gtf_file=options.GTF_file, out_file=options.out_file + ".htseq.counts.txt")
+    run_HTseq(bam_file=args.bam_file, gtf_file=args.GTF_file, out_file=args.out_file + ".htseq.counts.txt")
 
-    if options.log_scale:
+    if args.log_scale:
         printlog("Calculate log2(FPKM + 1) and log2(FPKM-UQ + 1) ...")
     else:
         printlog("Calculate FPKM and FPKM-UQ ...")
     cal_fpkm(
-        count_file=(options.out_file + ".htseq.counts.txt"),
-        infor_file=options.infor_file,
-        out_file=options.out_file + ".FPKM-UQ.txt",
-        log2_flag=options.log_scale,
+        count_file=(args.out_file + ".htseq.counts.txt"),
+        infor_file=args.infor_file,
+        out_file=args.out_file + ".FPKM-UQ.txt",
+        log2_flag=args.log_scale,
     )
 
 

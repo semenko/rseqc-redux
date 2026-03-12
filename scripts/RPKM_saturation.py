@@ -20,10 +20,10 @@ if sys.version_info[0] != 3:
     sys.exit()
 
 
+import argparse
 import collections
 import operator
 import subprocess
-from optparse import OptionParser
 from time import strftime
 
 import numpy as np
@@ -117,126 +117,113 @@ def show_saturation(infile, outfile, rpkm_cut=0.01):
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Alignment file in BAM or SAM format. [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-o",
         "--out-prefix",
-        action="store",
-        type="string",
         dest="output_prefix",
         help="Prefix of output files(s). [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--refgene",
-        action="store",
-        type="string",
         dest="refgene_bed",
         help="Reference gene model in bed fomat. [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-d",
         "--strand",
-        action="store",
-        type="string",
         dest="strand_rule",
         default=None,
-        help="How read(s) were stranded during sequencing. For example: --strand='1++,1--,2+-,2-+' means that this is a pair-end, strand-specific RNA-seq, and the strand rule is: read1 mapped to '+' => parental gene on '+'; read1 mapped to '-' => parental gene on '-'; read2 mapped to '+' => parental gene on '-'; read2 mapped to '-' => parental gene on '+'.  If you are not sure about the strand rule, run 'infer_experiment.py' default=%default (Not a strand specific RNA-seq data)",
+        help="How read(s) were stranded during sequencing. For example: --strand='1++,1--,2+-,2-+' means that this is a pair-end, strand-specific RNA-seq, and the strand rule is: read1 mapped to '+' => parental gene on '+'; read1 mapped to '-' => parental gene on '-'; read2 mapped to '+' => parental gene on '-'; read2 mapped to '-' => parental gene on '+'.  If you are not sure about the strand rule, run 'infer_experiment.py' default=%(default)s (Not a strand specific RNA-seq data)",
     )
-    parser.add_option(
+    parser.add_argument(
         "-l",
         "--percentile-floor",
-        action="store",
-        type="int",
+        type=int,
         dest="percentile_low_bound",
         default=5,
-        help="Sampling starts from this percentile. A integer between 0 and 100. default=%default",
+        help="Sampling starts from this percentile. A integer between 0 and 100. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-u",
         "--percentile-ceiling",
-        action="store",
-        type="int",
+        type=int,
         dest="percentile_up_bound",
         default=100,
-        help="Sampling ends at this percentile. A integer between 0 and 100. default=%default",
+        help="Sampling ends at this percentile. A integer between 0 and 100. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-s",
         "--percentile-step",
-        action="store",
-        type="int",
+        type=int,
         dest="percentile_step",
         default=5,
-        help="Sampling frequency. Smaller value means more sampling times. A integer between 0 and 100. default=%default",
+        help="Sampling frequency. Smaller value means more sampling times. A integer between 0 and 100. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-c",
         "--rpkm-cutoff",
-        action="store",
-        type="float",
+        type=float,
         dest="rpkm_cutoff",
         default=0.01,
-        help="Transcripts with RPKM smaller than this number will be ignored in visualization plot. default=%default",
+        help="Transcripts with RPKM smaller than this number will be ignored in visualization plot. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-q",
         "--mapq",
-        action="store",
-        type="int",
+        type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%default',
+        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%(default)s',
     )
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.output_prefix and options.input_file):
+    if not (args.output_prefix and args.input_file):
         parser.print_help()
         sys.exit(0)
-    if options.percentile_low_bound < 0 or options.percentile_low_bound > 100:
+    if args.percentile_low_bound < 0 or args.percentile_low_bound > 100:
         print("percentile_low_bound must be larger than 0 and samller than 100", file=sys.stderr)
         sys.exit(0)
-    if options.percentile_up_bound < 0 or options.percentile_up_bound > 100:
+    if args.percentile_up_bound < 0 or args.percentile_up_bound > 100:
         print("percentile_up_bound must be larger than 0 and samller than 100", file=sys.stderr)
         sys.exit(0)
-    if options.percentile_up_bound < options.percentile_low_bound:
+    if args.percentile_up_bound < args.percentile_low_bound:
         print("percentile_up_bound must be larger than percentile_low_bound", file=sys.stderr)
         sys.exit(0)
-    if options.percentile_step < 0 or options.percentile_step > options.percentile_up_bound:
+    if args.percentile_step < 0 or args.percentile_step > args.percentile_up_bound:
         print("percentile_step must be larger than 0 and samller than percentile_up_bound", file=sys.stderr)
         sys.exit(0)
-    if os.path.exists(options.input_file):
-        obj = SAM.ParseBAM(options.input_file)
+    if os.path.exists(args.input_file):
+        obj = SAM.ParseBAM(args.input_file)
         obj.saturation_RPKM(
-            outfile=options.output_prefix,
-            refbed=options.refgene_bed,
-            sample_start=options.percentile_low_bound,
-            sample_end=options.percentile_up_bound,
-            sample_step=options.percentile_step,
-            strand_rule=options.strand_rule,
-            q_cut=options.map_qual,
+            outfile=args.output_prefix,
+            refbed=args.refgene_bed,
+            sample_start=args.percentile_low_bound,
+            sample_end=args.percentile_up_bound,
+            sample_step=args.percentile_step,
+            strand_rule=args.strand_rule,
+            q_cut=args.map_qual,
         )
         show_saturation(
-            infile=options.output_prefix + ".eRPKM.xls",
-            outfile=options.output_prefix + ".saturation.r",
-            rpkm_cut=options.rpkm_cutoff,
+            infile=args.output_prefix + ".eRPKM.xls",
+            outfile=args.output_prefix + ".saturation.r",
+            rpkm_cut=args.rpkm_cutoff,
         )
         try:
-            subprocess.call("Rscript " + options.output_prefix + ".saturation.r", shell=True)
+            subprocess.call("Rscript " + args.output_prefix + ".saturation.r", shell=True)
         except Exception:
             pass
     else:
-        print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)
+        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         # parser.print_help()
         sys.exit(0)
 

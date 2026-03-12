@@ -17,7 +17,7 @@ if sys.version_info[0] != 3:
     )
     sys.exit()
 
-from optparse import OptionParser
+import argparse
 
 import pysam
 from bx.intervals import Intersecter, Interval
@@ -38,10 +38,10 @@ def searchit(exon_range, exon_list):
 def build_bitsets(list):
     """build intevalTree from list"""
     ranges = {}
-    for l in list:
-        chrom = l[0].upper()
-        st = int(l[1])
-        end = int(l[2])
+    for entry in list:
+        chrom = entry[0].upper()
+        st = int(entry[1])
+        end = int(entry[2])
         if chrom not in ranges:
             ranges[chrom] = Intersecter()
         ranges[chrom].add_interval(Interval(st, end))
@@ -49,68 +49,62 @@ def build_bitsets(list):
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Alignment file in BAM or SAM format. BAM file should be sorted and indexed.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--genelist",
-        action="store",
-        type="string",
         dest="gene_list",
         help="Gene list in bed foramt. All reads hits to exon regions (defined by this gene list) will be saved into one BAM file, the remaining reads will saved into another BAM file.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-o",
         "--out-prefix",
-        action="store",
-        type="string",
         dest="output_prefix",
         help='Prefix of output BAM files. "prefix.in.bam" file contains reads mapped to the gene list specified by "-r", "prefix.ex.bam" contains reads that cannot mapped to gene list. "prefix.junk.bam" contains qcfailed or unmapped reads.',
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.input_file and options.gene_list):
+    if not (args.input_file and args.gene_list):
         parser.print_help()
         sys.exit(0)
-    if not os.path.exists(options.gene_list):
-        print("\n\n" + options.gene_list + " does NOT exists" + "\n", file=sys.stderr)
+    if not os.path.exists(args.gene_list):
+        print("\n\n" + args.gene_list + " does NOT exists" + "\n", file=sys.stderr)
         # parser.print_help()
         sys.exit(0)
-    if not os.path.exists(options.input_file):
-        print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)
+    if not os.path.exists(args.input_file):
+        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(0)
 
     # build bitset for gene list
-    print("reading " + options.gene_list + " ... ", end=" ", file=sys.stderr)
-    obj = BED.ParseBED(options.gene_list)
+    print("reading " + args.gene_list + " ... ", end=" ", file=sys.stderr)
+    obj = BED.ParseBED(args.gene_list)
     exons = obj.getExon()
     exon_ranges = build_bitsets(exons)
     print("Done", file=sys.stderr)
 
-    samfile = pysam.Samfile(options.input_file, "rb")
+    samfile = pysam.Samfile(args.input_file, "rb")
     out1 = pysam.Samfile(
-        options.output_prefix + ".in.bam", "wb", template=samfile
+        args.output_prefix + ".in.bam", "wb", template=samfile
     )  # bam file containing reads hit to exon region
     out2 = pysam.Samfile(
-        options.output_prefix + ".ex.bam", "wb", template=samfile
+        args.output_prefix + ".ex.bam", "wb", template=samfile
     )  # bam file containing reads not hit to exon region
     out3 = pysam.Samfile(
-        options.output_prefix + ".junk.bam", "wb", template=samfile
+        args.output_prefix + ".junk.bam", "wb", template=samfile
     )  # bam file containing reads not hit to exon region
 
     total_alignment = 0
     in_alignment = 0
     ex_alignment = 0
     bad_alignment = 0
-    print("spliting " + options.input_file + " ...", end=" ", file=sys.stderr)
+    print("spliting " + args.input_file + " ...", end=" ", file=sys.stderr)
     try:
         while 1:
             aligned_read = next(samfile)
@@ -164,9 +158,9 @@ def main():
         print("Done", file=sys.stderr)
 
     print("%-55s%d" % ("Total records:", total_alignment))
-    print("%-55s%d" % (options.output_prefix + ".in.bam (Alignments consumed by input gene list):", in_alignment))
-    print("%-55s%d" % (options.output_prefix + ".ex.bam (Alignments not consumed by input gene list):", ex_alignment))
-    print("%-55s%d" % (options.output_prefix + ".junk.bam (qcfailed, unmapped reads):", bad_alignment))
+    print("%-55s%d" % (args.output_prefix + ".in.bam (Alignments consumed by input gene list):", in_alignment))
+    print("%-55s%d" % (args.output_prefix + ".ex.bam (Alignments not consumed by input gene list):", ex_alignment))
+    print("%-55s%d" % (args.output_prefix + ".junk.bam (qcfailed, unmapped reads):", bad_alignment))
 
 
 if __name__ == "__main__":

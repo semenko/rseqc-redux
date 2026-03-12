@@ -23,7 +23,7 @@ if sys.version_info[0] != 3:
     sys.exit()
 
 
-from optparse import OptionParser
+import argparse
 
 from bx.intervals import Intersecter, Interval
 
@@ -33,8 +33,8 @@ from qcmodule import BED, SAM, bam_cigar
 def cal_size(list):
     """calcualte bed list total size"""
     size = 0
-    for l in list:
-        size += l[2] - l[1]
+    for entry in list:
+        size += entry[2] - entry[1]
     return size
 
 
@@ -48,10 +48,10 @@ def foundone(chrom, ranges, st, end):
 def build_bitsets(list):
     """build intevalTree from list"""
     ranges = {}
-    for l in list:
-        chrom = l[0].upper()
-        st = int(l[1])
-        end = int(l[2])
+    for entry in list:
+        chrom = entry[0].upper()
+        st = int(entry[1])
+        end = int(entry[2])
         if chrom not in ranges:
             ranges[chrom] = Intersecter()
         ranges[chrom].add_interval(Interval(st, end))
@@ -171,35 +171,31 @@ def process_gene_model(gene_model):
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Alignment file in BAM or SAM format.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--refgene",
-        action="store",
-        type="string",
         dest="ref_gene_model",
         help="Reference gene model in bed format.",
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.input_file and options.ref_gene_model):
+    if not (args.input_file and args.ref_gene_model):
         parser.print_help()
         sys.exit(0)
-    if not os.path.exists(options.ref_gene_model):
-        print("\n\n" + options.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
+    if not os.path.exists(args.ref_gene_model):
+        print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
         # parser.print_help()
         sys.exit(0)
-    if not os.path.exists(options.input_file):
-        print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)
+    if not os.path.exists(args.input_file):
+        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(0)
 
     # build bitset
@@ -224,7 +220,7 @@ def main():
         intergenic_down1kb_base,
         intergenic_down5kb_base,
         intergenic_down10kb_base,
-    ) = process_gene_model(options.ref_gene_model)
+    ) = process_gene_model(args.ref_gene_model)
 
     intron_read = 0
     cds_exon_read = 0
@@ -241,14 +237,14 @@ def main():
     totalReads = 0
     totalFrags = 0
     unAssignFrags = 0
-    obj = SAM.ParseBAM(options.input_file)
+    obj = SAM.ParseBAM(args.input_file)
 
     R_qc_fail = 0
     R_duplicate = 0
     R_nonprimary = 0
     R_unmap = 0
 
-    print("processing " + options.input_file + " ...", end=" ", file=sys.stderr)
+    print("processing " + args.input_file + " ...", end=" ", file=sys.stderr)
     try:
         while 1:
             aligned_read = next(obj.samfile)

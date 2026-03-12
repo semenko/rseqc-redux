@@ -109,6 +109,14 @@ def test_subtractbed3_no_overlap():
     assert result == [["chr1", 10, 20]]
 
 
+def test_subtractbed3_different_chroms():
+    """Bug #9 regression: subtractBed3 with different chroms should preserve lst1 entries."""
+    lst1 = [["chr1", 10, 20]]
+    lst2 = [["chr2", 10, 20]]
+    result = BED.subtractBed3(lst1, lst2)
+    assert result == [["chr1", 10, 20]]
+
+
 # --- ParseBED class with fixture ---
 
 

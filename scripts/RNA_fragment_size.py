@@ -7,9 +7,9 @@ calculate fragment size for each gene/transcript. For each transcript/gene, it W
 4) stdev of fragment size
 """
 
+import argparse
 import os
 import sys
-from optparse import OptionParser
 
 import pysam
 from numpy import mean, median, std
@@ -27,11 +27,11 @@ if sys.version_info[0] != 3:
 
 
 def overlap_length2(lst1, lst2):
-    l = 0
+    overlap_len = 0
     for x in lst1:
         for y in lst2:
-            l += len(list(range(max(x[0], y[0]), min(x[-1], y[-1]) + 1)))
-    return l
+            overlap_len += len(list(range(max(x[0], y[0]), min(x[-1], y[-1]) + 1)))
+    return overlap_len
 
 
 def fragment_size(bedfile, samfile, qcut=30, ncut=5):
@@ -99,47 +99,43 @@ def fragment_size(bedfile, samfile, qcut=30, ncut=5):
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option("-i", "--input", action="store", type="string", dest="input_file", help="Input BAM file")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument("-i", "--input", dest="input_file", help="Input BAM file")
+    parser.add_argument(
         "-r",
         "--refgene",
-        action="store",
-        type="string",
         dest="refgene_bed",
         help="Reference gene model in BED format. Must be strandard 12-column BED file. [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-q",
         "--mapq",
-        action="store",
-        type="int",
+        type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%default',
+        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%(default)s',
     )
-    parser.add_option(
+    parser.add_argument(
         "-n",
         "--frag-num",
-        action="store",
-        type="int",
+        type=int,
         dest="fragment_num",
         default=3,
-        help="Minimum number of fragment. default=%default",
+        help="Minimum number of fragment. default=%(default)s",
     )
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.input_file and options.refgene_bed):
+    if not (args.input_file and args.refgene_bed):
         parser.print_help()
         sys.exit(0)
-    if not os.path.exists(options.input_file + ".bai"):
+    if not os.path.exists(args.input_file + ".bai"):
         print("cannot find index file of input BAM file", file=sys.stderr)
-        print(options.input_file + ".bai" + " does not exists", file=sys.stderr)
+        print(args.input_file + ".bai" + " does not exists", file=sys.stderr)
         sys.exit(0)
 
-    for file in (options.input_file, options.refgene_bed):
+    for file in (args.input_file, args.refgene_bed):
         if not os.path.exists(file):
             print(file + " does NOT exists" + "\n", file=sys.stderr)
             sys.exit(0)
@@ -152,9 +148,7 @@ def main():
             ]
         )
     )
-    for tmp in fragment_size(
-        options.refgene_bed, pysam.Samfile(options.input_file), options.map_qual, options.fragment_num
-    ):
+    for tmp in fragment_size(args.refgene_bed, pysam.Samfile(args.input_file), args.map_qual, args.fragment_num):
         print(tmp)
 
 

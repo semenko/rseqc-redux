@@ -14,7 +14,7 @@ if sys.version_info[0] != 3:
     )
     sys.exit()
 
-from optparse import OptionParser
+import argparse
 
 import numpy
 import pyBigWig
@@ -23,44 +23,39 @@ from qcmodule import BED, twoList
 
 
 def main():
-    usage = "%prog [options]"
-    parser = OptionParser(usage, version="%prog 5.0.2")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
 
-    parser.add_option("-i", "--bwfile1", action="store", type="string", dest="BigWig_File1", help="One BigWig file.")
-    parser.add_option(
+    parser.add_argument("-i", "--bwfile1", dest="BigWig_File1", help="One BigWig file.")
+    parser.add_argument(
         "-j",
         "--bwfile2",
-        action="store",
-        type="string",
         dest="BigWig_File2",
         help="Another BigWig file. Both BigWig files should use the same reference genome.",
     )
-    parser.add_option(
+    parser.add_argument(
         "-a",
         "--action",
-        action="store",
-        type="string",
         dest="action",
         help='After pairwise align two bigwig files, perform the follow actions (Only select one keyword):"Add" = add signals. "Average" = average signals. "Division"= divide bigwig2 from bigwig1. Add 1 to both bigwig. "Max" = pick the signal that is larger. "Min" = pick the signal that is smaller. "Product" = multiply signals. "Subtract" = subtract signals in 2nd bigwig file from the corresponiding ones in the 1st bigwig file. "geometricMean" = take the geometric mean of signals.',
     )
-    parser.add_option("-o", "--output", action="store", type="string", dest="output_wig", help="Output wig file")
-    parser.add_option(
+    parser.add_argument("-o", "--output", dest="output_wig", help="Output wig file")
+    parser.add_argument(
         "-c",
         "--chunk",
-        action="store",
-        type="int",
+        type=int,
         dest="chunk_size",
         default=100000,
-        help="Chromosome chunk size. Each chomosome will be cut into samll chunks of this size. Decrease chunk size will save more RAM. default=%default (bp)",
+        help="Chromosome chunk size. Each chomosome will be cut into samll chunks of this size. Decrease chunk size will save more RAM. default=%(default)s (bp)",
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.BigWig_File1 and options.BigWig_File2 and options.output_wig):
+    if not (args.BigWig_File1 and args.BigWig_File2 and args.output_wig):
         parser.print_help()
         sys.exit(0)
-    OUT = open(options.output_wig, "w")
-    bw1 = pyBigWig.open(options.BigWig_File1)
-    bw2 = pyBigWig.open(options.BigWig_File2)
+    OUT = open(args.output_wig, "w")
+    bw1 = pyBigWig.open(args.BigWig_File1)
+    bw2 = pyBigWig.open(args.BigWig_File2)
 
     print("Get chromosome sizes from BigWig header ...", file=sys.stderr)
     chrom_sizes = {}
@@ -72,7 +67,7 @@ def main():
     for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
         print("Processing " + chr_name + " ...", file=sys.stderr)
         OUT.write("variableStep chrom=" + chr_name + "\n")
-        for interval in BED.tillingBed(chrName=chr_name, chrSize=chr_size, stepSize=options.chunk_size):
+        for interval in BED.tillingBed(chrName=chr_name, chrSize=chr_size, stepSize=args.chunk_size):
             if (bw1.stats(chr_name, interval[1], interval[2])[0] is None) and (
                 bw2.stats(chr_name, interval[1], interval[2])[0] is None
             ):
@@ -95,7 +90,7 @@ def main():
             bw_signal1 = numpy.nan_to_num(bw_signal1)
             bw_signal2 = numpy.nan_to_num(bw_signal2)
 
-            call_back = getattr(twoList, options.action)
+            call_back = getattr(twoList, args.action)
             for v in call_back(bw_signal1, bw_signal2):
                 coord += 1
                 if v != 0:

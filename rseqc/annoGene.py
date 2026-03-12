@@ -134,12 +134,13 @@ def getExonFromFile2(bedfile):
             exon_start = list(map((lambda x: x + txStart), exon_start))
             exon_end = list(map(int, fields[10].rstrip(",").split(",")))
             exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
-            key = chrom + ":" + txstart + "-" + txEnd + ":" + strand + ":" + geneName  # noqa: F821 — known bugs: txstart/txEnd undefined
+            txEnd = int(fields[2])
+            key = chrom + ":" + str(txStart) + "-" + str(txEnd) + ":" + strand + ":" + geneName
         except Exception:
             print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
             continue
         for st, end in zip(exon_start, exon_end):
-            tmp.append(exon_start, exon_end)
+            tmp.append((st, end))
         ret_dict_full[key] = set(tmp)
         # ret_dict_inner[key] = set(tmp[1:-1])
     return ret_dict_full
@@ -172,7 +173,7 @@ def getUTRExonFromLine(bedline, utr=35):
     exon_end = list(map(int, fields[10].rstrip(",").split(",")))
     exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
 
-    chrom = chromm + ":" + strand  # noqa: F821 — known bug: chromm typo
+    chrom = chrom + ":" + strand
     if utr == 35 or utr == 5:
         for st, end in zip(exon_start, exon_end):
             if st < cdsStart:
@@ -211,7 +212,7 @@ def getCDSExonFromLine(bedline):
     blockSizes = [int(i) for i in f[10].strip(",").split(",")]
     blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
     # grab cdsStart - cdsEnd
-    chrom = chromm + ":" + strand  # noqa: F821 — known bug: chromm typo
+    chrom = chrom + ":" + strand
     for base, offset in zip(blockStarts, blockSizes):
         if (base + offset) < cdsStart:
             continue

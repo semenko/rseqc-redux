@@ -17,8 +17,8 @@ if sys.version_info[0] != 3:
     )
     sys.exit()
 
+import argparse
 import subprocess
-from optparse import OptionParser
 from time import strftime
 
 from qcmodule import SAM
@@ -31,78 +31,71 @@ def printlog(mesg):
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
-        "-i", "--input", action="store", type="string", dest="input_bam", help="Input BAM file. [required]"
-    )
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument("-i", "--input", dest="input_bam", help="Input BAM file. [required]")
+    parser.add_argument(
         "-l",
         "--read-align-length",
-        action="store",
-        type="int",
+        type=int,
         dest="read_alignment_length",
         help='Alignment length of read. It is usually set to the orignial read length. For example, all these cigar strings ("101M", "68M140N33M", "53M1D48M") suggest the read alignment length is 101. [required]',
     )
-    parser.add_option(
+    parser.add_argument(
         "-o",
         "--out-prefix",
-        action="store",
-        type="string",
         dest="output_prefix",
         help="Prefix of output files(s). [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-n",
         "--read-num",
-        action="store",
-        type="int",
+        type=int,
         default=1000000,
         dest="read_number",
-        help="Number of aligned reads with deletions used to calculate the deletion profile. default=%default",
+        help="Number of aligned reads with deletions used to calculate the deletion profile. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-q",
         "--mapq",
-        action="store",
-        type="int",
+        type=int,
         dest="map_qual",
         default=30,
-        help="Minimum mapping quality. default=%default",
+        help="Minimum mapping quality. default=%(default)s",
     )
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.input_bam):
+    if not (args.input_bam):
         parser.print_help()
         sys.exit(0)
-    for f in [options.input_bam]:
+    for f in [args.input_bam]:
         if not os.path.exists(f):
             print("\n\n" + f + " does NOT exists" + "\n", file=sys.stderr)
             parser.print_help()
             sys.exit(0)
 
-    if not (options.output_prefix):
+    if not (args.output_prefix):
         print("\n\n You must specify the output prefix", file=sys.stderr)
         parser.print_help()
         sys.exit(0)
 
-    if not (options.read_alignment_length):
+    if not (args.read_alignment_length):
         print("\n\n You must specify read alignment length. It is usually the read length.", file=sys.stderr)
         parser.print_help()
         sys.exit(0)
 
-    obj = SAM.ParseBAM(options.input_bam)
+    obj = SAM.ParseBAM(args.input_bam)
     obj.deletionProfile(
-        read_length=options.read_alignment_length,
-        read_num=options.read_number,
-        q_cut=options.map_qual,
-        outfile=options.output_prefix,
+        read_length=args.read_alignment_length,
+        read_num=args.read_number,
+        q_cut=args.map_qual,
+        outfile=args.output_prefix,
     )
 
     try:
-        subprocess.call("Rscript " + options.output_prefix + ".deletion_profile.r", shell=True)
+        subprocess.call("Rscript " + args.output_prefix + ".deletion_profile.r", shell=True)
     except Exception:
-        print("Cannot generate pdf file from " + options.output_prefix + ".deletion_profile.r", file=sys.stderr)
+        print("Cannot generate pdf file from " + args.output_prefix + ".deletion_profile.r", file=sys.stderr)
         pass
 
 

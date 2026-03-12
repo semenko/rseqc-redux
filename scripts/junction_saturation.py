@@ -20,8 +20,8 @@ if sys.version_info[0] != 3:
     sys.exit()
 
 
+import argparse
 import subprocess
-from optparse import OptionParser
 from time import strftime
 
 from qcmodule import SAM
@@ -36,123 +36,111 @@ def printlog(mesg):
 
 
 def main():
-    usage = "%prog [options]" + "\n" + __doc__ + "\n"
-    parser = OptionParser(usage, version="%prog 5.0.2")
-    parser.add_option(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--version", action="version", version="5.0.2")
+    parser.add_argument(
         "-i",
         "--input-file",
-        action="store",
-        type="string",
         dest="input_file",
         help="Alignment file in BAM or SAM format.[required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-o",
         "--out-prefix",
-        action="store",
-        type="string",
         dest="output_prefix",
         help="Prefix of output files(s). [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-r",
         "--refgene",
-        action="store",
-        type="string",
         dest="refgene_bed",
         help="Reference gene model in bed fomat. This gene model is used to determine known splicing junctions. [required]",
     )
-    parser.add_option(
+    parser.add_argument(
         "-l",
         "--percentile-floor",
-        action="store",
-        type="int",
+        type=int,
         dest="percentile_low_bound",
         default=5,
-        help="Sampling starts from this percentile. A integer between 0 and 100. default=%default",
+        help="Sampling starts from this percentile. A integer between 0 and 100. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-u",
         "--percentile-ceiling",
-        action="store",
-        type="int",
+        type=int,
         dest="percentile_up_bound",
         default=100,
-        help="Sampling ends at this percentile. A integer between 0 and 100. default=%default",
+        help="Sampling ends at this percentile. A integer between 0 and 100. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-s",
         "--percentile-step",
-        action="store",
-        type="int",
+        type=int,
         dest="percentile_step",
         default=5,
-        help="Sampling frequency. Smaller value means more sampling times. A integer between 0 and 100. default=%default",
+        help="Sampling frequency. Smaller value means more sampling times. A integer between 0 and 100. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-m",
         "--min-intron",
-        action="store",
-        type="int",
+        type=int,
         dest="minimum_intron_size",
         default=50,
-        help="Minimum intron size (bp). default=%default",
+        help="Minimum intron size (bp). default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-v",
         "--min-coverage",
-        action="store",
-        type="int",
+        type=int,
         dest="minimum_splice_read",
         default=1,
-        help="Minimum number of supportting reads to call a junction. default=%default",
+        help="Minimum number of supportting reads to call a junction. default=%(default)s",
     )
-    parser.add_option(
+    parser.add_argument(
         "-q",
         "--mapq",
-        action="store",
-        type="int",
+        type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%default',
+        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%(default)s',
     )
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    if not (options.output_prefix and options.input_file and options.refgene_bed):
+    if not (args.output_prefix and args.input_file and args.refgene_bed):
         parser.print_help()
         sys.exit(0)
-    if options.percentile_low_bound < 0 or options.percentile_low_bound > 100:
+    if args.percentile_low_bound < 0 or args.percentile_low_bound > 100:
         print("percentile_low_bound must be larger than 0 and samller than 100", file=sys.stderr)
         sys.exit(0)
-    if options.percentile_up_bound < 0 or options.percentile_up_bound > 100:
+    if args.percentile_up_bound < 0 or args.percentile_up_bound > 100:
         print("percentile_up_bound must be larger than 0 and samller than 100", file=sys.stderr)
         sys.exit(0)
-    if options.percentile_up_bound < options.percentile_low_bound:
+    if args.percentile_up_bound < args.percentile_low_bound:
         print("percentile_up_bound must be larger than percentile_low_bound", file=sys.stderr)
         sys.exit(0)
-    if options.percentile_step < 0 or options.percentile_step > options.percentile_up_bound:
+    if args.percentile_step < 0 or args.percentile_step > args.percentile_up_bound:
         print("percentile_step must be larger than 0 and samller than percentile_up_bound", file=sys.stderr)
         sys.exit(0)
-    if os.path.exists(options.input_file):
-        obj = SAM.ParseBAM(options.input_file)
+    if os.path.exists(args.input_file):
+        obj = SAM.ParseBAM(args.input_file)
         obj.saturation_junction(
-            outfile=options.output_prefix,
-            refgene=options.refgene_bed,
-            sample_start=options.percentile_low_bound,
-            sample_end=options.percentile_up_bound,
-            sample_step=options.percentile_step,
-            min_intron=options.minimum_intron_size,
-            recur=options.minimum_splice_read,
-            q_cut=options.map_qual,
+            outfile=args.output_prefix,
+            refgene=args.refgene_bed,
+            sample_start=args.percentile_low_bound,
+            sample_end=args.percentile_up_bound,
+            sample_step=args.percentile_step,
+            min_intron=args.minimum_intron_size,
+            recur=args.minimum_splice_read,
+            q_cut=args.map_qual,
         )
         try:
-            subprocess.call("Rscript " + options.output_prefix + ".junctionSaturation_plot.r", shell=True)
+            subprocess.call("Rscript " + args.output_prefix + ".junctionSaturation_plot.r", shell=True)
         except Exception:
             print("Cannot generate pdf file from " + ".junctionSaturation_plot.r", file=sys.stderr)
             pass
     else:
-        print("\n\n" + options.input_file + " does NOT exists" + "\n", file=sys.stderr)
+        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(0)
         # parser.print_help()
 
