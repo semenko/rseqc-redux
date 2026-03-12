@@ -181,3 +181,193 @@ def test_list2longstr_skips_gaps():
 
 def test_list2longstr_insertion():
     assert bam_cigar.list2longstr([(0, 2), (1, 3), (0, 2)]) == "MMIIIMM"
+
+
+# --- Edge cases: CIGAR with only insertions ---
+
+
+def test_fetch_exon_insertion_only():
+    """Insertion-only CIGAR produces no exon bounds."""
+    result = bam_cigar.fetch_exon("chr1", 100, [(1, 10)])
+    assert result == []
+
+
+def test_fetch_exon_hard_clip():
+    """Hard clipping (op 5) falls through to continue."""
+    result = bam_cigar.fetch_exon("chr1", 100, [(5, 3), (0, 10), (5, 3)])
+    assert result == [("chr1", 100, 110)]
+
+
+def test_fetch_intron_with_insertion():
+    """Insertion in intron-containing CIGAR is skipped."""
+    result = bam_cigar.fetch_intron("chr1", 100, [(0, 10), (1, 5), (3, 500), (0, 10)])
+    assert result == [("chr1", 110, 610)]
+
+
+def test_fetch_intron_with_deletion():
+    """Deletion advances position but produces no intron."""
+    result = bam_cigar.fetch_intron("chr1", 100, [(0, 10), (2, 5), (0, 10)])
+    assert result == []
+
+
+def test_fetch_intron_with_soft_clip():
+    """Soft clip does not advance position in intron context."""
+    result = bam_cigar.fetch_intron("chr1", 100, [(4, 5), (0, 10), (3, 500), (0, 10)])
+    assert result == [("chr1", 110, 610)]
+
+
+def test_fetch_intron_hard_clip():
+    """Hard clip (op 5) falls through to continue."""
+    result = bam_cigar.fetch_intron("chr1", 100, [(5, 3), (0, 10), (3, 500), (0, 10)])
+    assert result == [("chr1", 110, 610)]
+
+
+def test_fetch_clip_with_insertion():
+    """Insertion doesn't produce clip bounds."""
+    result = bam_cigar.fetch_clip("chr1", 100, [(1, 5), (0, 10)])
+    assert result == []
+
+
+def test_fetch_clip_with_deletion():
+    """Deletion advances position but no clip."""
+    result = bam_cigar.fetch_clip("chr1", 100, [(0, 10), (2, 3), (4, 5)])
+    assert result == [("chr1", 113, 118)]
+
+
+def test_fetch_clip_with_gap():
+    """Gap (intron) advances position."""
+    result = bam_cigar.fetch_clip("chr1", 100, [(0, 10), (3, 500), (0, 10), (4, 5)])
+    assert result == [("chr1", 620, 625)]
+
+
+def test_fetch_clip_hard_clip():
+    """Hard clip (op 5) falls through."""
+    result = bam_cigar.fetch_clip("chr1", 100, [(5, 3), (4, 5), (0, 10)])
+    assert result == [("chr1", 100, 105)]
+
+
+def test_fetch_deletion_with_insertion():
+    """Insertion doesn't affect deletion detection."""
+    result = bam_cigar.fetch_deletion("chr1", 100, [(0, 10), (1, 5), (2, 3), (0, 10)])
+    assert result == [("chr1", 110, 113)]
+
+
+def test_fetch_deletion_with_gap():
+    """Gap advances position."""
+    result = bam_cigar.fetch_deletion("chr1", 100, [(0, 10), (3, 500), (2, 3), (0, 10)])
+    assert result == [("chr1", 610, 613)]
+
+
+def test_fetch_deletion_with_soft_clip():
+    """Soft clip advances position."""
+    result = bam_cigar.fetch_deletion("chr1", 100, [(4, 5), (0, 10), (2, 3), (0, 10)])
+    assert result == [("chr1", 115, 118)]
+
+
+def test_fetch_deletion_hard_clip():
+    """Hard clip falls through."""
+    result = bam_cigar.fetch_deletion("chr1", 100, [(5, 3), (0, 10), (2, 3)])
+    assert result == [("chr1", 110, 113)]
+
+
+# --- fetch_deletion_range edge cases ---
+
+
+def test_fetch_deletion_range_with_soft_clip():
+    result = bam_cigar.fetch_deletion_range([(4, 5), (0, 10), (2, 3), (0, 10)])
+    assert result == [(15, 3)]
+
+
+def test_fetch_deletion_range_with_insertion():
+    result = bam_cigar.fetch_deletion_range([(0, 10), (1, 5), (2, 3), (0, 10)])
+    assert result == [(15, 3)]
+
+
+def test_fetch_deletion_range_with_gap():
+    """Gap (op 3) is skipped in range calculation."""
+    result = bam_cigar.fetch_deletion_range([(0, 10), (3, 500), (2, 3)])
+    assert result == [(10, 3)]
+
+
+def test_fetch_deletion_range_hard_clip():
+    result = bam_cigar.fetch_deletion_range([(5, 3), (0, 10), (2, 3)])
+    assert result == [(10, 3)]
+
+
+# --- fetch_insertion_range edge cases ---
+
+
+def test_fetch_insertion_range_with_soft_clip():
+    result = bam_cigar.fetch_insertion_range([(4, 5), (0, 10), (1, 3)])
+    assert result == [(15, 3)]
+
+
+def test_fetch_insertion_range_with_deletion():
+    """Deletion (op 2) is skipped."""
+    result = bam_cigar.fetch_insertion_range([(0, 10), (2, 5), (1, 3)])
+    assert result == [(10, 3)]
+
+
+def test_fetch_insertion_range_with_gap():
+    """Gap (op 3) is skipped."""
+    result = bam_cigar.fetch_insertion_range([(0, 10), (3, 500), (1, 3)])
+    assert result == [(10, 3)]
+
+
+def test_fetch_insertion_range_hard_clip():
+    result = bam_cigar.fetch_insertion_range([(5, 3), (0, 10), (1, 3)])
+    assert result == [(10, 3)]
+
+
+# --- fetch_insertion edge cases ---
+
+
+def test_fetch_insertion_with_deletion():
+    result = bam_cigar.fetch_insertion("chr1", 100, [(0, 10), (2, 5), (1, 3), (0, 10)])
+    assert result == [("chr1", 115, 3)]
+
+
+def test_fetch_insertion_with_gap():
+    result = bam_cigar.fetch_insertion("chr1", 100, [(0, 10), (3, 500), (1, 3), (0, 10)])
+    assert result == [("chr1", 610, 3)]
+
+
+def test_fetch_insertion_with_soft_clip():
+    result = bam_cigar.fetch_insertion("chr1", 100, [(4, 5), (0, 10), (1, 3)])
+    assert result == [("chr1", 115, 3)]
+
+
+def test_fetch_insertion_hard_clip():
+    result = bam_cigar.fetch_insertion("chr1", 100, [(5, 3), (0, 10), (1, 3)])
+    assert result == [("chr1", 110, 3)]
+
+
+# --- map_bounds edge cases ---
+
+
+def test_map_bounds_empty_cigar():
+    assert bam_cigar.map_bounds(100, []) == (100, 100)
+
+
+def test_map_bounds_hard_clip_only():
+    """Hard clip (op 5) is ignored."""
+    assert bam_cigar.map_bounds(100, [(5, 10)]) == (100, 100)
+
+
+def test_map_bounds_complex():
+    """S+M+I+D+N+M+S — only M/D/N contribute to span."""
+    cigar = [(4, 3), (0, 10), (1, 5), (2, 3), (3, 1000), (0, 10), (4, 3)]
+    assert bam_cigar.map_bounds(100, cigar) == (100, 1123)
+
+
+# --- list2longstr edge cases ---
+
+
+def test_list2longstr_with_equals_and_mismatch():
+    """Op 7 (=) and 8 (X) should be included."""
+    assert bam_cigar.list2longstr([(7, 3), (8, 2)]) == "===XX"
+
+
+def test_list2longstr_deletion_skipped():
+    """Op 2 (D) should be excluded."""
+    assert bam_cigar.list2longstr([(0, 2), (2, 5), (0, 2)]) == "MMMM"

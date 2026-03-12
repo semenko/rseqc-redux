@@ -60,3 +60,47 @@ def test_quantile_all_types():
         result = quantile(x, 0.35, qtype)
         assert isinstance(result, (int, float))
         assert 11.4 <= result <= 75
+
+
+def test_quantile_issorted_true():
+    """Test with issorted=True to skip internal sorting."""
+    x = [1, 2, 3, 4, 5]
+    result = quantile(x, 0.5, issorted=True)
+    assert result == 3
+
+
+def test_quantile_issorted_true_preserves_input():
+    """With issorted=True, function uses x directly (no copy)."""
+    x = [10, 20, 30]
+    result = quantile(x, 0.0, issorted=True)
+    assert result == 10
+
+
+def test_quantile_boundary_low_q():
+    """Test boundary where j < 0, returns y[0]."""
+    # qtype=1: a=0, b=0, c=1, d=0 → g,j = modf(0 + n*q - 1)
+    # With n=3, q=0: modf(0 + 0 - 1) = modf(-1) = (0.0, -1.0), j=-1 < 0 → return y[0]
+    x = [10, 20, 30]
+    result = quantile(x, 0.0, qtype=1)
+    assert result == 10
+
+
+def test_quantile_boundary_high_q():
+    """Test boundary where j >= n, returns y[n-1]."""
+    # qtype=6: a=0, b=1, c=0, d=1 → g,j = modf(0 + (n+1)*q - 1)
+    # With n=2, q=1.0: modf(0 + 3*1.0 - 1) = modf(2.0) = (0.0, 2.0), j=2 >= n=2 → return y[1]
+    x = [10, 20]
+    result = quantile(x, 1.0, qtype=6)
+    assert result == 20
+
+
+def test_quantile_single_element():
+    x = [42]
+    result = quantile(x, 0.5)
+    assert result == 42
+
+
+def test_quantile_all_same():
+    x = [5, 5, 5, 5]
+    for qtype in range(1, 10):
+        assert quantile(x, 0.5, qtype) == 5

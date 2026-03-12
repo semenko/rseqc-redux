@@ -74,3 +74,77 @@ def test_longest_orf_default_codons():
     result = orf.longest_orf("ATGAAATAACCC", "+")
     assert "ATG" in result
     assert len(result) % 3 == 0
+
+
+def test_longest_orf_custom_start_codon():
+    """Custom start codon CTG."""
+    seq = "CTGAAATAACCC"
+    result = orf.longest_orf(seq, "+", sc="CTG", tc="TAA")
+    assert result.startswith("CTG")
+
+
+def test_longest_orf_custom_stop_codon():
+    """Custom stop codon."""
+    seq = "ATGAAAGGGCCC"
+    result = orf.longest_orf(seq, "+", sc="ATG", tc="GGG")
+    assert "ATG" in result
+
+
+def test_longest_orf_empty_seq():
+    result = orf.longest_orf("", "+", sc="ATG", tc="TAA")
+    assert result == ""
+
+
+def test_longest_orf_all_stop_codons():
+    """Test all three stop codons work."""
+    for stop in ["TAA", "TAG", "TGA"]:
+        seq = f"ATG{'A' * 6}{stop}CCC"
+        result = orf.longest_orf(seq, "+", sc="ATG", tc=stop)
+        assert len(result) > 0
+
+
+# --- longest_orf_bed ---
+
+
+def test_longest_orf_bed_plus_strand():
+    """Test longest_orf_bed with a simple single-exon gene on + strand."""
+    seq = "ATGAAATAACCC"
+    # BED12 line: chrom, start, end, name, score, strand, thickStart, thickEnd, rgb, blockCount, blockSizes, blockStarts
+    bedline = "chr1\t100\t112\tgene1\t0\t+\t100\t112\t0\t1\t12,\t0,"
+    result = orf.longest_orf_bed(seq, bedline, sc="ATG", tc="TAA")
+    assert result is not None
+    fields = result.split("\t")
+    assert fields[0] == "chr1"
+    # CDS start and end should be within gene bounds
+    assert int(fields[6]) >= 100
+    assert int(fields[7]) <= 112
+
+
+def test_longest_orf_bed_minus_strand():
+    """Test longest_orf_bed on minus strand."""
+    # reverse complement of ATGAAATAA is TTATTTCAT
+    seq = "TTATTTCAT"
+    bedline = "chr1\t200\t209\tgene2\t0\t-\t200\t209\t0\t1\t9,\t0,"
+    result = orf.longest_orf_bed(seq, bedline, sc="ATG", tc="TAA")
+    assert result is not None
+    fields = result.split("\t")
+    assert fields[5] == "-"
+
+
+def test_longest_orf_bed_no_orf():
+    """No ORF found returns None."""
+    seq = "CCCCCCCCC"
+    bedline = "chr1\t100\t109\tgene1\t0\t+\t100\t109\t0\t1\t9,\t0,"
+    result = orf.longest_orf_bed(seq, bedline, sc="ATG", tc="TAA")
+    assert result is None
+
+
+# --- _reverse_comp edge cases ---
+
+
+def test_reverse_comp_empty():
+    assert orf._reverse_comp("") == ""
+
+
+def test_reverse_comp_all_bases():
+    assert orf._reverse_comp("ACGTX") == "XACGT"

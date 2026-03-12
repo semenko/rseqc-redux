@@ -82,3 +82,51 @@ def test_nopen_url_uses_urllib_request(monkeypatch):
     ireader.nopen("http://example.com/test.txt")
     assert len(called_with) == 1
     assert called_with[0] == "http://example.com/test.txt"
+
+
+def test_nopen_pipe_read():
+    """Pipe command: nopen('|echo hello') should return stdout."""
+    fh = ireader.nopen("|echo hello", "r")
+    output = fh.read()
+    fh.close()
+    assert b"hello" in output
+
+
+def test_nopen_stdin():
+    """nopen('-', 'r') returns sys.stdin."""
+    import sys
+
+    result = ireader.nopen("-", "r")
+    assert result is sys.stdin
+
+
+def test_nopen_stdout():
+    """nopen('-', 'w') returns sys.stdout."""
+    import sys
+
+    result = ireader.nopen("-", "w")
+    assert result is sys.stdout
+
+
+def test_nopen_bz2(tmp_path):
+    """bz2 compressed file."""
+    import bz2
+
+    f = tmp_path / "test.bz2"
+    with bz2.open(str(f), "wb") as bz:
+        bz.write(b"bzipped content\n")
+    fh = ireader.nopen(str(f), "rb")
+    content = fh.read()
+    fh.close()
+    assert b"bzipped content" in content
+
+
+def test_reader_bz2(tmp_path):
+    """reader() with bz2 file."""
+    import bz2
+
+    f = tmp_path / "test.bz2"
+    with bz2.open(str(f), "wb") as bz:
+        bz.write(b"line1\nline2\n")
+    lines = list(ireader.reader(str(f)))
+    assert lines == ["line1", "line2"]

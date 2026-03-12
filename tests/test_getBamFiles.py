@@ -68,3 +68,52 @@ def test_get_bam_files_from_text_file(tmp_path):
     listing.write_text(str(bam) + "\n")
     result = getBamFiles.get_bam_files(str(listing))
     assert len(result) == 1
+
+
+def test_get_bam_files_single_bam(tmp_path):
+    """Single BAM file passed directly."""
+    bam = tmp_path / "test.bam"
+    bam.write_text("data")
+    (tmp_path / "test.bam.bai").write_text("index")
+    result = getBamFiles.get_bam_files(str(bam))
+    assert len(result) == 1
+    assert result[0] == str(bam)
+
+
+def test_get_bam_files_text_file_with_comments(tmp_path):
+    """Text file with comment lines should skip them."""
+    bam = tmp_path / "test.bam"
+    bam.write_text("data")
+    (tmp_path / "test.bam.bai").write_text("index")
+    listing = tmp_path / "bams.txt"
+    listing.write_text(f"# this is a comment\n{bam}\n# another comment\n")
+    result = getBamFiles.get_bam_files(str(listing))
+    assert len(result) == 1
+
+
+def test_get_bam_files_comma_separated(tmp_path):
+    """Comma-separated BAM files."""
+    bam1 = tmp_path / "a.bam"
+    bam1.write_text("data")
+    (tmp_path / "a.bam.bai").write_text("index")
+    bam2 = tmp_path / "b.bam"
+    bam2.write_text("data")
+    (tmp_path / "b.bam.bai").write_text("index")
+    result = getBamFiles.get_bam_files(f"{bam1},{bam2}")
+    assert len(result) == 2
+
+
+def test_get_bam_files_nonexistent():
+    """Non-existent path that isn't a dir, file, or bam."""
+    result = getBamFiles.get_bam_files("/nonexistent/path/to/nothing")
+    assert result == []
+
+
+def test_get_bam_files_printit(tmp_path, capsys):
+    """printit=True should print file paths."""
+    bam = tmp_path / "test.bam"
+    bam.write_text("data")
+    (tmp_path / "test.bam.bai").write_text("index")
+    getBamFiles.get_bam_files(str(bam), printit=True)
+    captured = capsys.readouterr()
+    assert str(bam) in captured.out

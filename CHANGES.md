@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [5.0.3] - 2026-03-12
 
+### Tests
+
+- Expanded unit test coverage from 409 to 503 tests (+94 tests).
+- **bam_cigar.py**: 75% → 100% — 35 edge-case CIGAR tests covering all operation types in every fetch function.
+- **quantile.py**: 84% → 100% — boundary conditions (`j < 0`, `j >= n`), `issorted=True`, single-element input.
+- **twoList.py**: 81% → 100% — `Division`, `Max`, `Min` functions.
+- **fasta.py**: 35% → 91% — `addSeq` duplicate, `countBase`, `cal_entropy`, `revComp` (all seqs), `getUniqSeqs`, `findPattern` (with/without rev comp, specific seqID), `fetchSeq` (from file with BED3/BED6, missing chrom).
+- **FrameKmer.py**: 40% → 98% — `seq_generator`, `kmer_freq_file` (basic, multi-seq, min_count, frame), `kmer_ratio` edge cases (coding-only, noncoding-only, both-zero, missing kmer).
+- **orf.py**: 35% → 83% — `longest_orf_bed` (+/- strand, no ORF), custom codons, `_reverse_comp` edge cases.
+- **getBamFiles.py**: 75% → 93% — single BAM, comment lines, comma-separated input, `printit` flag.
+- **ireader.py**: 79% → 95% — pipe commands, stdin/stdout, bz2 files.
+
 ### Performance
 
 - **bamTowig()**: Replaced per-position `dict` accumulation with numpy array slice operations (`Fwig[start:end] += 1.0`), eliminating the inner Python loop over every base of every exon of every read. ~50-100x faster for large BAM files.

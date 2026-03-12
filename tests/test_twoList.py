@@ -95,3 +95,63 @@ def test_euclidean_distance_basic():
     # sqrt((9+16)/2) = sqrt(12.5)
     expected = (25 / 2) ** 0.5
     assert abs(twoList.euclidean_distance(v1, v2) - expected) < 1e-10
+
+
+# --- Division ---
+
+
+def test_division():
+    v1 = np.array([9.0, 19.0, 29.0])
+    v2 = np.array([4.0, 9.0, 14.0])
+    result = twoList.Division(v1, v2)
+    # (v1+1)/(v2+1) = [10/5, 20/10, 30/15] = [2.0, 2.0, 2.0]
+    np.testing.assert_array_almost_equal(result, [2.0, 2.0, 2.0])
+
+
+def test_division_zeros():
+    v1 = np.array([0.0, 0.0])
+    v2 = np.array([0.0, 0.0])
+    result = twoList.Division(v1, v2)
+    # (0+1)/(0+1) = 1.0
+    np.testing.assert_array_almost_equal(result, [1.0, 1.0])
+
+
+def test_division_length_mismatch():
+    v1 = np.array([1.0, 2.0])
+    v2 = np.array([1.0])
+    with pytest.raises(ValueError):
+        twoList.Division(v1, v2)
+
+
+# --- Max ---
+
+
+def test_max():
+    v1 = np.array([1, 5, 3])
+    v2 = np.array([4, 2, 6])
+    result = list(twoList.Max(v1, v2))
+    assert result == [4, 5, 6]
+
+
+def test_max_equal():
+    v1 = np.array([3, 3])
+    v2 = np.array([3, 3])
+    result = list(twoList.Max(v1, v2))
+    assert result == [3, 3]
+
+
+# --- Min ---
+
+
+def test_min():
+    v1 = np.array([1, 5, 3])
+    v2 = np.array([4, 2, 6])
+    result = list(twoList.Min(v1, v2))
+    assert result == [1, 2, 3]
+
+
+def test_min_equal():
+    v1 = np.array([3, 3])
+    v2 = np.array([3, 3])
+    result = list(twoList.Min(v1, v2))
+    assert result == [3, 3]
