@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from rseqc import SAM
+from rseqc.SAM import _passes_qc
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -531,3 +532,210 @@ def test_parsebam_stat_splice_counts(mini_bam, capsys):
         if "Non-splice reads" in line:
             count = int(line.split()[-1])
             assert count == 7, f"Expected 7 non-spliced reads, got {count}"
+
+
+# ---- Tests for _passes_qc helper (#1) ----
+
+
+class _FakeRead:
+    """Minimal mock of a pysam AlignedSegment for _passes_qc tests."""
+
+    def __init__(
+        self,
+        is_qcfail: bool = False,
+        is_duplicate: bool = False,
+        is_secondary: bool = False,
+        is_unmapped: bool = False,
+        mapq: int = 60,
+    ):
+        self.is_qcfail = is_qcfail
+        self.is_duplicate = is_duplicate
+        self.is_secondary = is_secondary
+        self.is_unmapped = is_unmapped
+        self.mapq = mapq
+
+
+def test_passes_qc_good_read():
+    """A normal high-MAPQ read passes QC."""
+    assert _passes_qc(_FakeRead(), q_cut=30) is True
+
+
+def test_passes_qc_qcfail():
+    assert _passes_qc(_FakeRead(is_qcfail=True), q_cut=30) is False
+
+
+def test_passes_qc_duplicate():
+    assert _passes_qc(_FakeRead(is_duplicate=True), q_cut=30) is False
+
+
+def test_passes_qc_secondary():
+    assert _passes_qc(_FakeRead(is_secondary=True), q_cut=30) is False
+
+
+def test_passes_qc_unmapped():
+    assert _passes_qc(_FakeRead(is_unmapped=True), q_cut=30) is False
+
+
+def test_passes_qc_low_mapq():
+    assert _passes_qc(_FakeRead(mapq=2), q_cut=30) is False
+
+
+def test_passes_qc_mapq_at_cutoff():
+    """MAPQ exactly at cutoff should pass (>=, not >)."""
+    assert _passes_qc(_FakeRead(mapq=30), q_cut=30) is True
+
+
+def test_passes_qc_zero_cutoff():
+    """With q_cut=0, low-MAPQ reads pass."""
+    assert _passes_qc(_FakeRead(mapq=0), q_cut=0) is True
+
+
+# ---- Tests for dead code removal (#13, #14) ----
+
+
+def test_readsNVC_requires_outfile():
+    """readsNVC no longer accepts outfile=None (dead self.fileName path removed)."""
+    import inspect
+
+    sig = inspect.signature(SAM.ParseBAM.readsNVC)
+    param = sig.parameters["outfile"]
+    # Should not have a default value of None
+    assert param.default is inspect.Parameter.empty
+
+
+def test_readGC_requires_outfile():
+    """readGC no longer accepts outfile=None."""
+    import inspect
+
+    sig = inspect.signature(SAM.ParseBAM.readGC)
+    param = sig.parameters["outfile"]
+    assert param.default is inspect.Parameter.empty
+
+
+def test_readDupRate_requires_outfile():
+    """readDupRate no longer accepts outfile=None."""
+    import inspect
+
+    sig = inspect.signature(SAM.ParseBAM.readDupRate)
+    param = sig.parameters["outfile"]
+    assert param.default is inspect.Parameter.empty
+
+
+def test_no_orphaned_regex():
+    """The orphaned re.compile() on line 2000 (original) should be removed (#14)."""
+    source = Path(SAM.__file__).read_text()
+    # The orphaned pattern was: re.compile(r"([0-9]+)([A-Z]+)", re.I)
+    # It should not appear as a standalone statement (the MD_pat assignment is fine)
+    import ast
+
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+            func = node.value.func
+            # Check for bare re.compile() calls (not assigned to anything)
+            if isinstance(func, ast.Attribute) and func.attr == "compile":
+                if isinstance(func.value, ast.Name) and func.value.id == "re":
+                    pytest.fail("Found orphaned re.compile() call (not assigned to variable)")
+
+
+# ---- Test for dead self.f.seek(0) removal (#15) ----
+
+
+def test_no_self_f_seek_comments():
+    """All '# self.f.seek(0)' dead comments should be removed."""
+    source = Path(SAM.__file__).read_text()
+    assert "self.f.seek" not in source
+
+
+# ---- Test for unreachable mismatchProfile debug code removal (#17) ----
+
+
+def test_no_debug_print_in_mismatch_profile():
+    """The unreachable 'if read_base == ref_base: print(aligned_read)' should be gone."""
+    import ast
+
+    source = Path(SAM.__file__).read_text()
+    tree = ast.parse(source)
+    # Find the mismatchProfile method
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "mismatchProfile":
+            # Look for a bare print(aligned_read) call — the debug leftover
+            for child in ast.walk(node):
+                if isinstance(child, ast.Call) and isinstance(child.func, ast.Name):
+                    if child.func.id == "print" and len(child.args) == 1:
+                        arg = child.args[0]
+                        if isinstance(arg, ast.Name) and arg.id == "aligned_read":
+                            pytest.fail("Found debug print(aligned_read) in mismatchProfile")
+
+
+# ---- Test for multi_hit_tags as set (#1 related) ----
+
+
+def test_multi_hit_tags_is_set():
+    """multi_hit_tags should be a set for O(1) lookup."""
+    assert isinstance(SAM.ParseBAM.multi_hit_tags, set)
+
+
+# ---- Test for integer GC keys (#7) ----
+
+
+def test_readGC_integer_keys(mini_bam, tmp_path):
+    """readGC should produce correct output with integer-key optimization."""
+    obj = SAM.ParseBAM(str(mini_bam))
+    outprefix = str(tmp_path / "gc_test")
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    try:
+        obj.readGC(outfile=outprefix, q_cut=0)
+    finally:
+        sys.stderr = old_stderr
+    xls_file = Path(outprefix + ".GC.xls")
+    content = xls_file.read_text()
+    # All reads are "AAA..." so GC% should be 0.00
+    assert "0.00" in content
+    # R script should have valid numeric values
+    r_file = Path(outprefix + ".GC_plot.r")
+    r_content = r_file.read_text()
+    assert "gc=rep(c(" in r_content
+    assert "hist(gc" in r_content
+
+
+# ---- Test for str.join position keys (#8) ----
+
+
+def test_readDupRate_position_keys(mini_bam, tmp_path):
+    """readDupRate with str.join key building should produce same output format."""
+    obj = SAM.ParseBAM(str(mini_bam))
+    outprefix = str(tmp_path / "dup_test")
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    try:
+        obj.readDupRate(q_cut=0, outfile=outprefix)
+    finally:
+        sys.stderr = old_stderr
+    pos_file = Path(outprefix + ".pos.DupRate.xls")
+    content = pos_file.read_text()
+    assert "Occurrence" in content
+    # Should have at least one data line
+    lines = [ln for ln in content.strip().split("\n") if not ln.startswith("Occurrence")]
+    assert len(lines) >= 1
+
+
+# ---- Test for deletionProfile inlined is_reverse (#18) ----
+
+
+def test_deletion_profile_no_strand_variable():
+    """deletionProfile should use is_reverse directly, not a strand string variable."""
+    import ast
+
+    source = Path(SAM.__file__).read_text()
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "deletionProfile":
+            # Check that 'strand' is not assigned as a string in this method
+            for child in ast.walk(node):
+                if isinstance(child, ast.Assign):
+                    for target in child.targets:
+                        if isinstance(target, ast.Name) and target.id == "strand":
+                            if isinstance(child.value, ast.Constant) and child.value.value in ("+", "-"):
+                                pytest.fail("deletionProfile still uses strand string variable")
