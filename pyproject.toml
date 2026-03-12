@@ -136,9 +136,7 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
-ignore = [
-    "E501",   # line-too-long — reformatting legacy lines risks breaking string literals
-]
+ignore = []
 
 [tool.mypy]
 python_version = "3.10"

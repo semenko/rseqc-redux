@@ -41,7 +41,10 @@ def main():
         "-r",
         "--refgene",
         dest="refgene_bed",
-        help="Reference gene model in bed fomat. This gene model is used to determine known splicing junctions. [required]",
+        help=(
+            "Reference gene model in bed format. This gene model is"
+            " used to determine known splicing junctions. [required]"
+        ),
     )
     parser.add_argument(
         "-l",
@@ -65,7 +68,11 @@ def main():
         type=int,
         dest="percentile_step",
         default=5,
-        help="Sampling frequency. Smaller value means more sampling times. A integer between 0 and 100. default=%(default)s",
+        help=(
+            "Sampling frequency. Smaller value means more sampling"
+            " times. A integer between 0 and 100."
+            " default=%(default)s"
+        ),
     )
     parser.add_argument(
         "-m",
@@ -89,7 +96,10 @@ def main():
         type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%(default)s',
+        help=(
+            "Minimum mapping quality (phred scaled) for an alignment"
+            ' to be called "uniquely mapped". default=%(default)s'
+        ),
     )
 
     args = parser.parse_args()

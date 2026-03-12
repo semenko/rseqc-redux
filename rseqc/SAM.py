@@ -13,6 +13,18 @@ from bx.intervals import Intersecter, Interval
 from rseqc import BED, bam_cigar, mystat
 
 
+def _pysam_iter(samfile):
+    """Iterate over pysam AlignmentFile, handling the ValueError bug on Python 3.13+.
+
+    pysam raises ValueError ("Firing event 10 with no exception set") instead of
+    StopIteration when a BAM iterator is exhausted under coverage instrumentation
+    or certain CPython builds (PEP 745). This wrapper catches both."""
+    try:
+        yield from samfile
+    except ValueError:
+        return
+
+
 class ParseBAM:
     """This class provides fuctions to parsing/processing/transforming SAM or BAM files. The input
     file could be either SAM or BAM format file"""
@@ -59,51 +71,47 @@ class ParseBAM:
         else:
             print("Load SAM file ... ", end=" ", file=sys.stderr)
 
-        try:
-            while 1:
-                aligned_read = next(self.samfile)
-                R_total += 1
-                if aligned_read.is_qcfail:  # skip QC fail read
-                    R_qc_fail += 1
-                    continue
-                if aligned_read.is_duplicate:  # skip duplicate read
-                    R_duplicate += 1
-                    continue
-                if aligned_read.is_secondary:  # skip non primary hit
-                    R_nonprimary += 1
-                    continue
-                if aligned_read.is_unmapped:  # skip unmap read
-                    R_unmap += 1
-                    continue
+        for aligned_read in _pysam_iter(self.samfile):
+            R_total += 1
+            if aligned_read.is_qcfail:  # skip QC fail read
+                R_qc_fail += 1
+                continue
+            if aligned_read.is_duplicate:  # skip duplicate read
+                R_duplicate += 1
+                continue
+            if aligned_read.is_secondary:  # skip non primary hit
+                R_nonprimary += 1
+                continue
+            if aligned_read.is_unmapped:  # skip unmap read
+                R_unmap += 1
+                continue
 
-                if aligned_read.mapq < q_cut:
-                    R_multipleHit += 1
-                    continue  # skip multiple map read
-                if aligned_read.mapq >= q_cut:
-                    R_uniqHit += 1
+            if aligned_read.mapq < q_cut:
+                R_multipleHit += 1
+                continue  # skip multiple map read
+            if aligned_read.mapq >= q_cut:
+                R_uniqHit += 1
 
-                    if aligned_read.is_read1:
-                        R_read1 += 1
-                    if aligned_read.is_read2:
-                        R_read2 += 1
-                    if aligned_read.is_reverse:
-                        R_reverse += 1
-                    else:
-                        R_forward += 1
-                    introns = bam_cigar.fetch_intron("chr1", aligned_read.pos, aligned_read.cigar)
-                    if len(introns) == 0:
-                        R_nonSplice += 1
-                    if len(introns) >= 1:
-                        R_splice += 1
-                    if aligned_read.is_proper_pair:
-                        R_properPair += 1
-                        R_read1_ref = self.samfile.getrname(aligned_read.tid)
-                        R_read2_ref = self.samfile.getrname(aligned_read.rnext)
-                        if R_read1_ref != R_read2_ref:
-                            R_pair_diff_chrom += 1
-
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+                if aligned_read.is_read1:
+                    R_read1 += 1
+                if aligned_read.is_read2:
+                    R_read2 += 1
+                if aligned_read.is_reverse:
+                    R_reverse += 1
+                else:
+                    R_forward += 1
+                introns = bam_cigar.fetch_intron("chr1", aligned_read.pos, aligned_read.cigar)
+                if len(introns) == 0:
+                    R_nonSplice += 1
+                if len(introns) >= 1:
+                    R_splice += 1
+                if aligned_read.is_proper_pair:
+                    R_properPair += 1
+                    R_read1_ref = self.samfile.getrname(aligned_read.tid)
+                    R_read2_ref = self.samfile.getrname(aligned_read.rnext)
+                    if R_read1_ref != R_read2_ref:
+                        R_pair_diff_chrom += 1
+        print("Done", file=sys.stderr)
 
         print("\n#==================================================", file=sys.stdout)
         print("#All numbers are READ count", file=sys.stdout)
@@ -162,58 +170,54 @@ class ParseBAM:
         # read SAM/BAM file
         # current_pos = self.samfile.tell()
         print("Loading SAM/BAM file ... ", end=" ", file=sys.stderr)
-        try:
-            while 1:
-                if count >= sample_size:
-                    break
-                aligned_read = next(self.samfile)
-                if aligned_read.is_qcfail:  # skip low quanlity
-                    continue
-                if aligned_read.is_duplicate:  # skip duplicate read
-                    continue
-                if aligned_read.is_secondary:  # skip non primary hit
-                    continue
-                if aligned_read.is_unmapped:  # skip unmap read
-                    continue
-                if aligned_read.mapq < q_cut:
-                    continue
+        for aligned_read in _pysam_iter(self.samfile):
+            if count >= sample_size:
+                break
+            if aligned_read.is_qcfail:  # skip low quanlity
+                continue
+            if aligned_read.is_duplicate:  # skip duplicate read
+                continue
+            if aligned_read.is_secondary:  # skip non primary hit
+                continue
+            if aligned_read.is_unmapped:  # skip unmap read
+                continue
+            if aligned_read.mapq < q_cut:
+                continue
 
-                chrom = self.samfile.getrname(aligned_read.tid)
-                if aligned_read.is_paired:
-                    if aligned_read.is_read1:
-                        read_id = "1"
-                    if aligned_read.is_read2:
-                        read_id = "2"
-                    if aligned_read.is_reverse:
-                        map_strand = "-"
-                    else:
-                        map_strand = "+"
-                    readStart = aligned_read.pos
-                    readEnd = readStart + aligned_read.qlen
-                    if chrom in gene_ranges:
-                        tmp = set(gene_ranges[chrom].find(readStart, readEnd))
-                        if len(tmp) == 0:
-                            continue
-                        strand_from_gene = ":".join(tmp)
-                        p_strandness[read_id + map_strand + strand_from_gene] += 1
-                        count += 1
+            chrom = self.samfile.getrname(aligned_read.tid)
+            if aligned_read.is_paired:
+                if aligned_read.is_read1:
+                    read_id = "1"
+                if aligned_read.is_read2:
+                    read_id = "2"
+                if aligned_read.is_reverse:
+                    map_strand = "-"
                 else:
-                    if aligned_read.is_reverse:
-                        map_strand = "-"
-                    else:
-                        map_strand = "+"
-                    readStart = aligned_read.pos
-                    readEnd = readStart + aligned_read.qlen
-                    if chrom in gene_ranges:
-                        tmp = set(gene_ranges[chrom].find(readStart, readEnd))
-                        if len(tmp) == 0:
-                            continue
-                        strand_from_gene = ":".join(tmp)
-                        s_strandness[map_strand + strand_from_gene] += 1
-                        count += 1
-
-        except (StopIteration, ValueError):
-            print("Finished", file=sys.stderr)
+                    map_strand = "+"
+                readStart = aligned_read.pos
+                readEnd = readStart + aligned_read.qlen
+                if chrom in gene_ranges:
+                    tmp = set(gene_ranges[chrom].find(readStart, readEnd))
+                    if len(tmp) == 0:
+                        continue
+                    strand_from_gene = ":".join(tmp)
+                    p_strandness[read_id + map_strand + strand_from_gene] += 1
+                    count += 1
+            else:
+                if aligned_read.is_reverse:
+                    map_strand = "-"
+                else:
+                    map_strand = "+"
+                readStart = aligned_read.pos
+                readEnd = readStart + aligned_read.qlen
+                if chrom in gene_ranges:
+                    tmp = set(gene_ranges[chrom].find(readStart, readEnd))
+                    if len(tmp) == 0:
+                        continue
+                    strand_from_gene = ":".join(tmp)
+                    s_strandness[map_strand + strand_from_gene] += 1
+                    count += 1
+        print("Finished", file=sys.stderr)
 
         print("Total " + str(count) + " usable reads were sampled", file=sys.stderr)
         protocol = "unknown"
@@ -287,7 +291,7 @@ class ParseBAM:
             Fwig = collections.defaultdict(int)
             Rwig = collections.defaultdict(int)
             alignedReads = self.samfile.fetch(chr_name, 0, chr_size)
-            for aligned_read in alignedReads:
+            for aligned_read in _pysam_iter(alignedReads):
                 if aligned_read.is_qcfail:
                     continue  # skip low quanlity
                 if aligned_read.is_duplicate:
@@ -386,7 +390,7 @@ class ParseBAM:
             print("Processing " + chr_name + " ...", file=sys.stderr)
 
             alignedReads = self.samfile.fetch(chr_name, 0, chr_size)
-            for aligned_read in alignedReads:
+            for aligned_read in _pysam_iter(alignedReads):
                 flag = 0
                 if aligned_read.is_qcfail:
                     continue  # skip low quanlity
@@ -442,43 +446,39 @@ class ParseBAM:
         read_qual = ""
 
         print("Convert BAM/SAM file into fastq format ... ", end=" ", file=sys.stderr)
-        try:
-            while 1:
-                aligned_read = next(self.samfile)
-                read_name = aligned_read.qname
-                read_seq = aligned_read.seq.upper()
-                read_qual = aligned_read.qual
-                if aligned_read.is_reverse:
-                    read_seq = read_seq.translate(transtab)[::-1]
-                    read_qual = read_qual[::-1]
-                if paired:
-                    if aligned_read.is_read1:
-                        read1_count += 1
-                        if not read_name.endswith("/1"):
-                            print("@" + read_name + "/1", file=OUT1)
-                        else:
-                            print("@" + read_name, file=OUT1)
-                        print(read_seq, file=OUT1)
-                        print("+", file=OUT1)
-                        print(read_qual, file=OUT1)
-                    if aligned_read.is_read2:
-                        read2_count += 1
-                        if not read_name.endswith("/2"):
-                            print("@" + read_name + "/2", file=OUT2)
-                        else:
-                            print("@" + read_name, file=OUT2)
-                        print(read_seq, file=OUT2)
-                        print("+", file=OUT2)
-                        print(read_qual, file=OUT2)
-                else:  # single end
-                    read_count += 1
-                    print("@" + read_name, file=OUT)
-                    print(read_seq, file=OUT)
-                    print("+", file=OUT)
-                    print(read_qual, file=OUT)
-
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+        for aligned_read in _pysam_iter(self.samfile):
+            read_name = aligned_read.qname
+            read_seq = aligned_read.seq.upper()
+            read_qual = aligned_read.qual
+            if aligned_read.is_reverse:
+                read_seq = read_seq.translate(transtab)[::-1]
+                read_qual = read_qual[::-1]
+            if paired:
+                if aligned_read.is_read1:
+                    read1_count += 1
+                    if not read_name.endswith("/1"):
+                        print("@" + read_name + "/1", file=OUT1)
+                    else:
+                        print("@" + read_name, file=OUT1)
+                    print(read_seq, file=OUT1)
+                    print("+", file=OUT1)
+                    print(read_qual, file=OUT1)
+                if aligned_read.is_read2:
+                    read2_count += 1
+                    if not read_name.endswith("/2"):
+                        print("@" + read_name + "/2", file=OUT2)
+                    else:
+                        print("@" + read_name, file=OUT2)
+                    print(read_seq, file=OUT2)
+                    print("+", file=OUT2)
+                    print(read_qual, file=OUT2)
+            else:  # single end
+                read_count += 1
+                print("@" + read_name, file=OUT)
+                print(read_seq, file=OUT)
+                print("+", file=OUT)
+                print(read_qual, file=OUT)
+        print("Done", file=sys.stderr)
         if paired:
             print("read_1 count: %d" % read1_count, file=sys.stderr)
             print("read_2 count: %d" % read2_count, file=sys.stderr)
@@ -528,71 +528,67 @@ class ParseBAM:
             print("Load SAM file ... ", end=" ", file=sys.stderr)
 
         # current_pos = self.samfile.tell()
-        try:
-            while 1:
-                flag = 0
-                aligned_read = next(self.samfile)
-                if aligned_read.is_qcfail:
-                    continue  # skip low quanlity
-                if aligned_read.is_duplicate:
-                    continue  # skip duplicate read
-                if aligned_read.is_secondary:
-                    continue  # skip non primary hit
-                if aligned_read.is_unmapped:
-                    continue  # skip unmap read
+        for aligned_read in _pysam_iter(self.samfile):
+            flag = 0
+            if aligned_read.is_qcfail:
+                continue  # skip low quanlity
+            if aligned_read.is_duplicate:
+                continue  # skip duplicate read
+            if aligned_read.is_secondary:
+                continue  # skip non primary hit
+            if aligned_read.is_unmapped:
+                continue  # skip unmap read
 
-                if len(aligned_read.tags) > 0:  # ( ("NM", 1),("RG", "L1") )
-                    for i in aligned_read.tags:
-                        if i[0] in ParseBAM.multi_hit_tags and i[1] > 1:
-                            flag = 1  # multiple hit read
-                            break
-                if flag == 1:
-                    continue  # skip multiple map read
+            if len(aligned_read.tags) > 0:  # ( ("NM", 1),("RG", "L1") )
+                for i in aligned_read.tags:
+                    if i[0] in ParseBAM.multi_hit_tags and i[1] > 1:
+                        flag = 1  # multiple hit read
+                        break
+            if flag == 1:
+                continue  # skip multiple map read
 
-                uniq_read += 1
+            uniq_read += 1
 
-                if aligned_read.is_paired:
-                    if aligned_read.is_read1:
-                        read_id = "1"
-                    if aligned_read.is_read2:
-                        read_id = "2"
-                else:
-                    read_id = ""
-                if aligned_read.is_reverse:
-                    map_strand = "-"
-                else:
-                    map_strand = "+"
+            if aligned_read.is_paired:
+                if aligned_read.is_read1:
+                    read_id = "1"
+                if aligned_read.is_read2:
+                    read_id = "2"
+            else:
+                read_id = ""
+            if aligned_read.is_reverse:
+                map_strand = "-"
+            else:
+                map_strand = "+"
 
-                strand_key = read_id + map_strand
+            strand_key = read_id + map_strand
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
-                hit_st = aligned_read.pos
-                exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
-                total_tags += len(exon_blocks)
+            chrom = self.samfile.getrname(aligned_read.tid).upper()
+            hit_st = aligned_read.pos
+            exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
+            total_tags += len(exon_blocks)
 
-                # construct bitset
-                if strand_rule is not None:
-                    if strandRule[strand_key] == "+":
-                        for block in exon_blocks:
-                            mid = block[1] + int((block[2] - block[1]) / 2)
-                            if chrom not in plus_ranges:
-                                plus_ranges[chrom] = Intersecter()
-                            plus_ranges[chrom].add_interval(Interval(mid, mid + 1))
-                    elif strandRule[strand_key] == "-":
-                        for block in exon_blocks:
-                            mid = block[1] + int((block[2] - block[1]) / 2)
-                            if chrom not in minus_ranges:
-                                minus_ranges[chrom] = Intersecter()
-                            minus_ranges[chrom].add_interval(Interval(mid, mid + 1))
-                elif strand_rule is None:
+            # construct bitset
+            if strand_rule is not None:
+                if strandRule[strand_key] == "+":
                     for block in exon_blocks:
                         mid = block[1] + int((block[2] - block[1]) / 2)
-                        if chrom not in unstrand_ranges:
-                            unstrand_ranges[chrom] = Intersecter()
-                        unstrand_ranges[chrom].add_interval(Interval(mid, mid + 1))
-
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+                        if chrom not in plus_ranges:
+                            plus_ranges[chrom] = Intersecter()
+                        plus_ranges[chrom].add_interval(Interval(mid, mid + 1))
+                elif strandRule[strand_key] == "-":
+                    for block in exon_blocks:
+                        mid = block[1] + int((block[2] - block[1]) / 2)
+                        if chrom not in minus_ranges:
+                            minus_ranges[chrom] = Intersecter()
+                        minus_ranges[chrom].add_interval(Interval(mid, mid + 1))
+            elif strand_rule is None:
+                for block in exon_blocks:
+                    mid = block[1] + int((block[2] - block[1]) / 2)
+                    if chrom not in unstrand_ranges:
+                        unstrand_ranges[chrom] = Intersecter()
+                    unstrand_ranges[chrom].add_interval(Interval(mid, mid + 1))
+        print("Done", file=sys.stderr)
         print("#Total uniquely mapped reads = " + str(uniq_read), file=RPKM_OUT)
         print("#Total fragments = " + str(total_tags), file=RPKM_OUT)
         print("Assign reads to " + geneFile + "...", end=" ", file=sys.stderr)
@@ -908,22 +904,19 @@ class ParseBAM:
         else:
             print("Read SAM file ... ", end=" ", file=sys.stderr)
 
-        try:
-            while 1:
-                aligned_read = next(self.samfile)
-                if aligned_read.mapq < q_cut:
-                    continue
-                # if aligned_read.is_unmapped:continue   #skip unmapped read
-                # if aligned_read.is_qcfail:continue #skip low quality
+        for aligned_read in _pysam_iter(self.samfile):
+            if aligned_read.mapq < q_cut:
+                continue
+            # if aligned_read.is_unmapped:continue   #skip unmapped read
+            # if aligned_read.is_qcfail:continue #skip low quality
 
-                RNA_read = aligned_read.seq.upper()
-                if aligned_read.is_reverse:
-                    RNA_read = RNA_read.translate(transtab)[::-1]
-                for i, j in enumerate(RNA_read):
-                    key = str(i) + j
-                    base_freq[key] += 1
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+            RNA_read = aligned_read.seq.upper()
+            if aligned_read.is_reverse:
+                RNA_read = RNA_read.translate(transtab)[::-1]
+            for i, j in enumerate(RNA_read):
+                key = str(i) + j
+                base_freq[key] += 1
+        print("Done", file=sys.stderr)
 
         print("generating data matrix ...", file=sys.stderr)
         print("Position\tA\tC\tG\tT\tN\tX", file=FO)
@@ -965,7 +958,9 @@ class ParseBAM:
 
             print('pdf("%s")' % (outfile + ".NVC_plot.pdf"), file=RS)
             print(
-                'plot(position,A_count/total,type="o",pch=20,ylim=c(yn,ym),col="dark green",xlab="Position of Read",ylab="Nucleotide Frequency")',
+                'plot(position,A_count/total,type="o",pch=20,'
+                'ylim=c(yn,ym),col="dark green",'
+                'xlab="Position of Read",ylab="Nucleotide Frequency")',
                 file=RS,
             )
             print('lines(position,T_count/total,type="o",pch=20,col="red")', file=RS)
@@ -976,7 +971,11 @@ class ParseBAM:
             print(
                 "legend("
                 + str(len(RNA_read) - 10)
-                + ',ym,legend=c("A","T","G","C","N","X"),col=c("dark green","red","blue","cyan","black","grey"),lwd=2,pch=20,text.col=c("dark green","red","blue","cyan","black","grey"))',
+                + ",ym,"
+                + 'legend=c("A","T","G","C","N","X"),'
+                + 'col=c("dark green","red","blue","cyan","black","grey"),'
+                + "lwd=2,pch=20,"
+                + 'text.col=c("dark green","red","blue","cyan","black","grey"))',
                 file=RS,
             )
             print("dev.off()", file=RS)
@@ -987,7 +986,9 @@ class ParseBAM:
 
             print('pdf("%s")' % (outfile + ".NVC_plot.pdf"), file=RS)
             print(
-                'plot(position,A_count/total,type="o",pch=20,ylim=c(yn,ym),col="dark green",xlab="Position of Read",ylab="Nucleotide Frequency")',
+                'plot(position,A_count/total,type="o",pch=20,'
+                'ylim=c(yn,ym),col="dark green",'
+                'xlab="Position of Read",ylab="Nucleotide Frequency")',
                 file=RS,
             )
             print('lines(position,T_count/total,type="o",pch=20,col="red")', file=RS)
@@ -996,7 +997,11 @@ class ParseBAM:
             print(
                 "legend("
                 + str(len(RNA_read) - 10)
-                + ',ym,legend=c("A","T","G","C"),col=c("dark green","red","blue","cyan"),lwd=2,pch=20,text.col=c("dark green","red","blue","cyan"))',
+                + ",ym,"
+                + 'legend=c("A","T","G","C"),'
+                + 'col=c("dark green","red","blue","cyan"),'
+                + "lwd=2,pch=20,"
+                + 'text.col=c("dark green","red","blue","cyan"))',
                 file=RS,
             )
             print("dev.off()", file=RS)
@@ -1020,31 +1025,28 @@ class ParseBAM:
         q_min = 10000
         q_list = []
         i_box = {}  # key is read postion,value is
-        try:
-            while 1:
-                aligned_read = next(self.samfile)
-                if aligned_read.mapq < q_cut:
-                    continue
-                # if aligned_read.is_unmapped:continue   #skip unmapped read
-                # if aligned_read.is_qcfail:continue     #skip low quality
+        for aligned_read in _pysam_iter(self.samfile):
+            if aligned_read.mapq < q_cut:
+                continue
+            # if aligned_read.is_unmapped:continue   #skip unmapped read
+            # if aligned_read.is_qcfail:continue     #skip low quality
 
-                qual_str = aligned_read.qqual
-                read_len = aligned_read.rlen
-                if aligned_read.is_reverse:
-                    qual_str = qual_str[::-1]
+            qual_str = aligned_read.qqual
+            read_len = aligned_read.rlen
+            if aligned_read.is_reverse:
+                qual_str = qual_str[::-1]
 
-                for i, j in enumerate(qual_str):
-                    q = ord(j) - 33
-                    if q > q_max:
-                        q_max = q
-                    if q < q_min:
-                        q_min = q
-                    try:
-                        quality[i][q] += 1
-                    except Exception:
-                        quality[i][q] = 1
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+            for i, j in enumerate(qual_str):
+                q = ord(j) - 33
+                if q > q_max:
+                    q_max = q
+                if q < q_min:
+                    q_min = q
+                try:
+                    quality[i][q] += 1
+                except Exception:
+                    quality[i][q] = 1
+        print("Done", file=sys.stderr)
 
         for p in range(0, read_len):
             val = []
@@ -1077,12 +1079,17 @@ class ParseBAM:
         print("qual=c(" + ",".join(q_list) + ")", file=FO)
         print("mat=matrix(qual,ncol=%s,byrow=F)" % (read_len), file=FO)
         print(
-            'Lab.palette <- colorRampPalette(c("blue", "orange", "red3","red2","red1","red"), space = "rgb",interpolate=c(\'spline\'))',
+            "Lab.palette <- colorRampPalette("
+            'c("blue", "orange", "red3","red2","red1","red"), '
+            "space = \"rgb\",interpolate=c('spline'))",
             file=FO,
         )
         print(
-            'heatmap(mat,Rowv=NA,Colv=NA,xlab="Position of Read",ylab="Phred Quality Score",labRow=seq(from=%s,to=%s),col = Lab.palette(256),scale="none" )'
-            % (q_min, q_max),
+            "heatmap(mat,Rowv=NA,Colv=NA,"
+            'xlab="Position of Read",'
+            'ylab="Phred Quality Score",'
+            "labRow=seq(from=%s,to=%s),"
+            'col = Lab.palette(256),scale="none" )' % (q_min, q_max),
             file=FO,
         )
         print("dev.off()", file=FO)
@@ -1105,20 +1112,17 @@ class ParseBAM:
         else:
             print("Read SAM file ... ", end=" ", file=sys.stderr)
 
-        try:
-            while 1:
-                aligned_read = next(self.samfile)
-                if aligned_read.is_unmapped:
-                    continue  # skip unmapped read
-                if aligned_read.is_qcfail:
-                    continue  # skip low quality
-                if aligned_read.mapq < q_cut:
-                    continue
-                RNA_read = aligned_read.seq.upper()
-                gc_percent = "%4.2f" % ((RNA_read.count("C") + RNA_read.count("G")) / (len(RNA_read) + 0.0) * 100)
-                gc_hist[gc_percent] += 1
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+        for aligned_read in _pysam_iter(self.samfile):
+            if aligned_read.is_unmapped:
+                continue  # skip unmapped read
+            if aligned_read.is_qcfail:
+                continue  # skip low quality
+            if aligned_read.mapq < q_cut:
+                continue
+            RNA_read = aligned_read.seq.upper()
+            gc_percent = "%4.2f" % ((RNA_read.count("C") + RNA_read.count("G")) / (len(RNA_read) + 0.0) * 100)
+            gc_hist[gc_percent] += 1
+        print("Done", file=sys.stderr)
 
         print("writing GC content ...", file=sys.stderr)
         print("GC%\tread_count", file=FO)
@@ -1168,29 +1172,25 @@ class ParseBAM:
         else:
             print("Load SAM file ... ", end=" ", file=sys.stderr)
 
-        try:
-            while 1:
-                exon_boundary = ""
-                aligned_read = next(self.samfile)
-                if aligned_read.is_unmapped:
-                    continue  # skip unmapped read
-                if aligned_read.is_qcfail:
-                    continue  # skip low quality
-                if aligned_read.mapq < q_cut:
-                    continue
-                RNA_read = aligned_read.seq.upper()
-                seqDup[RNA_read] += 1  # key is read sequence
+        for aligned_read in _pysam_iter(self.samfile):
+            exon_boundary = ""
+            if aligned_read.is_unmapped:
+                continue  # skip unmapped read
+            if aligned_read.is_qcfail:
+                continue  # skip low quality
+            if aligned_read.mapq < q_cut:
+                continue
+            RNA_read = aligned_read.seq.upper()
+            seqDup[RNA_read] += 1  # key is read sequence
 
-                chrom = self.samfile.getrname(aligned_read.tid)
-                hit_st = aligned_read.pos
-                exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
-                for ex in exon_blocks:
-                    exon_boundary += str(ex[1]) + "-" + str(ex[2]) + ":"
-                key = chrom + ":" + str(hit_st) + ":" + exon_boundary
-                posDup[key] += 1
-
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+            chrom = self.samfile.getrname(aligned_read.tid)
+            hit_st = aligned_read.pos
+            exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
+            for ex in exon_blocks:
+                exon_boundary += str(ex[1]) + "-" + str(ex[2]) + ":"
+            key = chrom + ":" + str(hit_st) + ":" + exon_boundary
+            posDup[key] += 1
+        print("Done", file=sys.stderr)
 
         print("report duplicte rate based on sequence ...", file=sys.stderr)
         print("Occurrence\tUniqReadNumber", file=SEQ)
@@ -1216,8 +1216,10 @@ class ParseBAM:
         print("pos_occ=c(" + ",".join([str(i) for i in sorted(posDup_count.keys())]) + ")", file=RS)
         print("pos_uniqRead=c(" + ",".join([str(posDup_count[i]) for i in sorted(posDup_count.keys())]) + ")", file=RS)
         print(
-            "plot(pos_occ,log10(pos_uniqRead),ylab='Number of Reads (log10)',xlab='Occurrence of read',pch=4,cex=0.8,col='blue',xlim=c(1,%d),yaxt='n')"
-            % up_bound,
+            "plot(pos_occ,log10(pos_uniqRead),"
+            "ylab='Number of Reads (log10)',"
+            "xlab='Occurrence of read',"
+            "pch=4,cex=0.8,col='blue',xlim=c(1,%d),yaxt='n')" % up_bound,
             file=RS,
         )
         print("points(seq_occ,log10(seq_uniqRead),pch=20,cex=0.8,col='red')", file=RS)
@@ -1229,7 +1231,14 @@ class ParseBAM:
         )
         print("axis(side=2,at=0:ym,labels=0:ym)", file=RS)
         print(
-            "axis(side=4,at=c(log10(pos_uniqRead[1]),log10(pos_uniqRead[2]),log10(pos_uniqRead[3]),log10(pos_uniqRead[4])), labels=c(round(pos_uniqRead[1]*100/sum(pos_uniqRead*pos_occ)),round(pos_uniqRead[2]*100/sum(pos_uniqRead*pos_occ)),round(pos_uniqRead[3]*100/sum(pos_uniqRead*pos_occ)),round(pos_uniqRead[4]*100/sum(pos_uniqRead*pos_occ))))",
+            "axis(side=4,"
+            "at=c(log10(pos_uniqRead[1]),log10(pos_uniqRead[2]),"
+            "log10(pos_uniqRead[3]),log10(pos_uniqRead[4])), "
+            "labels=c("
+            "round(pos_uniqRead[1]*100/sum(pos_uniqRead*pos_occ)),"
+            "round(pos_uniqRead[2]*100/sum(pos_uniqRead*pos_occ)),"
+            "round(pos_uniqRead[3]*100/sum(pos_uniqRead*pos_occ)),"
+            "round(pos_uniqRead[4]*100/sum(pos_uniqRead*pos_occ))))",
             file=RS,
         )
         print('mtext(4, text = "Reads %", line = 2)', file=RS)
@@ -1257,29 +1266,26 @@ class ParseBAM:
         if PE is False:
             total_read = 0.0
             soft_clip_profile = collections.defaultdict(int)
-            try:
-                while 1:
-                    aligned_read = next(self.samfile)
-                    if aligned_read.mapq < q_cut:
-                        continue
-                    if aligned_read.is_unmapped:
-                        continue  # skip unmapped read
-                    if aligned_read.is_qcfail:
-                        continue  # skip low quality
+            for aligned_read in _pysam_iter(self.samfile):
+                if aligned_read.mapq < q_cut:
+                    continue
+                if aligned_read.is_unmapped:
+                    continue  # skip unmapped read
+                if aligned_read.is_qcfail:
+                    continue  # skip low quality
 
-                    total_read += 1
-                    cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
+                total_read += 1
+                cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
 
-                    if type not in cigar_str:  # no clipping
-                        continue
-                    if aligned_read.is_reverse:
-                        cigar_str = cigar_str[::-1]
+                if type not in cigar_str:  # no clipping
+                    continue
+                if aligned_read.is_reverse:
+                    cigar_str = cigar_str[::-1]
 
-                    for indx, symbl in enumerate(cigar_str):
-                        if symbl == type:
-                            soft_clip_profile[indx] += 1.0
-            except (StopIteration, ValueError):
-                print("Done", file=sys.stderr)
+                for indx, symbl in enumerate(cigar_str):
+                    if symbl == type:
+                        soft_clip_profile[indx] += 1.0
+            print("Done", file=sys.stderr)
 
             print("Totoal reads used: %d" % int(total_read), file=sys.stderr)
             read_pos = list(range(0, len(cigar_str)))
@@ -1295,7 +1301,11 @@ class ParseBAM:
             print("clip_count=c(%s)" % ",".join([str(i) for i in clip_count]), file=ROUT)
             print("nonclip_count= %d - clip_count" % (total_read), file=ROUT)
             print(
-                'plot(read_pos, nonclip_count*100/(clip_count+nonclip_count),col="blue",main="clipping profile",xlab="Position of read",ylab="Non-clipped %",type="b")',
+                "plot(read_pos, "
+                "nonclip_count*100/(clip_count+nonclip_count),"
+                'col="blue",main="clipping profile",'
+                'xlab="Position of read",'
+                'ylab="Non-clipped %",type="b")',
                 file=ROUT,
             )
             print("dev.off()", file=ROUT)
@@ -1305,38 +1315,35 @@ class ParseBAM:
             total_read2 = 0.0
             r1_soft_clip_profile = collections.defaultdict(int)
             r2_soft_clip_profile = collections.defaultdict(int)
-            try:
-                while 1:
-                    aligned_read = next(self.samfile)
-                    if aligned_read.mapq < q_cut:
-                        continue
-                    if aligned_read.is_unmapped:
-                        continue  # skip unmapped read
-                    if aligned_read.is_qcfail:
-                        continue  # skip low quality
-                    if not aligned_read.is_paired:
-                        continue
-                    if aligned_read.is_read1:
-                        total_read1 += 1
-                    if aligned_read.is_read2:
-                        total_read2 += 1
-                    cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
-                    if aligned_read.is_reverse:
-                        cigar_str = cigar_str[::-1]
+            for aligned_read in _pysam_iter(self.samfile):
+                if aligned_read.mapq < q_cut:
+                    continue
+                if aligned_read.is_unmapped:
+                    continue  # skip unmapped read
+                if aligned_read.is_qcfail:
+                    continue  # skip low quality
+                if not aligned_read.is_paired:
+                    continue
+                if aligned_read.is_read1:
+                    total_read1 += 1
+                if aligned_read.is_read2:
+                    total_read2 += 1
+                cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
+                if aligned_read.is_reverse:
+                    cigar_str = cigar_str[::-1]
 
-                    if type not in cigar_str:  # no clipping
-                        continue
+                if type not in cigar_str:  # no clipping
+                    continue
 
-                    if aligned_read.is_read1:
-                        for indx, symbl in enumerate(cigar_str):
-                            if symbl == type:
-                                r1_soft_clip_profile[indx] += 1.0
-                    if aligned_read.is_read2:
-                        for indx, symbl in enumerate(cigar_str):
-                            if symbl == type:
-                                r2_soft_clip_profile[indx] += 1.0
-            except (StopIteration, ValueError):
-                print("Done", file=sys.stderr)
+                if aligned_read.is_read1:
+                    for indx, symbl in enumerate(cigar_str):
+                        if symbl == type:
+                            r1_soft_clip_profile[indx] += 1.0
+                if aligned_read.is_read2:
+                    for indx, symbl in enumerate(cigar_str):
+                        if symbl == type:
+                            r2_soft_clip_profile[indx] += 1.0
+            print("Done", file=sys.stderr)
 
             read_pos = list(range(0, len(cigar_str)))
             r1_clip_count = []
@@ -1365,7 +1372,11 @@ class ParseBAM:
             print("r1_clip_count=c(%s)" % ",".join([str(i) for i in r1_clip_count]), file=ROUT)
             print("r1_nonclip_count = %d - r1_clip_count" % (total_read1), file=ROUT)
             print(
-                'plot(read_pos, r1_nonclip_count*100/(r1_clip_count + r1_nonclip_count),col="blue",main="clipping profile",xlab="Position of read (read-1)",ylab="Non-clipped %",type="b")',
+                "plot(read_pos, "
+                "r1_nonclip_count*100/(r1_clip_count + r1_nonclip_count),"
+                'col="blue",main="clipping profile",'
+                'xlab="Position of read (read-1)",'
+                'ylab="Non-clipped %",type="b")',
                 file=ROUT,
             )
             print("dev.off()", file=ROUT)
@@ -1375,7 +1386,11 @@ class ParseBAM:
             print("r2_clip_count=c(%s)" % ",".join([str(i) for i in r2_clip_count]), file=ROUT)
             print("r2_nonclip_count = %d - r2_clip_count" % (total_read2), file=ROUT)
             print(
-                'plot(read_pos, r2_nonclip_count*100/(r2_clip_count + r2_nonclip_count),col="blue",main="clipping profile",xlab="Position of read (read-2)",ylab="Non-clipped %",type="b")',
+                "plot(read_pos, "
+                "r2_nonclip_count*100/(r2_clip_count + r2_nonclip_count),"
+                'col="blue",main="clipping profile",'
+                'xlab="Position of read (read-2)",'
+                'ylab="Non-clipped %",type="b")',
                 file=ROUT,
             )
             print("dev.off()", file=ROUT)
@@ -1401,29 +1416,26 @@ class ParseBAM:
         if PE is False:
             total_read = 0.0
             soft_clip_profile = collections.defaultdict(int)
-            try:
-                while 1:
-                    aligned_read = next(self.samfile)
-                    if aligned_read.mapq < q_cut:
-                        continue
-                    if aligned_read.is_unmapped:
-                        continue  # skip unmapped read
-                    if aligned_read.is_qcfail:
-                        continue  # skip low quality
+            for aligned_read in _pysam_iter(self.samfile):
+                if aligned_read.mapq < q_cut:
+                    continue
+                if aligned_read.is_unmapped:
+                    continue  # skip unmapped read
+                if aligned_read.is_qcfail:
+                    continue  # skip low quality
 
-                    total_read += 1
-                    cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
+                total_read += 1
+                cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
 
-                    if type not in cigar_str:  # no insertion
-                        continue
-                    if aligned_read.is_reverse:
-                        cigar_str = cigar_str[::-1]
+                if type not in cigar_str:  # no insertion
+                    continue
+                if aligned_read.is_reverse:
+                    cigar_str = cigar_str[::-1]
 
-                    for indx, symbl in enumerate(cigar_str):
-                        if symbl == type:
-                            soft_clip_profile[indx] += 1.0
-            except (StopIteration, ValueError):
-                print("Done", file=sys.stderr)
+                for indx, symbl in enumerate(cigar_str):
+                    if symbl == type:
+                        soft_clip_profile[indx] += 1.0
+            print("Done", file=sys.stderr)
 
             print("Totoal reads used: %d" % int(total_read), file=sys.stderr)
             read_pos = list(range(0, len(cigar_str)))
@@ -1439,7 +1451,11 @@ class ParseBAM:
             print("insert_count=c(%s)" % ",".join([str(i) for i in clip_count]), file=ROUT)
             print("noninsert_count= %d - insert_count" % (total_read), file=ROUT)
             print(
-                'plot(read_pos, insert_count*100/(insert_count+noninsert_count),col="blue",main="Insertion profile",xlab="Position of read",ylab="Insertion %",type="b")',
+                "plot(read_pos, "
+                "insert_count*100/(insert_count+noninsert_count),"
+                'col="blue",main="Insertion profile",'
+                'xlab="Position of read",'
+                'ylab="Insertion %",type="b")',
                 file=ROUT,
             )
             print("dev.off()", file=ROUT)
@@ -1449,38 +1465,35 @@ class ParseBAM:
             total_read2 = 0.0
             r1_soft_clip_profile = collections.defaultdict(int)
             r2_soft_clip_profile = collections.defaultdict(int)
-            try:
-                while 1:
-                    aligned_read = next(self.samfile)
-                    if aligned_read.mapq < q_cut:
-                        continue
-                    if aligned_read.is_unmapped:
-                        continue  # skip unmapped read
-                    if aligned_read.is_qcfail:
-                        continue  # skip low quality
-                    if not aligned_read.is_paired:
-                        continue
-                    if aligned_read.is_read1:
-                        total_read1 += 1
-                    if aligned_read.is_read2:
-                        total_read2 += 1
-                    cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
-                    if aligned_read.is_reverse:
-                        cigar_str = cigar_str[::-1]
+            for aligned_read in _pysam_iter(self.samfile):
+                if aligned_read.mapq < q_cut:
+                    continue
+                if aligned_read.is_unmapped:
+                    continue  # skip unmapped read
+                if aligned_read.is_qcfail:
+                    continue  # skip low quality
+                if not aligned_read.is_paired:
+                    continue
+                if aligned_read.is_read1:
+                    total_read1 += 1
+                if aligned_read.is_read2:
+                    total_read2 += 1
+                cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
+                if aligned_read.is_reverse:
+                    cigar_str = cigar_str[::-1]
 
-                    if type not in cigar_str:  # no clipping
-                        continue
+                if type not in cigar_str:  # no clipping
+                    continue
 
-                    if aligned_read.is_read1:
-                        for indx, symbl in enumerate(cigar_str):
-                            if symbl == type:
-                                r1_soft_clip_profile[indx] += 1.0
-                    if aligned_read.is_read2:
-                        for indx, symbl in enumerate(cigar_str):
-                            if symbl == type:
-                                r2_soft_clip_profile[indx] += 1.0
-            except (StopIteration, ValueError):
-                print("Done", file=sys.stderr)
+                if aligned_read.is_read1:
+                    for indx, symbl in enumerate(cigar_str):
+                        if symbl == type:
+                            r1_soft_clip_profile[indx] += 1.0
+                if aligned_read.is_read2:
+                    for indx, symbl in enumerate(cigar_str):
+                        if symbl == type:
+                            r2_soft_clip_profile[indx] += 1.0
+            print("Done", file=sys.stderr)
 
             read_pos = list(range(0, len(cigar_str)))
             r1_clip_count = []
@@ -1509,7 +1522,12 @@ class ParseBAM:
             print("r1_insert_count=c(%s)" % ",".join([str(i) for i in r1_clip_count]), file=ROUT)
             print("r1_noninsert_count = %d - r1_insert_count" % (total_read1), file=ROUT)
             print(
-                'plot(read_pos, r1_insert_count*100/(r1_insert_count + r1_noninsert_count),col="blue",main="Insertion profile",xlab="Position of read (read-1)",ylab="Insertion %",type="b")',
+                "plot(read_pos, "
+                "r1_insert_count*100/"
+                "(r1_insert_count + r1_noninsert_count),"
+                'col="blue",main="Insertion profile",'
+                'xlab="Position of read (read-1)",'
+                'ylab="Insertion %",type="b")',
                 file=ROUT,
             )
             print("dev.off()", file=ROUT)
@@ -1519,7 +1537,12 @@ class ParseBAM:
             print("r2_insert_count=c(%s)" % ",".join([str(i) for i in r2_clip_count]), file=ROUT)
             print("r2_noninsert_count = %d - r2_insert_count" % (total_read2), file=ROUT)
             print(
-                'plot(read_pos, r2_insert_count*100/(r2_insert_count + r2_noninsert_count),col="blue",main="Insertion profile",xlab="Position of read (read-2)",ylab="Insertion %",type="b")',
+                "plot(read_pos, "
+                "r2_insert_count*100/"
+                "(r2_insert_count + r2_noninsert_count),"
+                'col="blue",main="Insertion profile",'
+                'xlab="Position of read (read-2)",'
+                'ylab="Insertion %",type="b")',
                 file=ROUT,
             )
             print("dev.off()", file=ROUT)
@@ -1543,30 +1566,27 @@ class ParseBAM:
         else:
             print("Load SAM file ... ", end=" ", file=sys.stderr)
 
-        try:
-            while 1:
-                aligned_read = next(self.samfile)
-                if aligned_read.is_qcfail:
-                    continue  # skip low quanlity
-                if aligned_read.is_duplicate:
-                    continue  # skip duplicate read
-                if aligned_read.is_secondary:
-                    continue  # skip non primary hit
-                if aligned_read.is_unmapped:
-                    continue  # skip unmap read
-                totalReads += 1
+        for aligned_read in _pysam_iter(self.samfile):
+            if aligned_read.is_qcfail:
+                continue  # skip low quanlity
+            if aligned_read.is_duplicate:
+                continue  # skip duplicate read
+            if aligned_read.is_secondary:
+                continue  # skip non primary hit
+            if aligned_read.is_unmapped:
+                continue  # skip unmap read
+            totalReads += 1
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
-                hit_st = aligned_read.pos
-                exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
-                fragment_num += len(exon_blocks)
+            chrom = self.samfile.getrname(aligned_read.tid).upper()
+            hit_st = aligned_read.pos
+            exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
+            fragment_num += len(exon_blocks)
 
-                for exon in exon_blocks:
-                    if chrom not in ranges:
-                        ranges[chrom] = Intersecter()
-                    ranges[chrom].add_interval(Interval(exon[1], exon[2]))
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+            for exon in exon_blocks:
+                if chrom not in ranges:
+                    ranges[chrom] = Intersecter()
+                ranges[chrom].add_interval(Interval(exon[1], exon[2]))
+        print("Done", file=sys.stderr)
 
         print("calculating coverage over gene body ...", file=sys.stderr)
         coverage = collections.defaultdict(int)
@@ -1667,129 +1687,119 @@ class ParseBAM:
         else:
             print("Load SAM file ... ", end=" ", file=sys.stderr)
 
-        try:
-            while 1:
-                if pair_num >= sample_size:
-                    break
-                splice_intron_size = 0
-                aligned_read = next(self.samfile)
-                if aligned_read.is_qcfail:
-                    continue  # skip low quanlity
-                if aligned_read.is_duplicate:
-                    continue  # skip duplicate read
-                if aligned_read.is_secondary:
-                    continue  # skip non primary hit
-                if aligned_read.is_unmapped:
-                    continue  # skip unmap read
-                if not aligned_read.is_paired:
-                    continue  # skip single map read
-                if aligned_read.mate_is_unmapped:
-                    continue  #
-                if aligned_read.mapq < q_cut:
-                    continue
+        for aligned_read in _pysam_iter(self.samfile):
+            if pair_num >= sample_size:
+                break
+            splice_intron_size = 0
+            if aligned_read.is_qcfail:
+                continue  # skip low quanlity
+            if aligned_read.is_duplicate:
+                continue  # skip duplicate read
+            if aligned_read.is_secondary:
+                continue  # skip non primary hit
+            if aligned_read.is_unmapped:
+                continue  # skip unmap read
+            if not aligned_read.is_paired:
+                continue  # skip single map read
+            if aligned_read.mate_is_unmapped:
+                continue  #
+            if aligned_read.mapq < q_cut:
+                continue
 
-                read1_len = aligned_read.qlen
-                read1_start = aligned_read.pos
-                read2_start = aligned_read.mpos  # 0-based, not included
-                if read2_start < read1_start:
-                    continue  # because BAM file is sorted, mate_read is already processed if its coordinate is smaller
-                if read2_start == read1_start and aligned_read.is_read1:
-                    inner_distance = 0
-                    continue
+            read1_len = aligned_read.qlen
+            read1_start = aligned_read.pos
+            read2_start = aligned_read.mpos  # 0-based, not included
+            if read2_start < read1_start:
+                continue  # because BAM file is sorted, mate_read is already processed if its coordinate is smaller
+            if read2_start == read1_start and aligned_read.is_read1:
+                inner_distance = 0
+                continue
 
-                pair_num += 1
+            pair_num += 1
 
-                # check if reads were mapped to diff chromsomes
-                R_read1_ref = self.samfile.getrname(aligned_read.tid)
-                R_read2_ref = self.samfile.getrname(aligned_read.rnext)
-                if R_read1_ref != R_read2_ref:
-                    FO.write(
-                        aligned_read.qname + "\t" + "NA" + "\tsameChrom=No\n"
-                    )  # reads mapped to different chromosomes
-                    continue
+            # check if reads were mapped to diff chromsomes
+            R_read1_ref = self.samfile.getrname(aligned_read.tid)
+            R_read2_ref = self.samfile.getrname(aligned_read.rnext)
+            if R_read1_ref != R_read2_ref:
+                FO.write(aligned_read.qname + "\t" + "NA" + "\tsameChrom=No\n")  # reads mapped to different chromosomes
+                continue
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
-                intron_blocks = bam_cigar.fetch_intron(chrom, read1_start, aligned_read.cigar)
-                for intron in intron_blocks:
-                    splice_intron_size += intron[2] - intron[1]
-                read1_end = read1_start + read1_len + splice_intron_size
+            chrom = self.samfile.getrname(aligned_read.tid).upper()
+            intron_blocks = bam_cigar.fetch_intron(chrom, read1_start, aligned_read.cigar)
+            for intron in intron_blocks:
+                splice_intron_size += intron[2] - intron[1]
+            read1_end = read1_start + read1_len + splice_intron_size
 
-                if read2_start >= read1_end:
-                    inner_distance = read2_start - read1_end
-                else:
-                    exon_positions = []
-                    exon_blocks = bam_cigar.fetch_exon(chrom, read1_start, aligned_read.cigar)
-                    for ex in exon_blocks:
-                        for i in range(ex[1] + 1, ex[2] + 1):
-                            exon_positions.append(i)
-                    inner_distance = -len([i for i in exon_positions if i > read2_start and i <= read1_end])
+            if read2_start >= read1_end:
+                inner_distance = read2_start - read1_end
+            else:
+                exon_positions = []
+                exon_blocks = bam_cigar.fetch_exon(chrom, read1_start, aligned_read.cigar)
+                for ex in exon_blocks:
+                    for i in range(ex[1] + 1, ex[2] + 1):
+                        exon_positions.append(i)
+                inner_distance = -len([i for i in exon_positions if i > read2_start and i <= read1_end])
 
-                read1_gene_names = set()  # read1_end
-                try:
-                    for gene in transcript_ranges[chrom].find(
-                        read1_end - 1, read1_end
-                    ):  # gene: Interval(0, 10, value=a)
-                        read1_gene_names.add(gene.value)
-                except Exception:
-                    pass
+            read1_gene_names = set()  # read1_end
+            try:
+                for gene in transcript_ranges[chrom].find(read1_end - 1, read1_end):  # gene: Interval(0, 10, value=a)
+                    read1_gene_names.add(gene.value)
+            except Exception:
+                pass
 
-                read2_gene_names = set()  # read2_start
-                try:
-                    for gene in transcript_ranges[chrom].find(
-                        read2_start, read2_start + 1
-                    ):  # gene: Interval(0, 10, value=a)
-                        read2_gene_names.add(gene.value)
-                except Exception:
-                    pass
+            read2_gene_names = set()  # read2_start
+            try:
+                for gene in transcript_ranges[chrom].find(
+                    read2_start, read2_start + 1
+                ):  # gene: Interval(0, 10, value=a)
+                    read2_gene_names.add(gene.value)
+            except Exception:
+                pass
 
-                if len(read1_gene_names.intersection(read2_gene_names)) == 0:  # no common gene
-                    FO.write(
-                        aligned_read.qname + "\t" + str(inner_distance) + "\tsameTranscript=No,dist=genomic\n"
-                    )  # reads mapped to different gene
-                    ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
-                    continue
+            if len(read1_gene_names.intersection(read2_gene_names)) == 0:  # no common gene
+                FO.write(
+                    aligned_read.qname + "\t" + str(inner_distance) + "\tsameTranscript=No,dist=genomic\n"
+                )  # reads mapped to different gene
+                ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
+                continue
 
-                if inner_distance > 0:
-                    if chrom in exon_bitsets:
-                        size = 0
-                        inner_distance_bitsets.set_range(read1_end, read2_start - read1_end)
-                        inner_distance_bitsets.iand(exon_bitsets[chrom])
-                        end = 0
-                        while 1:
-                            start = inner_distance_bitsets.next_set(end)
-                            if start == inner_distance_bitsets.size:
-                                break
-                            end = inner_distance_bitsets.next_clear(start)
-                            size += end - start
-                        inner_distance_bitsets.iand(tmp)  # clear BinnedBitSet
+            if inner_distance > 0:
+                if chrom in exon_bitsets:
+                    size = 0
+                    inner_distance_bitsets.set_range(read1_end, read2_start - read1_end)
+                    inner_distance_bitsets.iand(exon_bitsets[chrom])
+                    end = 0
+                    while 1:
+                        start = inner_distance_bitsets.next_set(end)
+                        if start == inner_distance_bitsets.size:
+                            break
+                        end = inner_distance_bitsets.next_clear(start)
+                        size += end - start
+                    inner_distance_bitsets.iand(tmp)  # clear BinnedBitSet
 
-                        if size == inner_distance:
-                            FO.write(
-                                aligned_read.qname + "\t" + str(size) + "\tsameTranscript=Yes,sameExon=Yes,dist=mRNA\n"
-                            )
-                            ranges[fchrom].add_interval(Interval(size - 1, size))
-                        elif size > 0 and size < inner_distance:
-                            FO.write(
-                                aligned_read.qname + "\t" + str(size) + "\tsameTranscript=Yes,sameExon=No,dist=mRNA\n"
-                            )
-                            ranges[fchrom].add_interval(Interval(size - 1, size))
-                        elif size <= 0:
-                            FO.write(
-                                aligned_read.qname
-                                + "\t"
-                                + str(inner_distance)
-                                + "\tsameTranscript=Yes,nonExonic=Yes,dist=genomic\n"
-                            )
-                            ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
-                    else:
-                        FO.write(aligned_read.qname + "\t" + str(inner_distance) + "\tunknownChromosome,dist=genomic")
+                    if size == inner_distance:
+                        FO.write(
+                            aligned_read.qname + "\t" + str(size) + "\tsameTranscript=Yes,sameExon=Yes,dist=mRNA\n"
+                        )
+                        ranges[fchrom].add_interval(Interval(size - 1, size))
+                    elif size > 0 and size < inner_distance:
+                        FO.write(aligned_read.qname + "\t" + str(size) + "\tsameTranscript=Yes,sameExon=No,dist=mRNA\n")
+                        ranges[fchrom].add_interval(Interval(size - 1, size))
+                    elif size <= 0:
+                        FO.write(
+                            aligned_read.qname
+                            + "\t"
+                            + str(inner_distance)
+                            + "\tsameTranscript=Yes,nonExonic=Yes,dist=genomic\n"
+                        )
                         ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
                 else:
-                    FO.write(aligned_read.qname + "\t" + str(inner_distance) + "\treadPairOverlap\n")
+                    FO.write(aligned_read.qname + "\t" + str(inner_distance) + "\tunknownChromosome,dist=genomic")
                     ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
-
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+            else:
+                FO.write(aligned_read.qname + "\t" + str(inner_distance) + "\treadPairOverlap\n")
+                ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
+        print("Done", file=sys.stderr)
 
         print("Total read pairs  used " + str(pair_num), file=sys.stderr)
         if pair_num == 0:
@@ -1810,8 +1820,11 @@ class ParseBAM:
         print('write(x=c("Name","Mean","Median","sd"), sep="\t", file=stdout(),ncolumns=4)', file=RS)
         print('write(c(out_file,frag_mean,frag_median,frag_sd),sep="\t", file=stdout(),ncolumns=4)', file=RS)
         print(
-            'hist(fragsize,probability=T,breaks=%d,xlab="mRNA insert size (bp)",main=paste(c("Mean=",frag_mean,";","SD=",frag_sd),collapse=""),border="blue")'
-            % len(window_left_bound),
+            "hist(fragsize,probability=T,breaks=%d,"
+            'xlab="mRNA insert size (bp)",'
+            'main=paste(c("Mean=",frag_mean,";",'
+            '"SD=",frag_sd),collapse=""),'
+            'border="blue")' % len(window_left_bound),
             file=RS,
         )
         print("lines(density(fragsize,bw=%d),col='red')" % (2 * step), file=RS)
@@ -1876,39 +1889,36 @@ class ParseBAM:
         else:
             print("Load SAM file ... ", end=" ", file=sys.stderr)
 
-        try:
-            while 1:
-                aligned_read = next(self.samfile)
-                if aligned_read.is_qcfail:
-                    continue  # skip low quanlity
-                if aligned_read.is_duplicate:
-                    continue  # skip duplicate read
-                if aligned_read.is_secondary:
-                    continue  # skip non primary hit
-                if aligned_read.is_unmapped:
-                    continue  # skip unmap read
-                if aligned_read.mapq < q_cut:
-                    continue
+        for aligned_read in _pysam_iter(self.samfile):
+            if aligned_read.is_qcfail:
+                continue  # skip low quanlity
+            if aligned_read.is_duplicate:
+                continue  # skip duplicate read
+            if aligned_read.is_secondary:
+                continue  # skip non primary hit
+            if aligned_read.is_unmapped:
+                continue  # skip unmap read
+            if aligned_read.mapq < q_cut:
+                continue
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
-                hit_st = aligned_read.pos
-                intron_blocks = bam_cigar.fetch_intron(chrom, hit_st, aligned_read.cigar)
-                if len(intron_blocks) == 0:
+            chrom = self.samfile.getrname(aligned_read.tid).upper()
+            hit_st = aligned_read.pos
+            intron_blocks = bam_cigar.fetch_intron(chrom, hit_st, aligned_read.cigar)
+            if len(intron_blocks) == 0:
+                continue
+            for intrn in intron_blocks:
+                total_junc += 1
+                if intrn[2] - intrn[1] < min_intron:
+                    filtered_junc += 1
                     continue
-                for intrn in intron_blocks:
-                    total_junc += 1
-                    if intrn[2] - intrn[1] < min_intron:
-                        filtered_junc += 1
-                        continue
-                    splicing_events[intrn[0] + ":" + str(intrn[1]) + ":" + str(intrn[2])] += 1
-                    if intrn[1] in refIntronStarts[chrom] and intrn[2] in refIntronEnds[chrom]:
-                        known_junc += 1  # known both
-                    elif intrn[1] not in refIntronStarts[chrom] and intrn[2] not in refIntronEnds[chrom]:
-                        novel35_junc += 1
-                    else:
-                        novel3or5_junc += 1
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+                splicing_events[intrn[0] + ":" + str(intrn[1]) + ":" + str(intrn[2])] += 1
+                if intrn[1] in refIntronStarts[chrom] and intrn[2] in refIntronEnds[chrom]:
+                    known_junc += 1  # known both
+                elif intrn[1] not in refIntronStarts[chrom] and intrn[2] not in refIntronEnds[chrom]:
+                    novel35_junc += 1
+                else:
+                    novel3or5_junc += 1
+        print("Done", file=sys.stderr)
 
         print("total = " + str(total_junc))
         if total_junc == 0:
@@ -1924,7 +1934,11 @@ class ParseBAM:
             file=ROUT,
         )
         print(
-            'pie(events,col=c(2,3,4),init.angle=30,angle=c(60,120,150),density=c(70,70,70),main="splicing events",labels=c("partial_novel %d%%","complete_novel %d%%","known %d%%"))'
+            "pie(events,col=c(2,3,4),init.angle=30,"
+            "angle=c(60,120,150),density=c(70,70,70),"
+            'main="splicing events",'
+            'labels=c("partial_novel %d%%",'
+            '"complete_novel %d%%","known %d%%"))'
             % (
                 round(novel3or5_junc * 100.0 / total_junc),
                 round(novel35_junc * 100.0 / total_junc),
@@ -1994,7 +2008,11 @@ class ParseBAM:
             file=ROUT,
         )
         print(
-            'pie(junction,col=c(2,3,4),init.angle=30,angle=c(60,120,150),density=c(70,70,70),main="splicing junctions",labels=c("partial_novel %d%%","complete_novel %d%%","known %d%%"))'
+            "pie(junction,col=c(2,3,4),init.angle=30,"
+            "angle=c(60,120,150),density=c(70,70,70),"
+            'main="splicing junctions",'
+            'labels=c("partial_novel %d%%",'
+            '"complete_novel %d%%","known %d%%"))'
             % (
                 round(novel3or5_junc * 100.0 / total_junc),
                 round(novel35_junc * 100.0 / total_junc),
@@ -2092,36 +2110,33 @@ class ParseBAM:
             print("Load BAM file ... ", end=" ", file=sys.stderr)
         else:
             print("Load SAM file ... ", end=" ", file=sys.stderr)
-        try:
-            while 1:
-                aligned_read = next(self.samfile)
-                try:
-                    chrom = self.samfile.getrname(aligned_read.tid).upper()
-                except Exception:
-                    continue
-                if chrom not in chrom_list:
-                    continue
-                if aligned_read.is_qcfail:
-                    continue  # skip low quanlity
-                if aligned_read.is_duplicate:
-                    continue  # skip duplicate read
-                if aligned_read.is_secondary:
-                    continue  # skip non primary hit
-                if aligned_read.is_unmapped:
-                    continue  # skip unmap read
-                if aligned_read.mapq < q_cut:
-                    continue
+        for aligned_read in _pysam_iter(self.samfile):
+            try:
+                chrom = self.samfile.getrname(aligned_read.tid).upper()
+            except Exception:
+                continue
+            if chrom not in chrom_list:
+                continue
+            if aligned_read.is_qcfail:
+                continue  # skip low quanlity
+            if aligned_read.is_duplicate:
+                continue  # skip duplicate read
+            if aligned_read.is_secondary:
+                continue  # skip non primary hit
+            if aligned_read.is_unmapped:
+                continue  # skip unmap read
+            if aligned_read.mapq < q_cut:
+                continue
 
-                hit_st = aligned_read.pos
-                intron_blocks = bam_cigar.fetch_intron(chrom, hit_st, aligned_read.cigar)
-                if len(intron_blocks) == 0:
+            hit_st = aligned_read.pos
+            intron_blocks = bam_cigar.fetch_intron(chrom, hit_st, aligned_read.cigar)
+            if len(intron_blocks) == 0:
+                continue
+            for intrn in intron_blocks:
+                if intrn[2] - intrn[1] < min_intron:
                     continue
-                for intrn in intron_blocks:
-                    if intrn[2] - intrn[1] < min_intron:
-                        continue
-                    samSpliceSites.append(intrn[0] + ":" + str(intrn[1]) + "-" + str(intrn[2]))
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+                samSpliceSites.append(intrn[0] + ":" + str(intrn[1]) + "-" + str(intrn[2]))
+        print("Done", file=sys.stderr)
 
         print("shuffling alignments ...", end=" ", file=sys.stderr)
         random.shuffle(samSpliceSites)
@@ -2185,14 +2200,19 @@ class ParseBAM:
             file=OUT,
         )
         print(
-            "plot(x,z/1000,xlab='percent of total reads',ylab='Number of splicing junctions (x1000)',type='o',col='blue',ylim=c(n,m))",
+            "plot(x,z/1000,"
+            "xlab='percent of total reads',"
+            "ylab='Number of splicing junctions (x1000)',"
+            "type='o',col='blue',ylim=c(n,m))",
             file=OUT,
         )
         print("points(x,y/1000,type='o',col='red')", file=OUT)
         print("points(x,w/1000,type='o',col='green')", file=OUT)
         print(
-            'legend(5,%d, legend=c("All junctions","known junctions", "novel junctions"),col=c("blue","red","green"),lwd=1,pch=1)'
-            % int(int(all_junc[-1]) / 1000),
+            "legend(5,%d, "
+            'legend=c("All junctions","known junctions",'
+            ' "novel junctions"),'
+            'col=c("blue","red","green"),lwd=1,pch=1)' % int(int(all_junc[-1]) / 1000),
             file=OUT,
         )
         print("dev.off()", file=OUT)
@@ -2245,59 +2265,56 @@ class ParseBAM:
             print("Load BAM file ... ", end=" ", file=sys.stderr)
         else:
             print("Load SAM file ... ", end=" ", file=sys.stderr)
-        try:
-            while 1:
-                aligned_read = next(self.samfile)
-                if aligned_read.is_qcfail:
-                    continue  # skip low quanlity
-                if aligned_read.is_duplicate:
-                    continue  # skip duplicate read
-                if aligned_read.is_secondary:
-                    continue  # skip non primary hit
-                if aligned_read.is_unmapped:
-                    continue  # skip unmap read
+        for aligned_read in _pysam_iter(self.samfile):
+            if aligned_read.is_qcfail:
+                continue  # skip low quanlity
+            if aligned_read.is_duplicate:
+                continue  # skip duplicate read
+            if aligned_read.is_secondary:
+                continue  # skip non primary hit
+            if aligned_read.is_unmapped:
+                continue  # skip unmap read
 
-                if skip_multi:
-                    if aligned_read.mapq < q_cut:
-                        continue
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
+            if skip_multi:
+                if aligned_read.mapq < q_cut:
+                    continue
+            chrom = self.samfile.getrname(aligned_read.tid).upper()
 
-                # determine read_id and read_strand
-                if aligned_read.is_paired:  # pair end
-                    if aligned_read.is_read1:
-                        read_id = "1"
-                    if aligned_read.is_read2:
-                        read_id = "2"
-                else:
-                    read_id = ""  # single end
+            # determine read_id and read_strand
+            if aligned_read.is_paired:  # pair end
+                if aligned_read.is_read1:
+                    read_id = "1"
+                if aligned_read.is_read2:
+                    read_id = "2"
+            else:
+                read_id = ""  # single end
 
-                if aligned_read.is_reverse:
-                    map_strand = "-"
-                else:
-                    map_strand = "+"
-                strand_key = read_id + map_strand  # used to determine if a read should assign to gene(+) or gene(-)
+            if aligned_read.is_reverse:
+                map_strand = "-"
+            else:
+                map_strand = "+"
+            strand_key = read_id + map_strand  # used to determine if a read should assign to gene(+) or gene(-)
 
-                hit_st = aligned_read.pos
-                exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
-                cUR_num += len(exon_blocks)
+            hit_st = aligned_read.pos
+            exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
+            cUR_num += len(exon_blocks)
 
-                # strand specific
-                if strand_rule is not None:
+            # strand specific
+            if strand_rule is not None:
+                if strandRule[strand_key] == "+":
+                    cUR_plus += len(exon_blocks)
+                if strandRule[strand_key] == "-":
+                    cUR_minus += len(exon_blocks)
+                for exn in exon_blocks:
                     if strandRule[strand_key] == "+":
-                        cUR_plus += len(exon_blocks)
+                        block_list_plus.append(exn[0] + ":" + str(exn[1] + int((exn[2] - exn[1]) / 2)))
                     if strandRule[strand_key] == "-":
-                        cUR_minus += len(exon_blocks)
-                    for exn in exon_blocks:
-                        if strandRule[strand_key] == "+":
-                            block_list_plus.append(exn[0] + ":" + str(exn[1] + int((exn[2] - exn[1]) / 2)))
-                        if strandRule[strand_key] == "-":
-                            block_list_minus.append(exn[0] + ":" + str(exn[1] + int((exn[2] - exn[1]) / 2)))
-                # Not strand specific
-                else:
-                    for exn in exon_blocks:
-                        block_list.append(exn[0] + ":" + str(exn[1] + int((exn[2] - exn[1]) / 2)))
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+                        block_list_minus.append(exn[0] + ":" + str(exn[1] + int((exn[2] - exn[1]) / 2)))
+            # Not strand specific
+            else:
+                for exn in exon_blocks:
+                    block_list.append(exn[0] + ":" + str(exn[1] + int((exn[2] - exn[1]) / 2)))
+        print("Done", file=sys.stderr)
 
         print("shuffling alignments ...", end=" ", file=sys.stderr)
         random.shuffle(block_list_plus)
@@ -2453,66 +2470,63 @@ class ParseBAM:
             print("Load BAM file ... ", end=" ", file=sys.stderr)
         else:
             print("Load SAM file ... ", end=" ", file=sys.stderr)
-        try:
-            while 1:
-                flag = 0
-                aligned_read = next(self.samfile)
-                if aligned_read.is_qcfail:
-                    continue  # skip low quanlity
-                if aligned_read.is_duplicate:
-                    continue  # skip duplicate read
-                if aligned_read.is_secondary:
-                    continue  # skip non primary hit
-                if aligned_read.is_unmapped:
-                    continue  # skip unmap read
+        for aligned_read in _pysam_iter(self.samfile):
+            flag = 0
+            if aligned_read.is_qcfail:
+                continue  # skip low quanlity
+            if aligned_read.is_duplicate:
+                continue  # skip duplicate read
+            if aligned_read.is_secondary:
+                continue  # skip non primary hit
+            if aligned_read.is_unmapped:
+                continue  # skip unmap read
 
-                if skip_multi:
-                    if len(aligned_read.tags) > 0:  # ( ("NM", 1),("RG", "L1") )
-                        for i in aligned_read.tags:
-                            if i[0] in ParseBAM.multi_hit_tags and i[1] > 1:
-                                flag = 1  # multiple hit read
-                                break
-                if flag == 1:
-                    continue  # skip multiple map read
+            if skip_multi:
+                if len(aligned_read.tags) > 0:  # ( ("NM", 1),("RG", "L1") )
+                    for i in aligned_read.tags:
+                        if i[0] in ParseBAM.multi_hit_tags and i[1] > 1:
+                            flag = 1  # multiple hit read
+                            break
+            if flag == 1:
+                continue  # skip multiple map read
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
+            chrom = self.samfile.getrname(aligned_read.tid).upper()
 
-                # determine read_id and read_strand
-                if aligned_read.is_paired:  # pair end
-                    if aligned_read.is_read1:
-                        read_id = "1"
-                    if aligned_read.is_read2:
-                        read_id = "2"
-                else:
-                    read_id = ""  # single end
+            # determine read_id and read_strand
+            if aligned_read.is_paired:  # pair end
+                if aligned_read.is_read1:
+                    read_id = "1"
+                if aligned_read.is_read2:
+                    read_id = "2"
+            else:
+                read_id = ""  # single end
 
-                if aligned_read.is_reverse:
-                    map_strand = "-"
-                else:
-                    map_strand = "+"
-                strand_key = read_id + map_strand  # used to determine if a read should assign to gene(+) or gene(-)
+            if aligned_read.is_reverse:
+                map_strand = "-"
+            else:
+                map_strand = "+"
+            strand_key = read_id + map_strand  # used to determine if a read should assign to gene(+) or gene(-)
 
-                hit_st = aligned_read.pos
-                exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
-                cUR_num += len(exon_blocks)
+            hit_st = aligned_read.pos
+            exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
+            cUR_num += len(exon_blocks)
 
-                # strand specific
-                if strand_rule is not None:
+            # strand specific
+            if strand_rule is not None:
+                if strandRule[strand_key] == "+":
+                    cUR_plus += len(exon_blocks)
+                if strandRule[strand_key] == "-":
+                    cUR_minus += len(exon_blocks)
+                for exn in exon_blocks:
                     if strandRule[strand_key] == "+":
-                        cUR_plus += len(exon_blocks)
+                        block_list_plus.append(exn[0] + ":" + str(exn[1] + (exn[2] - exn[1]) / 2))
                     if strandRule[strand_key] == "-":
-                        cUR_minus += len(exon_blocks)
-                    for exn in exon_blocks:
-                        if strandRule[strand_key] == "+":
-                            block_list_plus.append(exn[0] + ":" + str(exn[1] + (exn[2] - exn[1]) / 2))
-                        if strandRule[strand_key] == "-":
-                            block_list_minus.append(exn[0] + ":" + str(exn[1] + (exn[2] - exn[1]) / 2))
-                # Not strand specific
-                else:
-                    for exn in exon_blocks:
-                        block_list.append(exn[0] + ":" + str(exn[1] + (exn[2] - exn[1]) / 2))
-        except (StopIteration, ValueError):
-            print("Done", file=sys.stderr)
+                        block_list_minus.append(exn[0] + ":" + str(exn[1] + (exn[2] - exn[1]) / 2))
+            # Not strand specific
+            else:
+                for exn in exon_blocks:
+                    block_list.append(exn[0] + ":" + str(exn[1] + (exn[2] - exn[1]) / 2))
+        print("Done", file=sys.stderr)
 
         RPKM_table = collections.defaultdict(list)
         rawCount_table = collections.defaultdict(list)
@@ -2608,8 +2622,7 @@ class ParseBAM:
         """fetch alignment from sorted BAM file based on chr, st, end
         Note: BAM file must be indexed"""
         try:
-            a = self.samfile.fetch(chr, st, end)
-            return a
+            return _pysam_iter(self.samfile.fetch(chr, st, end))
         except Exception:
             return None
 
@@ -2632,89 +2645,86 @@ class ParseBAM:
 
         count = 0
         data = collections.defaultdict(dict)  # data[read_coord][genotype] = geno_type_number
-        try:
-            while 1:
-                if count >= read_num:
-                    print("Total reads used: " + str(count), file=sys.stderr)
-                    break
-                aligned_read = next(self.samfile)
-                if aligned_read.is_qcfail:
-                    continue  # skip low quanlity
-                if aligned_read.is_duplicate:
-                    continue  # skip duplicate read
-                if aligned_read.is_secondary:
-                    continue  # skip non primary hit
-                if aligned_read.is_unmapped:
-                    continue  # skip unmap read
-                if aligned_read.mapq < q_cut:
-                    continue
-                if aligned_read.is_reverse:
-                    strand = "-"
-                else:
-                    strand = "+"
+        for aligned_read in _pysam_iter(self.samfile):
+            if count >= read_num:
+                print("Total reads used: " + str(count), file=sys.stderr)
+                break
+            if aligned_read.is_qcfail:
+                continue  # skip low quanlity
+            if aligned_read.is_duplicate:
+                continue  # skip duplicate read
+            if aligned_read.is_secondary:
+                continue  # skip non primary hit
+            if aligned_read.is_unmapped:
+                continue  # skip unmap read
+            if aligned_read.mapq < q_cut:
+                continue
+            if aligned_read.is_reverse:
+                strand = "-"
+            else:
+                strand = "+"
 
-                # Skip if there is no mismatch, or there is deletion
-                tags = aligned_read.tags
-                skip = False
+            # Skip if there is no mismatch, or there is deletion
+            tags = aligned_read.tags
+            skip = False
+            for tag in tags:
+                if tag[0] == "NM" and tag[1] == 0:
+                    skip = True  # skip reads with no mismatches
+                if (tag[0] == "MD") and ("^" in tag[1]):
+                    skip = True  # skip as there is deletion from the reference
+            if skip is True:
+                continue
+
+            # skip partially mapped read
+            read_seq = aligned_read.seq
+            if len(read_seq) != read_length:
+                continue
+            if "N" in read_seq:
+                continue
+
+            matched_portion_size = 0
+            for op, value in aligned_read.cigar:
+                if op == 0:
+                    matched_portion_size += value
+            if matched_portion_size != read_length:
+                continue
+
+            count += 1
+            if strand == "+":
                 for tag in tags:
-                    if tag[0] == "NM" and tag[1] == 0:
-                        skip = True  # skip reads with no mismatches
-                    if (tag[0] == "MD") and ("^" in tag[1]):
-                        skip = True  # skip as there is deletion from the reference
-                if skip is True:
-                    continue
-
-                # skip partially mapped read
-                read_seq = aligned_read.seq
-                if len(read_seq) != read_length:
-                    continue
-                if "N" in read_seq:
-                    continue
-
-                matched_portion_size = 0
-                for op, value in aligned_read.cigar:
-                    if op == 0:
-                        matched_portion_size += value
-                if matched_portion_size != read_length:
-                    continue
-
-                count += 1
-                if strand == "+":
-                    for tag in tags:
-                        if tag[0] == "MD":
-                            a = MD_pat.findall(tag[1])  # tag[1] = "5G19T75"; a = [('5', 'G'), ('19', 'T')]
-                            read_coord = 0
-                            for match_number, ref_base in a:
-                                read_coord += int(match_number)
-                                read_base = read_seq[read_coord]
-                                if read_base == ref_base:
-                                    continue
-                                genotype = ref_base + "2" + read_base
-                                if genotype not in data[read_coord]:
-                                    data[read_coord][genotype] = 1
-                                else:
-                                    data[read_coord][genotype] += 1
-                                read_coord += 1
-                if strand == "-":
-                    for tag in tags:
-                        if tag[0] == "MD":
-                            a = MD_pat.findall(tag[1])  # tag[1] = "5G19T75"; a = [('5', 'G'), ('19', 'T')]
-                            read_coord = 0
-                            for match_number, ref_base in a:
-                                read_coord += int(match_number)
-                                read_base = read_seq[read_coord]
-                                if read_base == ref_base:
-                                    continue
-                                genotype = ref_base + "2" + read_base
-                                if genotype not in data[read_length - read_coord - 1]:
-                                    data[read_length - read_coord - 1][genotype] = 1
-                                else:
-                                    data[read_length - read_coord - 1][genotype] += 1
-                                read_coord += 1
-                                if read_base == ref_base:
-                                    print(aligned_read)
-
-        except (StopIteration, ValueError):
+                    if tag[0] == "MD":
+                        a = MD_pat.findall(tag[1])  # tag[1] = "5G19T75"; a = [('5', 'G'), ('19', 'T')]
+                        read_coord = 0
+                        for match_number, ref_base in a:
+                            read_coord += int(match_number)
+                            read_base = read_seq[read_coord]
+                            if read_base == ref_base:
+                                continue
+                            genotype = ref_base + "2" + read_base
+                            if genotype not in data[read_coord]:
+                                data[read_coord][genotype] = 1
+                            else:
+                                data[read_coord][genotype] += 1
+                            read_coord += 1
+            if strand == "-":
+                for tag in tags:
+                    if tag[0] == "MD":
+                        a = MD_pat.findall(tag[1])  # tag[1] = "5G19T75"; a = [('5', 'G'), ('19', 'T')]
+                        read_coord = 0
+                        for match_number, ref_base in a:
+                            read_coord += int(match_number)
+                            read_base = read_seq[read_coord]
+                            if read_base == ref_base:
+                                continue
+                            genotype = ref_base + "2" + read_base
+                            if genotype not in data[read_length - read_coord - 1]:
+                                data[read_length - read_coord - 1][genotype] = 1
+                            else:
+                                data[read_length - read_coord - 1][genotype] += 1
+                            read_coord += 1
+                            if read_base == ref_base:
+                                print(aligned_read)
+        else:
             print("Total reads used: " + str(count), file=DOUT)
         print("\n")
 
@@ -2747,7 +2757,10 @@ class ParseBAM:
             print("%s=c(%s)" % (k, ",".join([str(i) for i in r_data[k]])), file=ROUT)
 
         print(
-            'color_code = c("green","powderblue","lightseagreen","red","violetred4","mediumorchid1","blue","royalblue","steelblue1","orange","gold","black")',
+            'color_code = c("green","powderblue",'
+            '"lightseagreen","red","violetred4",'
+            '"mediumorchid1","blue","royalblue",'
+            '"steelblue1","orange","gold","black")',
             file=ROUT,
         )
 
@@ -2759,8 +2772,11 @@ class ParseBAM:
         for gt in all_genotypes:
             if count == 1:
                 print(
-                    'plot(log10(%s+1),type="l",col=color_code[%d],ylim=c(y_low_bound,y_up_bound),ylab="log10(# of mismatch)",xlab="Read position (5\'->3\')")'
-                    % (gt, count),
+                    'plot(log10(%s+1),type="l",'
+                    "col=color_code[%d],"
+                    "ylim=c(y_low_bound,y_up_bound),"
+                    'ylab="log10(# of mismatch)",'
+                    "xlab=\"Read position (5'->3')\")" % (gt, count),
                     file=ROUT,
                 )
             else:
@@ -2791,56 +2807,53 @@ class ParseBAM:
         count = 0
         del_postns = collections.defaultdict(int)  # key: position of read. value: deletion times
         # del_sizes = collections.defaultdict(int)   #key: deletion size. value: deletion frequency of this size
-        try:
-            while 1:
-                if count >= read_num:
-                    print("Total reads used: " + str(count), file=sys.stderr)
-                    break
-                aligned_read = next(self.samfile)
-                if aligned_read.is_qcfail:
-                    continue  # skip low quanlity
-                if aligned_read.is_duplicate:
-                    continue  # skip duplicate read
-                if aligned_read.is_secondary:
-                    continue  # skip non primary hit
-                if aligned_read.is_unmapped:
-                    continue  # skip unmap read
-                if aligned_read.mapq < q_cut:
-                    continue
-                if aligned_read.is_reverse:
-                    strand = "-"
-                else:
-                    strand = "+"
+        for aligned_read in _pysam_iter(self.samfile):
+            if count >= read_num:
+                print("Total reads used: " + str(count), file=sys.stderr)
+                break
+            if aligned_read.is_qcfail:
+                continue  # skip low quanlity
+            if aligned_read.is_duplicate:
+                continue  # skip duplicate read
+            if aligned_read.is_secondary:
+                continue  # skip non primary hit
+            if aligned_read.is_unmapped:
+                continue  # skip unmap read
+            if aligned_read.mapq < q_cut:
+                continue
+            if aligned_read.is_reverse:
+                strand = "-"
+            else:
+                strand = "+"
 
-                # skip if read doesn't have deletion
-                read_cigar = aligned_read.cigar
-                if 2 not in [i[0] for i in read_cigar]:  # read contains no deletion
-                    continue
+            # skip if read doesn't have deletion
+            read_cigar = aligned_read.cigar
+            if 2 not in [i[0] for i in read_cigar]:  # read contains no deletion
+                continue
 
-                # skip partially mapped read
-                read_seq = aligned_read.seq
-                if len(read_seq) != read_length:
-                    continue
+            # skip partially mapped read
+            read_seq = aligned_read.seq
+            if len(read_seq) != read_length:
+                continue
 
-                matched_portion_size = 0
-                for op, value in aligned_read.cigar:
-                    if op == 0:
-                        matched_portion_size += value  # match
-                    if op == 4:
-                        matched_portion_size += value  # soft clp
-                    if op == 1:
-                        matched_portion_size += value  # insertion to read
-                if matched_portion_size != read_length:
-                    continue
+            matched_portion_size = 0
+            for op, value in aligned_read.cigar:
+                if op == 0:
+                    matched_portion_size += value  # match
+                if op == 4:
+                    matched_portion_size += value  # soft clp
+                if op == 1:
+                    matched_portion_size += value  # insertion to read
+            if matched_portion_size != read_length:
+                continue
 
-                count += 1
-                del_positions = bam_cigar.fetch_deletion_range(read_cigar)  # [(position, size),(position, size),...]
-                for p, s in del_positions:
-                    if strand == "-":
-                        p = read_length - p
-                    del_postns[p] += 1
-
-        except (StopIteration, ValueError):
+            count += 1
+            del_positions = bam_cigar.fetch_deletion_range(read_cigar)  # [(position, size),(position, size),...]
+            for p, s in del_positions:
+                if strand == "-":
+                    p = read_length - p
+                del_postns[p] += 1
+        else:
             print("Total reads used: " + str(count), file=sys.stderr)
         print("\n")
 

@@ -25,7 +25,18 @@ def main():
         "-a",
         "--action",
         dest="action",
-        help='After pairwise align two bigwig files, perform the follow actions (Only select one keyword):"Add" = add signals. "Average" = average signals. "Division"= divide bigwig2 from bigwig1. Add 1 to both bigwig. "Max" = pick the signal that is larger. "Min" = pick the signal that is smaller. "Product" = multiply signals. "Subtract" = subtract signals in 2nd bigwig file from the corresponiding ones in the 1st bigwig file. "geometricMean" = take the geometric mean of signals.',
+        help=(
+            "After pairwise align two bigwig files, perform the"
+            ' follow actions (Only select one keyword): "Add" = add'
+            ' signals. "Average" = average signals. "Division" ='
+            " divide bigwig2 from bigwig1. Add 1 to both bigwig."
+            ' "Max" = pick the signal that is larger. "Min" = pick'
+            ' the signal that is smaller. "Product" = multiply'
+            ' signals. "Subtract" = subtract signals in 2nd bigwig'
+            " file from the corresponding ones in the 1st bigwig"
+            ' file. "geometricMean" = take the geometric mean of'
+            " signals."
+        ),
     )
     parser.add_argument("-o", "--output", dest="output_wig", help="Output wig file")
     parser.add_argument(
@@ -34,7 +45,11 @@ def main():
         type=int,
         dest="chunk_size",
         default=100000,
-        help="Chromosome chunk size. Each chomosome will be cut into samll chunks of this size. Decrease chunk size will save more RAM. default=%(default)s (bp)",
+        help=(
+            "Chromosome chunk size. Each chromosome will be cut into"
+            " small chunks of this size. Decrease chunk size will save"
+            " more RAM. default=%(default)s (bp)"
+        ),
     )
     args = parser.parse_args()
 

@@ -129,7 +129,17 @@ def main():
         "--strand",
         dest="strand_rule",
         default=None,
-        help="How read(s) were stranded during sequencing. For example: --strand='1++,1--,2+-,2-+' means that this is a pair-end, strand-specific RNA-seq, and the strand rule is: read1 mapped to '+' => parental gene on '+'; read1 mapped to '-' => parental gene on '-'; read2 mapped to '+' => parental gene on '-'; read2 mapped to '-' => parental gene on '+'.  If you are not sure about the strand rule, run 'infer_experiment.py' default=%(default)s (Not a strand specific RNA-seq data)",
+        help=(
+            "How read(s) were stranded during sequencing. For example:"
+            " --strand='1++,1--,2+-,2-+' means that this is a pair-end,"
+            " strand-specific RNA-seq, and the strand rule is: read1"
+            " mapped to '+' => parental gene on '+'; read1 mapped to"
+            " '-' => parental gene on '-'; read2 mapped to '+' =>"
+            " parental gene on '-'; read2 mapped to '-' => parental"
+            " gene on '+'. If you are not sure about the strand rule,"
+            " run 'infer_experiment.py' default=%(default)s"
+            " (Not a strand specific RNA-seq data)"
+        ),
     )
     parser.add_argument(
         "-l",
@@ -153,7 +163,11 @@ def main():
         type=int,
         dest="percentile_step",
         default=5,
-        help="Sampling frequency. Smaller value means more sampling times. A integer between 0 and 100. default=%(default)s",
+        help=(
+            "Sampling frequency. Smaller value means more sampling"
+            " times. A integer between 0 and 100."
+            " default=%(default)s"
+        ),
     )
     parser.add_argument(
         "-c",
@@ -161,7 +175,9 @@ def main():
         type=float,
         dest="rpkm_cutoff",
         default=0.01,
-        help="Transcripts with RPKM smaller than this number will be ignored in visualization plot. default=%(default)s",
+        help=(
+            "Transcripts with RPKM smaller than this number will be ignored in visualization plot. default=%(default)s"
+        ),
     )
     parser.add_argument(
         "-q",
@@ -169,7 +185,10 @@ def main():
         type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%(default)s',
+        help=(
+            "Minimum mapping quality (phred scaled) for an alignment"
+            ' to be called "uniquely mapped". default=%(default)s'
+        ),
     )
 
     args = parser.parse_args()

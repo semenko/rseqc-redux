@@ -11,6 +11,7 @@ import pysam
 from bx.intervals import Intersecter, Interval
 
 from rseqc import BED
+from rseqc.SAM import _pysam_iter
 
 
 def searchit(exon_range, exon_list):
@@ -49,13 +50,24 @@ def main():
         "-r",
         "--genelist",
         dest="gene_list",
-        help="Gene list in bed foramt. All reads hits to exon regions (defined by this gene list) will be saved into one BAM file, the remaining reads will saved into another BAM file.",
+        help=(
+            "Gene list in bed format. All reads hits to exon regions"
+            " (defined by this gene list) will be saved into one BAM"
+            " file, the remaining reads will saved into another BAM"
+            " file."
+        ),
     )
     parser.add_argument(
         "-o",
         "--out-prefix",
         dest="output_prefix",
-        help='Prefix of output BAM files. "prefix.in.bam" file contains reads mapped to the gene list specified by "-r", "prefix.ex.bam" contains reads that cannot mapped to gene list. "prefix.junk.bam" contains qcfailed or unmapped reads.',
+        help=(
+            'Prefix of output BAM files. "prefix.in.bam" file'
+            " contains reads mapped to the gene list specified by"
+            ' "-r", "prefix.ex.bam" contains reads that cannot'
+            ' mapped to gene list. "prefix.junk.bam" contains'
+            " qcfailed or unmapped reads."
+        ),
     )
     args = parser.parse_args()
 
@@ -93,57 +105,54 @@ def main():
     ex_alignment = 0
     bad_alignment = 0
     print("spliting " + args.input_file + " ...", end=" ", file=sys.stderr)
-    try:
-        while 1:
-            aligned_read = next(samfile)
-            total_alignment += 1
+    for aligned_read in _pysam_iter(samfile):
+        total_alignment += 1
 
-            if aligned_read.is_qcfail:
-                bad_alignment += 1
-                out3.write(aligned_read)
+        if aligned_read.is_qcfail:
+            bad_alignment += 1
+            out3.write(aligned_read)
+            continue
+        if aligned_read.is_unmapped:
+            bad_alignment += 1
+            out3.write(aligned_read)
+            continue
+
+        chrom = samfile.getrname(aligned_read.tid)
+        chrom = chrom.upper()
+        read_start = aligned_read.pos
+        mate_start = aligned_read.mpos
+
+        # read_exons = bam_cigar.fetch_exon(chrom, aligned_read.pos, aligned_read.cigar)
+        if aligned_read.mate_is_unmapped:  # only one end mapped
+            if chrom not in exon_ranges:
+                out2.write(aligned_read)
+                ex_alignment += 1
                 continue
-            if aligned_read.is_unmapped:
-                bad_alignment += 1
-                out3.write(aligned_read)
-                continue
-
-            chrom = samfile.getrname(aligned_read.tid)
-            chrom = chrom.upper()
-            read_start = aligned_read.pos
-            mate_start = aligned_read.mpos
-
-            # read_exons = bam_cigar.fetch_exon(chrom, aligned_read.pos, aligned_read.cigar)
-            if aligned_read.mate_is_unmapped:  # only one end mapped
-                if chrom not in exon_ranges:
+            else:
+                if len(exon_ranges[chrom].find(read_start, read_start + 1)) >= 1:
+                    out1.write(aligned_read)
+                    in_alignment += 1
+                    continue
+                elif len(exon_ranges[chrom].find(read_start, read_start + 1)) == 0:
                     out2.write(aligned_read)
                     ex_alignment += 1
                     continue
+        else:  # both end mapped
+            if chrom not in exon_ranges:
+                out2.write(aligned_read)
+                ex_alignment += 1
+                continue
+            else:
+                if (len(exon_ranges[chrom].find(read_start, read_start + 1)) >= 1) or (
+                    len(exon_ranges[chrom].find(mate_start, mate_start + 1)) >= 1
+                ):
+                    out1.write(aligned_read)
+                    in_alignment += 1
                 else:
-                    if len(exon_ranges[chrom].find(read_start, read_start + 1)) >= 1:
-                        out1.write(aligned_read)
-                        in_alignment += 1
-                        continue
-                    elif len(exon_ranges[chrom].find(read_start, read_start + 1)) == 0:
-                        out2.write(aligned_read)
-                        ex_alignment += 1
-                        continue
-            else:  # both end mapped
-                if chrom not in exon_ranges:
                     out2.write(aligned_read)
                     ex_alignment += 1
-                    continue
-                else:
-                    if (len(exon_ranges[chrom].find(read_start, read_start + 1)) >= 1) or (
-                        len(exon_ranges[chrom].find(mate_start, mate_start + 1)) >= 1
-                    ):
-                        out1.write(aligned_read)
-                        in_alignment += 1
-                    else:
-                        out2.write(aligned_read)
-                        ex_alignment += 1
 
-    except (StopIteration, ValueError):
-        print("Done", file=sys.stderr)
+    print("Done", file=sys.stderr)
 
     print("%-55s%d" % ("Total records:", total_alignment))
     print("%-55s%d" % (args.output_prefix + ".in.bam (Alignments consumed by input gene list):", in_alignment))

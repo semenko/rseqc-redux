@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 - Removed Python 3 version checks from all 26 scripts (dead code on Python >=3.10).
 - Removed dead `open(outfile, "w")` call in `annoGene.py` `annotateBed()`.
 - Removed unnecessary `list()` wrappers on dict view iteration in `fasta.py` (10 sites) and `orf.py` (2 sites).
+- Removed dead `bootstrap()` function from `changePoint.py` (contained a list-to-float comparison bug, never called).
+- Removed dead `outfile` parameter from `annoGene.py` `annotateBed()` (never used).
 
 ### Fixed
 
@@ -26,13 +28,15 @@ All notable changes to this project will be documented in this file.
 - Fixed `subtractBed3` no-op guard in `BED.py` — dead `if chrom not in bitsets1` check removed (Bug #9).
 - Fixed `Hill_number` q=1 in `mystat.py` — now correctly parses comma-separated string before passing to `shannon_entropy()` (Bug #11).
 - Fixed `sys.exit()` → `sys.exit(1)` in 6 library error paths (`SAM.py`, `BED.py`) so errors exit non-zero.
-- Fixed Python 3.13 compatibility: catch `ValueError` alongside `StopIteration` when iterating pysam alignments (pysam bug with PEP 745 changes). 29 sites across 7 files.
+- Fixed Python 3.13 compatibility: `_pysam_iter()` helper wraps all pysam BAM iteration to handle `ValueError` bug (PEP 745 / coverage instrumentation).
 
 ### Changed
 
+- Replaced `while 1: next(samfile)` anti-pattern with `for` loops across `SAM.py` (20 sites), `scbam.py` (4 sites), and 5 scripts.
 - Migrated all 33 CLI scripts from `optparse` to `argparse`.
 - Renamed ambiguous variable `l` to descriptive names across 12 files (E741).
 - `--help` output formatting now uses argparse style.
 - `class ParseBAM(object):` → `class ParseBAM:` (modern Python 3 style).
 - `(v1 + 1).__div__(v2 + 1)` → `(v1 + 1) / (v2 + 1)` in `twoList.py` (Python 2 artifact).
 - Improved type annotations in `changePoint.py` (removed 2 `type: ignore` suppressions).
+- E501 (line length > 120) fully resolved and enabled in ruff config — 0 violations remaining.

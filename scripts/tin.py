@@ -264,7 +264,15 @@ def main():
         "-i",
         "--input",
         dest="input_files",
-        help='Input BAM file(s). "-i" takes these input: 1) a single BAM file. 2) "," separated BAM files (no spaces allowed). 3) directory containing one or more bam files. 4) plain text file containing the path of one or more bam files (Each row is a BAM file path). All BAM files should be sorted and indexed using samtools. [required]',
+        help=(
+            'Input BAM file(s). "-i" takes these input:'
+            " 1) a single BAM file."
+            ' 2) "," separated BAM files (no spaces allowed).'
+            " 3) directory containing one or more bam files."
+            " 4) plain text file containing the path of one or more"
+            " bam files (Each row is a BAM file path). All BAM files"
+            " should be sorted and indexed using samtools. [required]"
+        ),
     )
     parser.add_argument(
         "-r",
@@ -286,14 +294,23 @@ def main():
         type=int,
         dest="sample_size",
         default=100,
-        help="Number of equal-spaced nucleotide positions picked from mRNA. Note: if this number is larger than the length of mRNA (L), it will be halved until it's smaller than L. default=%(default)s",
+        help=(
+            "Number of equal-spaced nucleotide positions picked from"
+            " mRNA. Note: if this number is larger than the length of"
+            " mRNA (L), it will be halved until it's smaller than L."
+            " default=%(default)s"
+        ),
     )
     parser.add_argument(
         "-s",
         "--subtract-background",
         action="store_true",
         dest="subtract_bg",
-        help="Subtract background noise (estimated from intronic reads). Only use this option if there are substantial intronic reads.",
+        help=(
+            "Subtract background noise (estimated from intronic"
+            " reads). Only use this option if there are substantial"
+            " intronic reads."
+        ),
     )
     args = parser.parse_args()
 

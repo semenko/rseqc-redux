@@ -78,7 +78,10 @@ def main():
         type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%(default)s',
+        help=(
+            "Minimum mapping quality (phred scaled) for an alignment"
+            ' to be called "uniquely mapped". default=%(default)s'
+        ),
     )
 
     args = parser.parse_args()

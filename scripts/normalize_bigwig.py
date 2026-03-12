@@ -39,7 +39,11 @@ def main():
         type=int,
         dest="chunk_size",
         default=500000,
-        help="Chromosome chunk size. Each chomosome will be cut into samll chunks of this size. Decrease chunk size will save more RAM. default=%(default)s (bp) [optional]",
+        help=(
+            "Chromosome chunk size. Each chromosome will be cut into"
+            " small chunks of this size. Decrease chunk size will save"
+            " more RAM. default=%(default)s (bp) [optional]"
+        ),
     )
     parser.add_argument(
         "-f",

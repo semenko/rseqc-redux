@@ -25,7 +25,11 @@ def main():
         "-i",
         "--input",
         dest="input_read",
-        help="Read sequence in fasta or fastq format. Multiple fasta/fastq files should be separated by ','. For example: read.fq,read2.fa,read3,fa ",
+        help=(
+            "Read sequence in fasta or fastq format. Multiple"
+            " fasta/fastq files should be separated by ','."
+            " For example: read.fq,read2.fa,read3,fa"
+        ),
     )
     parser.add_argument(
         "-r",

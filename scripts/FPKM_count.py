@@ -13,6 +13,7 @@ from time import strftime
 from bx.intervals import Intersecter, Interval
 
 from rseqc import SAM
+from rseqc.SAM import _pysam_iter
 
 
 def printlog(mesg):
@@ -91,21 +92,35 @@ def main():
         "--strand",
         dest="strand_rule",
         default=None,
-        help="How read(s) were stranded during sequencing. For example: --strand='1++,1--,2+-,2-+' means that this is a pair-end, strand-specific RNA-seq, and the strand rule is: read1 mapped to '+' => parental gene on '+'; read1 mapped to '-' => parental gene on '-'; read2 mapped to '+' => parental gene on '-'; read2 mapped to '-' => parental gene on '+'.  If you are not sure about the strand rule, run 'infer_experiment.py' default=%(default)s (Not a strand specific RNA-seq data)",
+        help=(
+            "How read(s) were stranded during sequencing. For example:"
+            " --strand='1++,1--,2+-,2-+' means that this is a pair-end,"
+            " strand-specific RNA-seq, and the strand rule is: read1"
+            " mapped to '+' => parental gene on '+'; read1 mapped to"
+            " '-' => parental gene on '-'; read2 mapped to '+' =>"
+            " parental gene on '-'; read2 mapped to '-' => parental"
+            " gene on '+'. If you are not sure about the strand rule,"
+            " run 'infer_experiment.py' default=%(default)s"
+            " (Not a strand specific RNA-seq data)"
+        ),
     )
     parser.add_argument(
         "-u",
         "--skip-multi-hits",
         action="store_true",
         dest="skip_multi",
-        help="How to deal with multiple hit reads. Presence this option renders program to skip multiple hits reads.",
+        help=("How to deal with multiple hit reads. Presence this option renders program to skip multiple hits reads."),
     )
     parser.add_argument(
         "-e",
         "--only-exonic",
         action="store_true",
         dest="only_exon",
-        help="How to count total reads. Presence of this option renders program only used exonic (UTR exons and CDS exons) reads, otherwise use all reads.",
+        help=(
+            "How to count total reads. Presence of this option renders"
+            " program only used exonic (UTR exons and CDS exons) reads,"
+            " otherwise use all reads."
+        ),
     )
     parser.add_argument(
         "-q",
@@ -113,7 +128,10 @@ def main():
         type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%(default)s',
+        help=(
+            "Minimum mapping quality (phred scaled) for an alignment"
+            ' to be called "uniquely mapped". default=%(default)s'
+        ),
     )
     parser.add_argument(
         "-s",
@@ -121,7 +139,11 @@ def main():
         type=float,
         dest="single_read",
         default=1,
-        help="How to count read-pairs that only have one end mapped. 0: ignore it. 0.5: treat it as half fragment. 1: treat it as whole fragment. default=%(default)s",
+        help=(
+            "How to count read-pairs that only have one end mapped."
+            " 0: ignore it. 0.5: treat it as half fragment."
+            " 1: treat it as whole fragment. default=%(default)s"
+        ),
     )
 
     args = parser.parse_args()
@@ -163,58 +185,55 @@ def main():
     total_frags = 0.0
     exonic_frags = 0.0
 
-    try:
-        while 1:
-            aligned_read = next(obj.samfile)
-            if aligned_read.is_qcfail:
-                continue  # skip low quanlity
-            if aligned_read.is_duplicate:
-                continue  # skip duplicate read
-            if aligned_read.is_secondary:
-                continue  # skip non primary hit
-            if args.skip_multi:
-                if aligned_read.mapq < args.map_qual:
-                    continue
-            try:
-                chrom = obj.samfile.getrname(aligned_read.tid).upper()
-            except Exception:
+    for aligned_read in _pysam_iter(obj.samfile):
+        if aligned_read.is_qcfail:
+            continue  # skip low quanlity
+        if aligned_read.is_duplicate:
+            continue  # skip duplicate read
+        if aligned_read.is_secondary:
+            continue  # skip non primary hit
+        if args.skip_multi:
+            if aligned_read.mapq < args.map_qual:
                 continue
-            read_st = aligned_read.pos
-            read_end = read_st + aligned_read.rlen  # not exactly the end position in case of splicing, insertion,etc
+        try:
+            chrom = obj.samfile.getrname(aligned_read.tid).upper()
+        except Exception:
+            continue
+        read_st = aligned_read.pos
+        read_end = read_st + aligned_read.rlen  # not exactly the end position in case of splicing, insertion,etc
 
-            if not aligned_read.is_paired:  # if read is NOT paired in sequencing (single-end sequencing)
-                total_frags += 1
-                if (chrom in gene_ranges) and len(gene_ranges[chrom].find(read_st, read_end)) > 0:
-                    exonic_frags += 1
-            elif aligned_read.is_paired:  # for pair-end sequencing
-                if aligned_read.is_read2:
-                    continue  # only count read1
-                mate_st = aligned_read.pnext
-                mate_end = mate_st + aligned_read.rlen
+        if not aligned_read.is_paired:  # if read is NOT paired in sequencing (single-end sequencing)
+            total_frags += 1
+            if (chrom in gene_ranges) and len(gene_ranges[chrom].find(read_st, read_end)) > 0:
+                exonic_frags += 1
+        elif aligned_read.is_paired:  # for pair-end sequencing
+            if aligned_read.is_read2:
+                continue  # only count read1
+            mate_st = aligned_read.pnext
+            mate_end = mate_st + aligned_read.rlen
 
-                if aligned_read.is_unmapped:  # read1 unmapped
-                    if aligned_read.mate_is_unmapped:
-                        continue  # both unmap
-                    else:  # read2 is mapped
-                        total_frags += args.single_read
-                        if (chrom in gene_ranges) and (len(gene_ranges[chrom].find(mate_st, mate_end)) > 0):
-                            exonic_frags += args.single_read
+            if aligned_read.is_unmapped:  # read1 unmapped
+                if aligned_read.mate_is_unmapped:
+                    continue  # both unmap
+                else:  # read2 is mapped
+                    total_frags += args.single_read
+                    if (chrom in gene_ranges) and (len(gene_ranges[chrom].find(mate_st, mate_end)) > 0):
+                        exonic_frags += args.single_read
+            else:
+                if aligned_read.mate_is_unmapped:
+                    total_frags += args.single_read
+                    if (chrom in gene_ranges) and (len(gene_ranges[chrom].find(read_st, read_end)) > 0):
+                        exonic_frags += args.single_read
                 else:
-                    if aligned_read.mate_is_unmapped:
-                        total_frags += args.single_read
-                        if (chrom in gene_ranges) and (len(gene_ranges[chrom].find(read_st, read_end)) > 0):
-                            exonic_frags += args.single_read
-                    else:
-                        total_frags += 1
-                        if (
-                            (chrom in gene_ranges)
-                            and (len(gene_ranges[chrom].find(read_st, read_end)) > 0)
-                            and (len(gene_ranges[chrom].find(mate_st, mate_end)) > 0)
-                        ):
-                            exonic_frags += 1
+                    total_frags += 1
+                    if (
+                        (chrom in gene_ranges)
+                        and (len(gene_ranges[chrom].find(read_st, read_end)) > 0)
+                        and (len(gene_ranges[chrom].find(mate_st, mate_end)) > 0)
+                    ):
+                        exonic_frags += 1
 
-    except (StopIteration, ValueError):
-        print("Done", file=sys.stderr)
+    print("Done", file=sys.stderr)
     print("Total fragment = %-20s" % (str(total_frags)), file=sys.stderr)
     print("Total exonic fragment = %-20s" % (str(exonic_frags)), file=sys.stderr)
 

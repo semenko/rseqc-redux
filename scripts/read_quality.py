@@ -42,7 +42,15 @@ def main():
         type=int,
         dest="reduce_fold",
         default=1,
-        help="To avoid making huge vector in R, nucleotide with particular phred score less frequent than this number will be ignored. Increase this number save more memory while reduce precision. Set to 1 achieves maximum precision (i.e. every nucleotide will be considered). This option only applies to the 'boxplot'. default=%(default)s",
+        help=(
+            "To avoid making huge vector in R, nucleotide with"
+            " particular phred score less frequent than this number"
+            " will be ignored. Increase this number save more memory"
+            " while reduce precision. Set to 1 achieves maximum"
+            " precision (i.e. every nucleotide will be considered)."
+            " This option only applies to the 'boxplot'."
+            " default=%(default)s"
+        ),
     )
     parser.add_argument(
         "-q",
@@ -50,7 +58,10 @@ def main():
         type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%(default)s',
+        help=(
+            "Minimum mapping quality (phred scaled) for an alignment"
+            ' to be called "uniquely mapped". default=%(default)s'
+        ),
     )
     args = parser.parse_args()
 

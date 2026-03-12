@@ -699,12 +699,16 @@ class ParseBED:
                 if strand == "-":
                     len(intron_start)
                     for st, end in zip(intron_start, intron_end):
-                        # FO.write(chrom + "\t" + str(st) + "\t" + str(end) + "\t" + geneName + "_intron_" + str(intronNum) + "\t0\t" + strand + '\n')
+                        # FO.write(chrom + "\t" + str(st) + "\t" + str(end) +
+                        #   "\t" + geneName + "_intron_" + str(intronNum) +
+                        #   "\t0\t" + strand + '\n')
                         # intronNum -= 1
                         ret_lst.append([chrom, st, end])
                 else:
                     for st, end in zip(intron_start, intron_end):
-                        # FO.write(chrom + "\t" + str(st) + "\t" + str(end) + "\t" + geneName + "_intron_" + str(intronNum) + "\t0\t" + strand + '\n')
+                        # FO.write(chrom + "\t" + str(st) + "\t" + str(end) +
+                        #   "\t" + geneName + "_intron_" + str(intronNum) +
+                        #   "\t0\t" + strand + '\n')
                         # intronNum += 1
                         ret_lst.append([chrom, st, end])
             except Exception:
@@ -2630,7 +2634,8 @@ class CompareBED:
         print("Done.", file=sys.stderr)
 
     def findClosestPeak(self, mod, downStream=50000, upStream=50000):
-        """For each entry in second bed file (reference gene model) find the closest peak defined in the fist bed file"""
+        """For each entry in second bed file (reference gene model) find
+        the closest peak defined in the fist bed file"""
 
         ranges = {}
 

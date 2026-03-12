@@ -179,13 +179,21 @@ def Rcode_write(dataset, file_prefix, format="pdf", colNum=100):
         print("\n", file=ROUT)
         print('%s("%s.%s")' % (format.lower(), file_prefix + ".heatMap", format.lower()), file=ROUT)
         print("rc <- cm.colors(ncol(data_matrix))", file=ROUT)
-        print(
+        heatmap_cmd = (
             "heatmap(data_matrix"
-            + ', scale=c("none"),keep.dendro=F, labRow = rowLabel '
-            + ",Colv = NA,Rowv = NA,labCol=NA,col=cm.colors(256),margins = c(6, 8),ColSideColors = rc,cexRow=1,cexCol=1,xlab=\"Gene body percentile (5'->3')\", add.expr=x_axis_expr <- axis(side=1,at=c(%s),labels=c(%s)))"
-            % (",".join([str(i) for i in tick_pos]), ",".join(['"' + str(i) + '"' for i in tick_lab])),
-            file=ROUT,
+            ', scale=c("none"),keep.dendro=F, labRow = rowLabel '
+            ",Colv = NA,Rowv = NA,labCol=NA,col=cm.colors(256),"
+            "margins = c(6, 8),ColSideColors = rc,"
+            "cexRow=1,cexCol=1,"
+            "xlab=\"Gene body percentile (5'->3')\", "
+            "add.expr=x_axis_expr <- axis(side=1,at=c(%s),"
+            "labels=c(%s)))"
+            % (
+                ",".join([str(i) for i in tick_pos]),
+                ",".join(['"' + str(i) + '"' for i in tick_lab]),
+            )
         )
+        print(heatmap_cmd, file=ROUT)
         print("dev.off()", file=ROUT)
 
     print("\n", file=ROUT)
@@ -246,7 +254,15 @@ def main():
         "-i",
         "--input",
         dest="input_files",
-        help='Input file(s) in BAM format. "-i" takes these input: 1) a single BAM file. 2) "," separated BAM files. 3) directory containing one or more bam files. 4) plain text file containing the path of one or more bam file (Each row is a BAM file path). All BAM files should be sorted and indexed using samtools.',
+        help=(
+            'Input file(s) in BAM format. "-i" takes these input:'
+            " 1) a single BAM file."
+            ' 2) "," separated BAM files.'
+            " 3) directory containing one or more bam files."
+            " 4) plain text file containing the path of one or more"
+            " bam file (Each row is a BAM file path). All BAM files"
+            " should be sorted and indexed using samtools."
+        ),
     )
     parser.add_argument(
         "-r",

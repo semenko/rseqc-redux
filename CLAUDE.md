@@ -23,9 +23,9 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 
 **Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
 
-**Tests:** 301 passing. Coverage: utility modules 78–97%, BED.py 13%, SAM.py has integration tests with BAM fixture.
+**Tests:** 316 passing, 31% overall coverage. SAM.py 32%, BED.py 13%, utility modules 62–100%.
 
-**Lint/Type:** CI green — ruff (0 errors, E741/E712 enabled), mypy (0 errors), ruff format clean. Only E501 (line length) still suppressed.
+**Lint/Type:** CI green — ruff (0 errors, E741/E712/E501 all enabled), mypy (0 errors), ruff format clean.
 
 **What's been modernized:**
 - Star imports replaced with explicit imports in all `rseqc/` and `scripts/` files
@@ -44,13 +44,16 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - Syntax modernizations: `class Foo(object)` → `class Foo:`, unnecessary `list()` wrappers removed, Python 2 `__div__` replaced with `/` operator
 - `sys.exit()` → `sys.exit(1)` in library error paths (SAM.py, BED.py)
 - Dead `open()` call removed in annoGene.py
-- `type: ignore` comments cleaned up in changePoint.py
-- Python 3.13 compatibility: pysam iterator `ValueError` workaround (29 sites across 7 files)
+- `type: ignore` comments cleaned up in changePoint.py; dead `bootstrap()` function removed
+- Python 3.13 compatibility: `_pysam_iter()` helper wraps all pysam BAM iteration (handles ValueError bug)
+- `while 1: next(samfile)` anti-pattern replaced with `for` loops across all files
+- E501 (line length) fully resolved and enabled in ruff — 0 violations
+- Dead `outfile` parameter removed from `annoGene.py` `annotateBed()`
 
 **What still needs work:**
-- E501 (line length) — 930 violations, needs incremental reformatting
 - Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels
-- More SAM.py/BED.py method-level integration tests
+- More BED.py method-level integration tests (13% coverage)
+- scbam.py essentially untested (11% coverage)
 
 ## Commands
 

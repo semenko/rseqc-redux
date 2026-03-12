@@ -15,6 +15,7 @@ import sys
 from bx.intervals import Intersecter, Interval
 
 from rseqc import BED, SAM, bam_cigar
+from rseqc.SAM import _pysam_iter
 
 
 def cal_size(list):
@@ -232,74 +233,71 @@ def main():
     R_unmap = 0
 
     print("processing " + args.input_file + " ...", end=" ", file=sys.stderr)
-    try:
-        while 1:
-            aligned_read = next(obj.samfile)
-            if aligned_read.is_qcfail:  # skip QC fail read
-                R_qc_fail += 1
-                continue
-            if aligned_read.is_duplicate:  # skip duplicate read
-                R_duplicate += 1
-                continue
-            if aligned_read.is_secondary:  # skip non primary hit
-                R_nonprimary += 1
-                continue
-            if aligned_read.is_unmapped:  # skip unmap read
-                R_unmap += 1
-                continue
-            totalReads += 1
-            chrom = obj.samfile.getrname(aligned_read.tid)
-            chrom = chrom.upper()
-            exons = bam_cigar.fetch_exon(chrom, aligned_read.pos, aligned_read.cigar)
-            totalFrags += len(exons)
+    for aligned_read in _pysam_iter(obj.samfile):
+        if aligned_read.is_qcfail:  # skip QC fail read
+            R_qc_fail += 1
+            continue
+        if aligned_read.is_duplicate:  # skip duplicate read
+            R_duplicate += 1
+            continue
+        if aligned_read.is_secondary:  # skip non primary hit
+            R_nonprimary += 1
+            continue
+        if aligned_read.is_unmapped:  # skip unmap read
+            R_unmap += 1
+            continue
+        totalReads += 1
+        chrom = obj.samfile.getrname(aligned_read.tid)
+        chrom = chrom.upper()
+        exons = bam_cigar.fetch_exon(chrom, aligned_read.pos, aligned_read.cigar)
+        totalFrags += len(exons)
 
-            for exn in exons:
-                # print chrom + '\t' + str(exn[1]) + '\t' + str(exn[2])
-                mid = int(exn[1]) + int((int(exn[2]) - int(exn[1])) / 2)
-                if foundone(chrom, cds_exon_r, mid, mid) > 0:
-                    cds_exon_read += 1
-                    continue
-                elif foundone(chrom, utr_5_r, mid, mid) > 0 and foundone(chrom, utr_3_r, mid, mid) == 0:
-                    utr_5_read += 1
-                    continue
-                elif foundone(chrom, utr_3_r, mid, mid) > 0 and foundone(chrom, utr_5_r, mid, mid) == 0:
-                    utr_3_read += 1
-                    continue
-                elif foundone(chrom, utr_3_r, mid, mid) > 0 and foundone(chrom, utr_5_r, mid, mid) > 0:
-                    unAssignFrags += 1
-                    continue
-                elif foundone(chrom, intron_r, mid, mid) > 0:
-                    intron_read += 1
-                    continue
-                elif (
-                    foundone(chrom, intergenic_up_10kb_r, mid, mid) > 0
-                    and foundone(chrom, intergenic_down_10kb_r, mid, mid) > 0
-                ):
-                    unAssignFrags += 1
-                    continue
-                elif foundone(chrom, intergenic_up_1kb_r, mid, mid) > 0:
-                    intergenic_up1kb_read += 1
-                    intergenic_up5kb_read += 1
-                    intergenic_up10kb_read += 1
-                elif foundone(chrom, intergenic_up_5kb_r, mid, mid) > 0:
-                    intergenic_up5kb_read += 1
-                    intergenic_up10kb_read += 1
-                elif foundone(chrom, intergenic_up_10kb_r, mid, mid) > 0:
-                    intergenic_up10kb_read += 1
+        for exn in exons:
+            # print chrom + '\t' + str(exn[1]) + '\t' + str(exn[2])
+            mid = int(exn[1]) + int((int(exn[2]) - int(exn[1])) / 2)
+            if foundone(chrom, cds_exon_r, mid, mid) > 0:
+                cds_exon_read += 1
+                continue
+            elif foundone(chrom, utr_5_r, mid, mid) > 0 and foundone(chrom, utr_3_r, mid, mid) == 0:
+                utr_5_read += 1
+                continue
+            elif foundone(chrom, utr_3_r, mid, mid) > 0 and foundone(chrom, utr_5_r, mid, mid) == 0:
+                utr_3_read += 1
+                continue
+            elif foundone(chrom, utr_3_r, mid, mid) > 0 and foundone(chrom, utr_5_r, mid, mid) > 0:
+                unAssignFrags += 1
+                continue
+            elif foundone(chrom, intron_r, mid, mid) > 0:
+                intron_read += 1
+                continue
+            elif (
+                foundone(chrom, intergenic_up_10kb_r, mid, mid) > 0
+                and foundone(chrom, intergenic_down_10kb_r, mid, mid) > 0
+            ):
+                unAssignFrags += 1
+                continue
+            elif foundone(chrom, intergenic_up_1kb_r, mid, mid) > 0:
+                intergenic_up1kb_read += 1
+                intergenic_up5kb_read += 1
+                intergenic_up10kb_read += 1
+            elif foundone(chrom, intergenic_up_5kb_r, mid, mid) > 0:
+                intergenic_up5kb_read += 1
+                intergenic_up10kb_read += 1
+            elif foundone(chrom, intergenic_up_10kb_r, mid, mid) > 0:
+                intergenic_up10kb_read += 1
 
-                elif foundone(chrom, intergenic_down_1kb_r, mid, mid) > 0:
-                    intergenic_down1kb_read += 1
-                    intergenic_down5kb_read += 1
-                    intergenic_down10kb_read += 1
-                elif foundone(chrom, intergenic_down_5kb_r, mid, mid) > 0:
-                    intergenic_down5kb_read += 1
-                    intergenic_down10kb_read += 1
-                elif foundone(chrom, intergenic_down_10kb_r, mid, mid) > 0:
-                    intergenic_down10kb_read += 1
-                else:
-                    unAssignFrags += 1
-    except (StopIteration, ValueError):
-        print("Finished\n", file=sys.stderr)
+            elif foundone(chrom, intergenic_down_1kb_r, mid, mid) > 0:
+                intergenic_down1kb_read += 1
+                intergenic_down5kb_read += 1
+                intergenic_down10kb_read += 1
+            elif foundone(chrom, intergenic_down_5kb_r, mid, mid) > 0:
+                intergenic_down5kb_read += 1
+                intergenic_down10kb_read += 1
+            elif foundone(chrom, intergenic_down_10kb_r, mid, mid) > 0:
+                intergenic_down10kb_read += 1
+            else:
+                unAssignFrags += 1
+    print("Finished\n", file=sys.stderr)
 
     print("%-30s%d" % ("Total Reads", totalReads))
     print("%-30s%d" % ("Total Tags", totalFrags))

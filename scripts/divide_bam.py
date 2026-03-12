@@ -11,6 +11,8 @@ from random import randrange
 
 import pysam
 
+from rseqc.SAM import _pysam_iter
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -48,18 +50,15 @@ def main():
 
     total_alignment = 0
     print("Dividing " + args.input_file + " ...", end=" ", file=sys.stderr)
-    try:
-        while 1:
-            aligned_read = next(samfile)
-            if aligned_read.is_unmapped and args.skip_unmap is True:
-                continue
-            total_alignment += 1
-            tmp = randrange(0, args.subset_num)
-            sub_bam[tmp].write(aligned_read)
-            count_bam[tmp] += 1
+    for aligned_read in _pysam_iter(samfile):
+        if aligned_read.is_unmapped and args.skip_unmap is True:
+            continue
+        total_alignment += 1
+        tmp = randrange(0, args.subset_num)
+        sub_bam[tmp].write(aligned_read)
+        count_bam[tmp] += 1
 
-    except (StopIteration, ValueError):
-        print("Done", file=sys.stderr)
+    print("Done", file=sys.stderr)
 
     for i in range(0, args.subset_num):
         print("%-55s%d" % (args.output_prefix + "_" + str(i) + ".bam", count_bam[i]))

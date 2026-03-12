@@ -12,6 +12,14 @@ import pandas as pd
 import pysam
 
 
+def _pysam_iter(samfile):
+    """Iterate over pysam AlignmentFile, handling ValueError on Python 3.13+."""
+    try:
+        yield from samfile
+    except ValueError:
+        return
+
+
 def diff_str(s1, s2):
     """
     Comparing orignal barcode to the corrected barcode
@@ -97,56 +105,51 @@ def barcode_edits(infile, outfile, step_size=10000, limit=2000000, CR_tag="CR", 
     UMI_corrected_bases = collections.defaultdict(dict)
 
     total_alignments = 0
-    try:
-        while 1:
-            total_alignments += 1
-            aligned_read = next(samfile)
-            tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
+    for aligned_read in _pysam_iter(samfile):
+        total_alignments += 1
+        tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
 
-            original_CB = ""
-            corrected_CB = ""
-            if CR_tag in tag_dict and CB_tag in tag_dict:
-                original_CB = tag_dict[CR_tag].replace("-1", "")
-                corrected_CB = tag_dict[CB_tag].replace("-1", "")
-                CB_freq[corrected_CB] += 1
-                if original_CB != corrected_CB:
-                    CB_diff += 1
-                    for diff in diff_str(original_CB, corrected_CB):
-                        try:
-                            CB_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] += 1
-                        except Exception:
-                            CB_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] = 1
-                else:
-                    CB_same += 1
+        original_CB = ""
+        corrected_CB = ""
+        if CR_tag in tag_dict and CB_tag in tag_dict:
+            original_CB = tag_dict[CR_tag].replace("-1", "")
+            corrected_CB = tag_dict[CB_tag].replace("-1", "")
+            CB_freq[corrected_CB] += 1
+            if original_CB != corrected_CB:
+                CB_diff += 1
+                for diff in diff_str(original_CB, corrected_CB):
+                    try:
+                        CB_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] += 1
+                    except Exception:
+                        CB_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] = 1
             else:
-                CB_miss += 1
+                CB_same += 1
+        else:
+            CB_miss += 1
 
-            original_UMI = ""
-            corrected_UMI = ""
-            if UR_tag in tag_dict and UB_tag in tag_dict:
-                original_UMI = tag_dict[UR_tag].replace("-1", "")
-                corrected_UMI = tag_dict[UB_tag].replace("-1", "")
-                UMI_freq[corrected_UMI] += 1
-                if original_UMI != corrected_UMI:
-                    UMI_diff += 1
-                    for diff in diff_str(original_UMI, corrected_UMI):
-                        try:
-                            UMI_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] += 1
-                        except Exception:
-                            UMI_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] = 1
-                else:
-                    UMI_same += 1
+        original_UMI = ""
+        corrected_UMI = ""
+        if UR_tag in tag_dict and UB_tag in tag_dict:
+            original_UMI = tag_dict[UR_tag].replace("-1", "")
+            corrected_UMI = tag_dict[UB_tag].replace("-1", "")
+            UMI_freq[corrected_UMI] += 1
+            if original_UMI != corrected_UMI:
+                UMI_diff += 1
+                for diff in diff_str(original_UMI, corrected_UMI):
+                    try:
+                        UMI_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] += 1
+                    except Exception:
+                        UMI_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] = 1
             else:
-                UMI_miss += 1
+                UMI_same += 1
+        else:
+            UMI_miss += 1
 
-            if total_alignments % step_size == 0:
-                print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
-            if limit is not None:
-                if total_alignments >= limit:
-                    break
-
-    except (StopIteration, ValueError):
-        pass
+        if total_alignments % step_size == 0:
+            print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
+        if limit is not None:
+            if total_alignments >= limit:
+                break
     logging.info("Total alignments processed: %d" % total_alignments)
 
     logging.info("Number of alignmenets with <cell barcode> kept AS IS: %d" % CB_same)
@@ -300,7 +303,8 @@ def mapping_stat(
                 else:
                     confi_reads_fwd += 1
 
-                # Single character indicating the region type of this alignment (E = exonic, N = intronic, I = intergenic).
+                # Single character indicating the region type of this alignment
+                # (E = exonic, N = intronic, I = intergenic).
                 if RE_tag in tag_dict:
                     if tag_dict[RE_tag] == "E":
                         exon_reads += 1
@@ -441,47 +445,42 @@ def readCount(infile, outfile, step_size=10000, limit=1000000, csv_out=False):
     total_alignments = 0
     CB_GN_READ = collections.defaultdict(dict)
     # CB_GN_UMI = collections.defaultdict(list)
-    try:
-        while 1:
-            aligned_read = next(samfile)
-            read_id = aligned_read.query_name
-            tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
-            if "xf" in tag_dict and tag_dict["xf"] & 0x1 == 0:
-                continue
-            if "CB" in tag_dict:
-                CB = tag_dict["CB"].replace("-1", "")
-            else:
-                logging.debug("%s has no cell barcode!" % read_id)
-            # if 'UB' in tag_dict:
-            # UMI = tag_dict['UB'].replace('-1','')
-            if "GX" in tag_dict:
-                geneID = tag_dict["GX"]
-            else:
-                geneID = "NA"
-            if "GN" in tag_dict:
-                geneSymbol = tag_dict["GN"]
-            else:
-                geneSymbol = "NA"
+    for aligned_read in _pysam_iter(samfile):
+        read_id = aligned_read.query_name
+        tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
+        if "xf" in tag_dict and tag_dict["xf"] & 0x1 == 0:
+            continue
+        if "CB" in tag_dict:
+            CB = tag_dict["CB"].replace("-1", "")
+        else:
+            logging.debug("%s has no cell barcode!" % read_id)
+        # if 'UB' in tag_dict:
+        # UMI = tag_dict['UB'].replace('-1','')
+        if "GX" in tag_dict:
+            geneID = tag_dict["GX"]
+        else:
+            geneID = "NA"
+        if "GN" in tag_dict:
+            geneSymbol = tag_dict["GN"]
+        else:
+            geneSymbol = "NA"
 
-            if geneID == "NA":
-                continue
+        if geneID == "NA":
+            continue
 
-            try:
-                CB_GN_READ[CB][geneID + "|" + geneSymbol] += 1
-            except KeyError:
-                CB_GN_READ[CB][geneID + "|" + geneSymbol] = 1
+        try:
+            CB_GN_READ[CB][geneID + "|" + geneSymbol] += 1
+        except KeyError:
+            CB_GN_READ[CB][geneID + "|" + geneSymbol] = 1
 
-            # CB_GN_UMI[CB + ':' + geneID].append(UMI)
+        # CB_GN_UMI[CB + ':' + geneID].append(UMI)
 
-            total_alignments += 1
-            if total_alignments % step_size == 0:
-                print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
-            if limit is not None:
-                if total_alignments >= limit:
-                    break
-
-    except (StopIteration, ValueError):
-        pass
+        total_alignments += 1
+        if total_alignments % step_size == 0:
+            print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
+        if limit is not None:
+            if total_alignments >= limit:
+                break
     """
 	logging.info('Total %d alignments processed' % total_alignments)
 	logging.info('Convert dict of dict to pandas data frame')
@@ -545,24 +544,20 @@ def CBC_UMIcount(
     logging.info('Reading BAM file "%s". Count reads for each cell barcode ...' % infile)
     samfile = pysam.AlignmentFile(infile, "rb")
     total_alignments = 0
-    try:
-        while 1:
-            aligned_read = next(samfile)
-            tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
-            if "xf" in tag_dict and tag_dict["xf"] & 0x1 == 0:
-                continue
+    for aligned_read in _pysam_iter(samfile):
+        tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
+        if "xf" in tag_dict and tag_dict["xf"] & 0x1 == 0:
+            continue
 
-            # count reads
-            if CB_tag in tag_dict:
-                CB = tag_dict[CB_tag].replace("-1", "")
-            else:
-                continue
-            CB_read_freq[CB] += 1
-            total_alignments += 1
-            if total_alignments % step_size == 0:
-                print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
-    except (StopIteration, ValueError):
-        pass
+        # count reads
+        if CB_tag in tag_dict:
+            CB = tag_dict[CB_tag].replace("-1", "")
+        else:
+            continue
+        CB_read_freq[CB] += 1
+        total_alignments += 1
+        if total_alignments % step_size == 0:
+            print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
     logging.info("Total %d alignments processed" % total_alignments)
 
     logging.info("Filtering cell barcodes ...")
@@ -579,51 +574,47 @@ def CBC_UMIcount(
     CB_freq_list = {}  # UMI count for each barcode
     gene_freq = {}  # gene count for each barcode
     total_alignments = 0
-    try:
-        while 1:
-            aligned_read = next(samfile)
-            read_id = aligned_read.query_name
-            # chrom = samfile.get_reference_name(aligned_read.reference_id)
-            # if aligned_read.is_duplicate:continue
-            tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
-            if "xf" in tag_dict and tag_dict["xf"] & 0x1 == 0:
-                continue
+    for aligned_read in _pysam_iter(samfile):
+        read_id = aligned_read.query_name
+        # chrom = samfile.get_reference_name(aligned_read.reference_id)
+        # if aligned_read.is_duplicate:continue
+        tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
+        if "xf" in tag_dict and tag_dict["xf"] & 0x1 == 0:
+            continue
 
-            if CB_tag in tag_dict:
-                CB = tag_dict[CB_tag].replace("-1", "")
-                if CB not in CB_usable:  # filter out CB with low number of reads
-                    continue
+        if CB_tag in tag_dict:
+            CB = tag_dict[CB_tag].replace("-1", "")
+            if CB not in CB_usable:  # filter out CB with low number of reads
+                continue
+        else:
+            logging.debug("%s has no cell barcode!" % read_id)
+            continue
+
+        # count UMI frequency
+        if UMI_tag in tag_dict:
+            UMI = tag_dict[UMI_tag].replace("-1", "")
+            if CB not in CB_freq_list:
+                CB_freq_list[CB] = set(UMI)
             else:
-                logging.debug("%s has no cell barcode!" % read_id)
-                continue
+                CB_freq_list[CB].add(UMI)
+        else:
+            logging.debug("%s has no UMI!" % read_id)
+            continue
 
-            # count UMI frequency
-            if UMI_tag in tag_dict:
-                UMI = tag_dict[UMI_tag].replace("-1", "")
-                if CB not in CB_freq_list:
-                    CB_freq_list[CB] = set(UMI)
-                else:
-                    CB_freq_list[CB].add(UMI)
+        # count gene frequency
+        if gene_tag in tag_dict:
+            gene_names = tag_dict[gene_tag].split(";")
+            if CB not in gene_freq:
+                gene_freq[CB] = set()
             else:
-                logging.debug("%s has no UMI!" % read_id)
-                continue
+                for gene_name in gene_names:
+                    gene_freq[CB].add(gene_name)
+        else:
+            continue
 
-            # count gene frequency
-            if gene_tag in tag_dict:
-                gene_names = tag_dict[gene_tag].split(";")
-                if CB not in gene_freq:
-                    gene_freq[CB] = set()
-                else:
-                    for gene_name in gene_names:
-                        gene_freq[CB].add(gene_name)
-            else:
-                continue
-
-            total_alignments += 1
-            if total_alignments % step_size == 0:
-                print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
-    except (StopIteration, ValueError):
-        pass
+        total_alignments += 1
+        if total_alignments % step_size == 0:
+            print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
     logging.info("Total %d alignments processed" % total_alignments)
 
     for k, v in CB_freq_list.items():

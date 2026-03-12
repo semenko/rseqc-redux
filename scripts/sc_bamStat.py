@@ -33,19 +33,31 @@ def main():
         "--re-tag",
         dest="RE_tag",
         default="RE",
-        help="BAM alignment tag. Used to indicate the region type of the alignment (E = exonic, N = intronic, I = intergenic). default='%(default)s'",
+        help=(
+            "BAM alignment tag. Used to indicate the region type of"
+            " the alignment (E = exonic, N = intronic,"
+            " I = intergenic). default='%(default)s'"
+        ),
     )
     parser.add_argument(
         "--tx-tag",
         dest="TX_tag",
         default="TX",
-        help="BAM alignment tag. Used to indicate reads aligned to the same strand as the annotated transcripts. default='%(default)s'",
+        help=(
+            "BAM alignment tag. Used to indicate reads aligned to the"
+            " same strand as the annotated transcripts."
+            " default='%(default)s'"
+        ),
     )
     parser.add_argument(
         "--an-tag",
         dest="AN_tag",
         default="AN",
-        help="BAM alignment tag. Used to indicate reads aligned to the antisense strand of the annotated transcripts. default='%(default)s'",
+        help=(
+            "BAM alignment tag. Used to indicate reads aligned to the"
+            " antisense strand of the annotated transcripts."
+            " default='%(default)s'"
+        ),
     )
     parser.add_argument(
         "--umi-tag",

@@ -91,8 +91,9 @@ def generate_interact(infile, bam_file, size=1):
     outfile = infile.replace(".xls", ".Interact.bed")
     OUT = open(outfile, "w")
     print(
-        'track type=interact name="Splice junctions" description="Splice junctions detected from %s" maxHeightPixels=200:200:50 visibility=full'
-        % bam_file,
+        'track type=interact name="Splice junctions"'
+        ' description="Splice junctions detected from %s"'
+        " maxHeightPixels=200:200:50 visibility=full" % bam_file,
         file=OUT,
     )
     for line in open(infile, "r"):
@@ -175,7 +176,11 @@ def main():
         "-r",
         "--refgene",
         dest="ref_gene_model",
-        help="Reference gene model in bed format. This file is better to be a pooled gene model as it will be used to annotate splicing junctions [required]",
+        help=(
+            "Reference gene model in bed format. This file is better"
+            " to be a pooled gene model as it will be used to"
+            " annotate splicing junctions [required]"
+        ),
     )
     parser.add_argument(
         "-o",
@@ -197,7 +202,11 @@ def main():
         type=int,
         dest="map_qual",
         default=30,
-        help='Minimum mapping quality (phred scaled) for an alignment to be considered as "uniquely mapped". default=%(default)s',
+        help=(
+            "Minimum mapping quality (phred scaled) for an alignment"
+            ' to be considered as "uniquely mapped".'
+            " default=%(default)s"
+        ),
     )
 
     args = parser.parse_args()

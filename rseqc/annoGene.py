@@ -250,12 +250,11 @@ def getExonFromLine(bedline):
     return ret_lst
 
 
-def annotateBed(inputbed, refbed, outfile):
+def annotateBed(inputbed, refbed):
     """compare inputbed to refbed"""
     ref_exon_ranges = {}
     ref_exon_starts = collections.defaultdict(set)  # key='chrom:+', value=set()
     ref_exon_ends = collections.defaultdict(set)
-    # outfile is written later via print(..., file=) calls
 
     # read reference bed file
     # Extract CDS exons from reference bed

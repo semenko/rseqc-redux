@@ -27,7 +27,12 @@ def main():
         "--read-align-length",
         type=int,
         dest="read_alignment_length",
-        help='Alignment length of read. It is usually set to the orignial read length. For example, all these cigar strings ("101M", "68M140N33M", "53M1D48M") suggest the read alignment length is 101. [required]',
+        help=(
+            "Alignment length of read. It is usually set to the"
+            " original read length. For example, all these cigar"
+            ' strings ("101M", "68M140N33M", "53M1D48M") suggest'
+            " the read alignment length is 101. [required]"
+        ),
     )
     parser.add_argument(
         "-o",
