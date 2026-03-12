@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 """Manipulate two bigwig files"""
 
-import argparse
 import sys
 
 import numpy
 import pyBigWig
 
 from rseqc import BED, twoList
+from rseqc.cli_common import create_parser
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
 
     parser.add_argument("-i", "--bwfile1", dest="BigWig_File1", help="One BigWig file.")
     parser.add_argument(

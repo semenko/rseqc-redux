@@ -4,7 +4,6 @@ Calculate the RNA-seq reads coverage over gene body.
 This module uses bigwig file as input.
 """
 
-import argparse
 import sys
 from collections import defaultdict
 from os import path
@@ -13,7 +12,7 @@ from numpy import nan_to_num
 from pyBigWig import open as openBigWig
 
 from rseqc import mystat
-from rseqc.cli_common import run_rscript
+from rseqc.cli_common import add_output_prefix_arg, add_refgene_arg, create_parser, run_rscript, validate_files_exist
 
 
 def coverageGeneBody_bigwig(bigFile: str, refbed: str, outfile: str, gtype: str = "png") -> None:
@@ -113,26 +112,15 @@ def coverageGeneBody_bigwig(bigFile: str, refbed: str, outfile: str, gtype: str 
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
     parser.add_argument(
         "-i",
         "--input-file",
         dest="input_file",
         help="Coverage signal file in bigwig format",
     )
-    parser.add_argument(
-        "-r",
-        "--refgene",
-        dest="ref_gene_model",
-        help="Reference gene model in bed format. [required]",
-    )
-    parser.add_argument(
-        "-o",
-        "--out-prefix",
-        dest="output_prefix",
-        help="Prefix of output files(s). [required]",
-    )
+    add_refgene_arg(parser)
+    add_output_prefix_arg(parser, help="Prefix of output files(s). [required]")
     parser.add_argument(
         "-t",
         "--graph-type",
@@ -152,9 +140,7 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
 
-    if not path.exists(args.ref_gene_model):
-        print("\n\n" + args.ref_gene_model + " does NOT exists", end="\n", file=sys.stderr)
-        sys.exit(1)
+    validate_files_exist(args.ref_gene_model)
 
     if path.exists(args.input_file):
         coverageGeneBody_bigwig(args.input_file, args.ref_gene_model, args.output_prefix, gtype=args.graph_type)

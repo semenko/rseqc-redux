@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Normalize bigwig signal to fixed wigsum (equivelent to total reads). Output wiggle file"""
 
-import argparse
 import collections
 import sys
 from itertools import groupby
@@ -10,11 +9,11 @@ import numpy
 import pyBigWig
 
 from rseqc import BED
+from rseqc.cli_common import add_refgene_arg, create_parser
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
 
     parser.add_argument("-i", "--bwfile", dest="BigWig_File", help="Input BigWig file. [required]")
     parser.add_argument("-o", "--output", dest="output_wig", help="Output wig file. [required]")
@@ -26,12 +25,7 @@ def main() -> None:
         default=100000000,
         help="Specified wigsum. 100000000 equals to coverage of 1 million 100nt reads. default=%(default)s  [optional]",
     )
-    parser.add_argument(
-        "-r",
-        "--refgene",
-        dest="refgene_bed",
-        help="Reference gene model in bed format. [optional]",
-    )
+    add_refgene_arg(parser, dest="refgene_bed", help="Reference gene model in bed format. [optional]")
     parser.add_argument(
         "-c",
         "--chunk",

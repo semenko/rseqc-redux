@@ -7,10 +7,8 @@ Note:
 2) Genes/transcripts with mRNA length < 100 will be skipped (Number specified to "-l" cannot be < 100).
 """
 
-import argparse
 import collections
 import operator
-import os
 import sys
 from os.path import basename
 from time import strftime
@@ -19,7 +17,7 @@ import pysam
 from numpy import mean, std
 
 from rseqc import getBamFiles, mystat
-from rseqc.cli_common import run_rscript
+from rseqc.cli_common import add_output_prefix_arg, add_refgene_arg, create_parser, run_rscript, validate_files_exist
 from rseqc.SAM import _pysam_iter
 
 
@@ -251,8 +249,7 @@ def Rcode_write(dataset: list, file_prefix: str, format: str = "pdf", colNum: in
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
     parser.add_argument(
         "-i",
         "--input",
@@ -267,12 +264,7 @@ def main() -> None:
             " should be sorted and indexed using samtools."
         ),
     )
-    parser.add_argument(
-        "-r",
-        "--refgene",
-        dest="ref_gene_model",
-        help="Reference gene model in bed format. [required]",
-    )
+    add_refgene_arg(parser)
     parser.add_argument(
         "-l",
         "--minimum_length",
@@ -288,21 +280,14 @@ def main() -> None:
         default="pdf",
         help="Output file format, 'pdf', 'png' or 'jpeg'. default=%(default)s",
     )
-    parser.add_argument(
-        "-o",
-        "--out-prefix",
-        dest="output_prefix",
-        help="Prefix of output files(s). [required]",
-    )
+    add_output_prefix_arg(parser, help="Prefix of output files(s). [required]")
     args = parser.parse_args()
 
     if not (args.output_prefix and args.input_files and args.ref_gene_model):
         parser.print_help()
         sys.exit(1)
 
-    if not os.path.exists(args.ref_gene_model):
-        print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
+    validate_files_exist(args.ref_gene_model)
     if args.min_mRNA_length < 100:
         print('The number specified to "-l" cannot be smaller than 100.' + "\n", file=sys.stderr)
         sys.exit(1)

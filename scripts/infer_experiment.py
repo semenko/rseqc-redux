@@ -1,23 +1,17 @@
 #!/usr/bin/env python
 """Infer RNA-seq experiment design (strandedness and layout) from a SAM/BAM file."""
 
-import argparse
 import os
 import sys
 
 from rseqc import SAM
+from rseqc.cli_common import add_input_bam_arg, add_mapq_arg, add_refgene_arg, create_parser
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
-    parser.add_argument(
-        "-i",
-        "--input-file",
-        dest="input_file",
-        help="Input alignment file in SAM or BAM format",
-    )
-    parser.add_argument("-r", "--refgene", dest="refgene_bed", help="Reference gene model in bed fomat.")
+    parser = create_parser(__doc__)
+    add_input_bam_arg(parser, help="Input alignment file in SAM or BAM format")
+    add_refgene_arg(parser, dest="refgene_bed")
     parser.add_argument(
         "-s",
         "--sample-size",
@@ -26,12 +20,8 @@ def main() -> None:
         default=200000,
         help="Number of reads sampled from SAM/BAM file. default=%(default)s",
     )
-    parser.add_argument(
-        "-q",
-        "--mapq",
-        type=int,
-        dest="map_qual",
-        default=30,
+    add_mapq_arg(
+        parser,
         help=(
             "Minimum mapping quality (phred scaled) for an alignment"
             ' to be considered as "uniquely mapped".'

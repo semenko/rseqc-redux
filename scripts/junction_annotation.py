@@ -6,12 +6,17 @@ Note:
 2) Multiple splicing reads spanning the same intron can be consolidated into one splicing junction.
 """
 
-import argparse
-import os
 import sys
 
 from rseqc import SAM
-from rseqc.cli_common import run_rscript
+from rseqc.cli_common import (
+    add_input_bam_arg,
+    add_mapq_arg,
+    add_output_prefix_arg,
+    create_parser,
+    run_rscript,
+    validate_files_exist,
+)
 
 
 def generate_bed12(infile: str, size: int = 1) -> None:
@@ -155,14 +160,8 @@ def generate_interact(infile: str, bam_file: str, size: int = 1) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
-    parser.add_argument(
-        "-i",
-        "--input-file",
-        dest="input_file",
-        help="Alignment file in BAM or SAM format.",
-    )
+    parser = create_parser(__doc__)
+    add_input_bam_arg(parser)
     parser.add_argument(
         "-r",
         "--refgene",
@@ -173,12 +172,7 @@ def main() -> None:
             " annotate splicing junctions [required]"
         ),
     )
-    parser.add_argument(
-        "-o",
-        "--out-prefix",
-        dest="output_prefix",
-        help="Prefix of output files(s). [required]",
-    )
+    add_output_prefix_arg(parser, help="Prefix of output files(s). [required]")
     parser.add_argument(
         "-m",
         "--min-intron",
@@ -187,12 +181,8 @@ def main() -> None:
         default=50,
         help="Minimum intron length (bp). default=%(default)s [optional]",
     )
-    parser.add_argument(
-        "-q",
-        "--mapq",
-        type=int,
-        dest="map_qual",
-        default=30,
+    add_mapq_arg(
+        parser,
         help=(
             "Minimum mapping quality (phred scaled) for an alignment"
             ' to be considered as "uniquely mapped".'
@@ -205,21 +195,15 @@ def main() -> None:
     if not (args.output_prefix and args.input_file and args.ref_gene_model):
         parser.print_help()
         sys.exit(1)
-    if not os.path.exists(args.ref_gene_model):
-        print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
-    if os.path.exists(args.input_file):
-        obj = SAM.ParseBAM(args.input_file)
-        obj.annotate_junction(
-            outfile=args.output_prefix,
-            refgene=args.ref_gene_model,
-            min_intron=args.min_intron,
-            q_cut=args.map_qual,
-        )
-        run_rscript(args.output_prefix + ".junction_plot.r")
-    else:
-        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
+    validate_files_exist(args.ref_gene_model, args.input_file)
+    obj = SAM.ParseBAM(args.input_file)
+    obj.annotate_junction(
+        outfile=args.output_prefix,
+        refgene=args.ref_gene_model,
+        min_intron=args.min_intron,
+        q_cut=args.map_qual,
+    )
+    run_rscript(args.output_prefix + ".junction_plot.r")
     try:
         print("Create BED file ...", file=sys.stderr)
         generate_bed12(args.output_prefix + ".junction.xls")

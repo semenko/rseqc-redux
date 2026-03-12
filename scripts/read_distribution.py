@@ -8,14 +8,12 @@ The following reads will be skipped:
         Non-primary (or secondary)
 """
 
-import argparse
-import os
 import sys
 
 from bx.intervals import Intersecter, Interval
 
 from rseqc import BED, SAM, bam_cigar
-from rseqc.cli_common import build_bitsets
+from rseqc.cli_common import add_input_bam_arg, add_refgene_arg, build_bitsets, create_parser, validate_files_exist
 from rseqc.SAM import _pysam_iter
 
 
@@ -184,31 +182,15 @@ def process_gene_model(gene_model: str) -> tuple:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
-    parser.add_argument(
-        "-i",
-        "--input-file",
-        dest="input_file",
-        help="Alignment file in BAM or SAM format.",
-    )
-    parser.add_argument(
-        "-r",
-        "--refgene",
-        dest="ref_gene_model",
-        help="Reference gene model in bed format.",
-    )
+    parser = create_parser(__doc__)
+    add_input_bam_arg(parser)
+    add_refgene_arg(parser, help="Reference gene model in bed format.")
     args = parser.parse_args()
 
     if not (args.input_file and args.ref_gene_model):
         parser.print_help()
         sys.exit(1)
-    if not os.path.exists(args.ref_gene_model):
-        print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
-    if not os.path.exists(args.input_file):
-        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
+    validate_files_exist(args.ref_gene_model, args.input_file)
 
     # build bitset
     (

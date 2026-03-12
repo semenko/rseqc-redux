@@ -4,17 +4,15 @@ Convert BAM file into wig file. BAM file must be sorted and indexed using SAMtoo
 Note: SAM format file is not supported.
 """
 
-import argparse
 import os
 import sys
 
 from rseqc import SAM
-from rseqc.cli_common import load_chromsize
+from rseqc.cli_common import add_mapq_arg, create_parser, load_chromsize, validate_files_exist
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
     parser.add_argument(
         "-i",
         "--input-file",
@@ -80,24 +78,14 @@ def main() -> None:
             " (Not a strand specific RNA-seq data)."
         ),
     )
-    parser.add_argument(
-        "-q",
-        "--mapq",
-        type=int,
-        dest="map_qual",
-        default=30,
-        help='Minimum mapping quality to determine "uniquely mapped". default=%(default)s',
-    )
+    add_mapq_arg(parser, help='Minimum mapping quality to determine "uniquely mapped". default=%(default)s')
 
     args = parser.parse_args()
 
     if not (args.output_prefix and args.input_file and args.chromSize):
         parser.print_help()
         sys.exit(1)
-    for file in (args.input_file, args.chromSize):
-        if not os.path.exists(file):
-            print("\n\n" + file + " does NOT exists" + "\n", file=sys.stderr)
-            sys.exit(1)
+    validate_files_exist(args.input_file, args.chromSize)
     if not os.path.exists(args.input_file + ".bai"):
         print("index file " + args.input_file + ".bai" + " does not exists", file=sys.stderr)
         sys.exit(1)

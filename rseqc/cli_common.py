@@ -2,12 +2,72 @@
 
 from __future__ import annotations
 
+import argparse
+import os
 import subprocess
 import sys
 from time import strftime
 from typing import Any
 
 from bx.intervals import Intersecter, Interval
+
+import rseqc
+
+
+def create_parser(description: str | None = None) -> argparse.ArgumentParser:
+    """Create an ArgumentParser with standard --version flag."""
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument("--version", action="version", version=rseqc.__version__)
+    return parser
+
+
+def add_input_bam_arg(
+    parser: argparse.ArgumentParser,
+    *,
+    help: str = "Alignment file in BAM or SAM format.",
+    dest: str = "input_file",
+    long: str = "--input-file",
+) -> None:
+    """Add the standard -i input BAM/SAM argument."""
+    parser.add_argument("-i", long, dest=dest, help=help)
+
+
+def add_mapq_arg(
+    parser: argparse.ArgumentParser,
+    *,
+    help: str = (
+        'Minimum mapping quality (phred scaled) for an alignment to be called "uniquely mapped". default=%(default)s'
+    ),
+) -> None:
+    """Add the standard -q/--mapq argument (default=30)."""
+    parser.add_argument("-q", "--mapq", type=int, dest="map_qual", default=30, help=help)
+
+
+def add_output_prefix_arg(
+    parser: argparse.ArgumentParser,
+    *,
+    help: str = "Prefix of output files(s).",
+) -> None:
+    """Add the standard -o/--out-prefix argument."""
+    parser.add_argument("-o", "--out-prefix", dest="output_prefix", help=help)
+
+
+def add_refgene_arg(
+    parser: argparse.ArgumentParser,
+    *,
+    help: str = "Reference gene model in bed fomat. [required]",
+    dest: str = "ref_gene_model",
+) -> None:
+    """Add the standard -r/--refgene argument."""
+    parser.add_argument("-r", "--refgene", dest=dest, help=help)
+
+
+def validate_files_exist(*paths: str) -> None:
+    """Exit with error if any of the given file paths do not exist."""
+    for path in paths:
+        if not os.path.exists(path):
+            print("\n\n" + path + " does NOT exists" + "\n", file=sys.stderr)
+            sys.exit(1)
 
 
 def printlog(mesg: str) -> None:

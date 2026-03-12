@@ -5,16 +5,15 @@ It is useful to visualize the nucleotide compositions of sample barcodes,
 cell barcodes and molecular barcodes.
 """
 
-import argparse
 import logging
 import sys
 
 from rseqc import fastq
+from rseqc.cli_common import create_parser
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
     parser.add_argument(
         "-i",
         "--infile",

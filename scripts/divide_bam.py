@@ -4,19 +4,17 @@ Equally divide BAM file (m alignments) into n parts. Each part contains roughly 
 that are randomly sampled from total alignments.
 """
 
-import argparse
-import os
 import sys
 from random import randrange
 
 import pysam
 
+from rseqc.cli_common import create_parser, validate_files_exist
 from rseqc.SAM import _pysam_iter
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
     parser.add_argument(
         "-i",
         "--input-file",
@@ -36,9 +34,7 @@ def main() -> None:
     if not (args.input_file and args.subset_num and args.output_prefix):
         parser.print_help()
         sys.exit(1)
-    if not os.path.exists(args.input_file):
-        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
+    validate_files_exist(args.input_file)
 
     samfile = pysam.AlignmentFile(args.input_file, "rb")
 

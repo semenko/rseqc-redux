@@ -9,7 +9,6 @@ calculate fragment size for each gene/transcript. For each transcript/gene, it W
 
 from __future__ import annotations
 
-import argparse
 import os
 import sys
 from collections.abc import Generator
@@ -17,6 +16,7 @@ from collections.abc import Generator
 import pysam
 from numpy import mean, median, std
 
+from rseqc.cli_common import add_mapq_arg, add_refgene_arg, create_parser
 from rseqc.SAM import _pysam_iter
 
 
@@ -93,26 +93,14 @@ def fragment_size(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
     parser.add_argument("-i", "--input", dest="input_file", help="Input BAM file")
-    parser.add_argument(
-        "-r",
-        "--refgene",
+    add_refgene_arg(
+        parser,
         dest="refgene_bed",
         help="Reference gene model in BED format. Must be strandard 12-column BED file. [required]",
     )
-    parser.add_argument(
-        "-q",
-        "--mapq",
-        type=int,
-        dest="map_qual",
-        default=30,
-        help=(
-            "Minimum mapping quality (phred scaled) for an alignment"
-            ' to be called "uniquely mapped". default=%(default)s'
-        ),
-    )
+    add_mapq_arg(parser)
     parser.add_argument(
         "-n",
         "--frag-num",

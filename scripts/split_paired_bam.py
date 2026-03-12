@@ -1,22 +1,18 @@
 #!/usr/bin/env python
 """Split a paired-end BAM file into two single-end BAM files."""
 
-import argparse
-import os
 import sys
 
 import pysam
 
+from rseqc.cli_common import add_input_bam_arg, create_parser, validate_files_exist
 from rseqc.SAM import _pysam_iter
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
-    parser.add_argument(
-        "-i",
-        "--input-file",
-        dest="input_file",
+    parser = create_parser(__doc__)
+    add_input_bam_arg(
+        parser,
         help="Alignment file in BAM or SAM format. BAM file should be sorted and indexed",
     )
     parser.add_argument(
@@ -34,9 +30,7 @@ def main() -> None:
     if not args.input_file:
         parser.print_help()
         sys.exit(1)
-    if not os.path.exists(args.input_file):
-        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
+    validate_files_exist(args.input_file)
 
     samfile = pysam.AlignmentFile(args.input_file, "rb")
     OUT1 = pysam.AlignmentFile(

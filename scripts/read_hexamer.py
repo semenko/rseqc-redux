@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Calculate hexamer (6-mer) frequency from read sequences."""
 
-import argparse
 import os
 import sys
 
 from rseqc import FrameKmer
+from rseqc.cli_common import create_parser
 
 
 def file_exist(file: str) -> bool:
@@ -17,8 +17,7 @@ def file_exist(file: str) -> bool:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
     parser.add_argument(
         "-i",
         "--input",

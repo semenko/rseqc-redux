@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import argparse
 import math
 import os
 import sys
@@ -14,7 +13,7 @@ from bx.intervals import Intersecter, Interval
 from numpy import mean, median, std
 
 from rseqc import getBamFiles
-from rseqc.cli_common import printlog
+from rseqc.cli_common import add_refgene_arg, create_parser, printlog, validate_files_exist
 from rseqc.SAM import _pysam_iter
 
 
@@ -239,8 +238,7 @@ def tin_score(cvg: list[float], length: int) -> float:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
     parser.add_argument(
         "-i",
         "--input",
@@ -255,12 +253,7 @@ def main() -> None:
             " should be sorted and indexed using samtools. [required]"
         ),
     )
-    parser.add_argument(
-        "-r",
-        "--refgene",
-        dest="ref_gene_model",
-        help="Reference gene model in BED format. Must be strandard 12-column BED file. [required]",
-    )
+    add_refgene_arg(parser, help="Reference gene model in BED format. Must be strandard 12-column BED file. [required]")
     parser.add_argument(
         "-c",
         "--minCov",
@@ -309,10 +302,7 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
 
-    if not os.path.exists(args.ref_gene_model):
-        print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
-        parser.print_help()
-        sys.exit(1)
+    validate_files_exist(args.ref_gene_model)
 
     printlog("Get BAM file(s) ...")
     bamfiles = sorted(getBamFiles.get_bam_files(args.input_files))

@@ -3,16 +3,15 @@
 This program generates heatmap from a FASTQ file to visualize the sequencing quality.
 """
 
-import argparse
 import logging
 import sys
 
 from rseqc import fastq, heatmap
+from rseqc.cli_common import create_parser
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
     parser.add_argument(
         "-i",
         "--infile",

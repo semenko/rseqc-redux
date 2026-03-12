@@ -15,7 +15,6 @@ This program generates *exactly* the same FPKM and FPKM-UQ values as TCGA, if:
 
 from __future__ import annotations
 
-import argparse
 import os
 import shutil
 import subprocess
@@ -23,7 +22,7 @@ import sys
 
 import numpy as np
 
-from rseqc.cli_common import printlog
+from rseqc.cli_common import create_parser, printlog
 
 
 def run_HTseq(bam_file: str, gtf_file: str, out_file: str, print_cmd: bool = False) -> str | None:
@@ -188,8 +187,7 @@ def cal_fpkm(count_file: str, infor_file: str, out_file: str, log2_flag: bool = 
 
 def main() -> None:
 
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
+    parser = create_parser(__doc__)
     parser.add_argument(
         "--bam",
         dest="bam_file",

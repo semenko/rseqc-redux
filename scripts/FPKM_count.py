@@ -5,13 +5,19 @@ calculate raw read count, FPM (fragment per million) and FPKM (fragment per mill
 reads per kilobase exon) for each gene in BED file.
 """
 
-import argparse
 import os
 import sys
 
 from bx.intervals import Intersecter, Interval
 
 from rseqc import SAM
+from rseqc.cli_common import (
+    add_input_bam_arg,
+    add_mapq_arg,
+    add_output_prefix_arg,
+    add_refgene_arg,
+    create_parser,
+)
 from rseqc.SAM import _pysam_iter
 
 
@@ -45,26 +51,10 @@ def build_range(refgene: str) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
-    parser.add_argument(
-        "-i",
-        "--input-file",
-        dest="input_file",
-        help="Alignment file in BAM format (SAM is not supported). [required]",
-    )
-    parser.add_argument(
-        "-o",
-        "--out-prefix",
-        dest="output_prefix",
-        help="Prefix of output files(s). [required]",
-    )
-    parser.add_argument(
-        "-r",
-        "--refgene",
-        dest="refgene_bed",
-        help="Reference gene model in bed fomat. [required]",
-    )
+    parser = create_parser(__doc__)
+    add_input_bam_arg(parser, help="Alignment file in BAM format (SAM is not supported). [required]")
+    add_output_prefix_arg(parser, help="Prefix of output files(s). [required]")
+    add_refgene_arg(parser, dest="refgene_bed")
     parser.add_argument(
         "-d",
         "--strand",
@@ -100,17 +90,7 @@ def main() -> None:
             " otherwise use all reads."
         ),
     )
-    parser.add_argument(
-        "-q",
-        "--mapq",
-        type=int,
-        dest="map_qual",
-        default=30,
-        help=(
-            "Minimum mapping quality (phred scaled) for an alignment"
-            ' to be called "uniquely mapped". default=%(default)s'
-        ),
-    )
+    add_mapq_arg(parser)
     parser.add_argument(
         "-s",
         "--single-read",

@@ -1,26 +1,24 @@
 #!/usr/bin/env python
 """Split BAM file according to an input gene list (BED format)."""
 
-import argparse
-import os
 import sys
 
 import pysam
 
 from rseqc import BED
-from rseqc.cli_common import build_bitsets
+from rseqc.cli_common import (
+    add_input_bam_arg,
+    add_output_prefix_arg,
+    build_bitsets,
+    create_parser,
+    validate_files_exist,
+)
 from rseqc.SAM import _pysam_iter
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
-    parser.add_argument(
-        "-i",
-        "--input-file",
-        dest="input_file",
-        help="Alignment file in BAM or SAM format. BAM file should be sorted and indexed.",
-    )
+    parser = create_parser(__doc__)
+    add_input_bam_arg(parser, help="Alignment file in BAM or SAM format. BAM file should be sorted and indexed.")
     parser.add_argument(
         "-r",
         "--genelist",
@@ -32,10 +30,8 @@ def main() -> None:
             " file."
         ),
     )
-    parser.add_argument(
-        "-o",
-        "--out-prefix",
-        dest="output_prefix",
+    add_output_prefix_arg(
+        parser,
         help=(
             'Prefix of output BAM files. "prefix.in.bam" file'
             " contains reads mapped to the gene list specified by"
@@ -49,12 +45,7 @@ def main() -> None:
     if not (args.input_file and args.gene_list):
         parser.print_help()
         sys.exit(1)
-    if not os.path.exists(args.gene_list):
-        print("\n\n" + args.gene_list + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
-    if not os.path.exists(args.input_file):
-        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
+    validate_files_exist(args.gene_list, args.input_file)
 
     # build bitset for gene list
     print("reading " + args.gene_list + " ... ", end=" ", file=sys.stderr)

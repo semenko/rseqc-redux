@@ -3,28 +3,17 @@
 Summarizing mapping statistics of a BAM or SAM file.
 """
 
-import argparse
-import os
 import sys
 
 from rseqc import SAM
+from rseqc.cli_common import add_input_bam_arg, add_mapq_arg, create_parser, validate_files_exist
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
-    parser.add_argument(
-        "-i",
-        "--input-file",
-        dest="input_file",
-        help="Alignment file in BAM or SAM format.",
-    )
-    parser.add_argument(
-        "-q",
-        "--mapq",
-        type=int,
-        dest="map_qual",
-        default=30,
+    parser = create_parser(__doc__)
+    add_input_bam_arg(parser)
+    add_mapq_arg(
+        parser,
         help='Minimum mapping quality (phred scaled) to determine "uniquely mapped" reads. default=%(default)s',
     )
     args = parser.parse_args()
@@ -32,9 +21,7 @@ def main() -> None:
     if not args.input_file:
         parser.print_help()
         sys.exit(1)
-    if not os.path.exists(args.input_file):
-        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
+    validate_files_exist(args.input_file)
 
     obj = SAM.ParseBAM(args.input_file)
     obj.stat(q_cut=args.map_qual)

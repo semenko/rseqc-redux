@@ -1,16 +1,22 @@
 #!/usr/bin/env python
 """Check RPKM saturation by re-sampling reads at increasing percentages."""
 
-import argparse
 import collections
 import operator
-import os
 import sys
 
 import numpy as np
 
 from rseqc import SAM
-from rseqc.cli_common import run_rscript
+from rseqc.cli_common import (
+    add_input_bam_arg,
+    add_mapq_arg,
+    add_output_prefix_arg,
+    add_refgene_arg,
+    create_parser,
+    run_rscript,
+    validate_files_exist,
+)
 
 
 def square_error(lst: list[float]) -> list[float] | None:
@@ -79,26 +85,10 @@ def show_saturation(infile: str, outfile: str, rpkm_cut: float = 0.01) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--version", action="version", version="5.0.2")
-    parser.add_argument(
-        "-i",
-        "--input-file",
-        dest="input_file",
-        help="Alignment file in BAM or SAM format. [required]",
-    )
-    parser.add_argument(
-        "-o",
-        "--out-prefix",
-        dest="output_prefix",
-        help="Prefix of output files(s). [required]",
-    )
-    parser.add_argument(
-        "-r",
-        "--refgene",
-        dest="refgene_bed",
-        help="Reference gene model in bed fomat. [required]",
-    )
+    parser = create_parser(__doc__)
+    add_input_bam_arg(parser, help="Alignment file in BAM or SAM format. [required]")
+    add_output_prefix_arg(parser, help="Prefix of output files(s). [required]")
+    add_refgene_arg(parser, dest="refgene_bed")
     parser.add_argument(
         "-d",
         "--strand",
@@ -154,17 +144,7 @@ def main() -> None:
             "Transcripts with RPKM smaller than this number will be ignored in visualization plot. default=%(default)s"
         ),
     )
-    parser.add_argument(
-        "-q",
-        "--mapq",
-        type=int,
-        dest="map_qual",
-        default=30,
-        help=(
-            "Minimum mapping quality (phred scaled) for an alignment"
-            ' to be called "uniquely mapped". default=%(default)s'
-        ),
-    )
+    add_mapq_arg(parser)
 
     args = parser.parse_args()
 
@@ -183,26 +163,23 @@ def main() -> None:
     if args.percentile_step < 0 or args.percentile_step > args.percentile_up_bound:
         print("percentile_step must be larger than 0 and samller than percentile_up_bound", file=sys.stderr)
         sys.exit(1)
-    if os.path.exists(args.input_file):
-        obj = SAM.ParseBAM(args.input_file)
-        obj.saturation_RPKM(
-            outfile=args.output_prefix,
-            refbed=args.refgene_bed,
-            sample_start=args.percentile_low_bound,
-            sample_end=args.percentile_up_bound,
-            sample_step=args.percentile_step,
-            strand_rule=args.strand_rule,
-            q_cut=args.map_qual,
-        )
-        show_saturation(
-            infile=args.output_prefix + ".eRPKM.xls",
-            outfile=args.output_prefix + ".saturation.r",
-            rpkm_cut=args.rpkm_cutoff,
-        )
-        run_rscript(args.output_prefix + ".saturation.r")
-    else:
-        print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(1)
+    validate_files_exist(args.input_file)
+    obj = SAM.ParseBAM(args.input_file)
+    obj.saturation_RPKM(
+        outfile=args.output_prefix,
+        refbed=args.refgene_bed,
+        sample_start=args.percentile_low_bound,
+        sample_end=args.percentile_up_bound,
+        sample_step=args.percentile_step,
+        strand_rule=args.strand_rule,
+        q_cut=args.map_qual,
+    )
+    show_saturation(
+        infile=args.output_prefix + ".eRPKM.xls",
+        outfile=args.output_prefix + ".saturation.r",
+        rpkm_cut=args.rpkm_cutoff,
+    )
+    run_rscript(args.output_prefix + ".saturation.r")
 
 
 if __name__ == "__main__":
