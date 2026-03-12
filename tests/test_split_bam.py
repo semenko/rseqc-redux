@@ -131,11 +131,19 @@ def split_bam_fixture(tmp_path: Path) -> tuple[Path, Path]:
     return bam_sorted, bed_file
 
 
+def _pysam_iter(samfile):
+    """Wrap pysam iteration to handle ValueError on Python 3.13+."""
+    try:
+        yield from samfile
+    except ValueError:
+        return
+
+
 def _count_reads(bam_path: str) -> int:
     """Count total reads in a BAM file."""
     count = 0
     with pysam.AlignmentFile(bam_path, "rb", check_sq=False) as f:
-        for _ in f:
+        for _ in _pysam_iter(f):
             count += 1
     return count
 
@@ -143,7 +151,7 @@ def _count_reads(bam_path: str) -> int:
 def _read_names(bam_path: str) -> set[str]:
     """Get set of read names from a BAM file."""
     with pysam.AlignmentFile(bam_path, "rb", check_sq=False) as f:
-        return {read.query_name for read in f}
+        return {read.query_name for read in _pysam_iter(f)}
 
 
 def test_split_bam_routing(

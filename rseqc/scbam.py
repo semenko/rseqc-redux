@@ -18,8 +18,10 @@ from typing import Any
 import pysam
 
 
-def _pysam_iter(samfile: pysam.AlignmentFile) -> Generator[pysam.AlignedSegment, None, None]:
-    """Iterate over pysam AlignmentFile, handling ValueError on Python 3.13+."""
+def _pysam_iter(
+    samfile: pysam.AlignmentFile | pysam.IteratorRow,
+) -> Generator[pysam.AlignedSegment, None, None]:
+    """Iterate over pysam AlignmentFile or fetch iterator, handling ValueError on Python 3.13+."""
     try:
         yield from samfile
     except ValueError:
@@ -296,7 +298,7 @@ def mapping_stat(
         chrom_confi_reads = set()  # reads marked as confidently mapped to transcriptome by xf:i:1 tag
 
         with open(chr_id + ".all_reads_id.txt", "w") as ALL, open(chr_id + ".confident_reads_id.txt", "w") as CONF:
-            for aligned_read in samfile.fetch(chr_id):
+            for aligned_read in _pysam_iter(samfile.fetch(chr_id)):
                 total_alignments += 1
                 chrom_count += 1
                 read_id = aligned_read.query_name
