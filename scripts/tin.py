@@ -5,21 +5,13 @@ import argparse
 import math
 import os
 import sys
-from time import strftime
 
 import pysam
 from bx.intervals import Intersecter, Interval
 from numpy import mean, median, std
 
 from rseqc import getBamFiles
-
-
-def printlog(mesg):
-    """
-    print mesg into stderr with time string appending to it.
-    """
-    mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    print(mesg, file=sys.stderr)
+from rseqc.cli_common import printlog
 
 
 def uniqify(seq):
@@ -338,7 +330,7 @@ def main():
             print("\t".join(["Bam_file", "TIN(mean)", "TIN(median)", "TIN(stdev)"]), file=SUM)
             print("\t".join(["geneID", "chrom", "tx_start", "tx_end", "TIN"]), file=OUT)
 
-            samfile = pysam.Samfile(f, "rb")
+            samfile = pysam.AlignmentFile(f, "rb")
             sample_TINs = []  # sample level TIN, values are from different genes
             finish = 0
             noise_level = 0.0

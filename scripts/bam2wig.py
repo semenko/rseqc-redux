@@ -7,31 +7,9 @@ Note: SAM format file is not supported.
 import argparse
 import os
 import sys
-from time import strftime
 
 from rseqc import SAM
-
-
-def printlog(mesg):
-    """print progress into stderr and log file"""
-    mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    print(mesg, file=sys.stderr)
-    with open("class.log", "a") as LOG:
-        print(mesg, file=LOG)
-
-
-def load_chromsize(file):
-    """read chrom.size file"""
-    chromSize = {}
-    with open(file, "r") as _fh:
-        for line in _fh:
-            if line.startswith("#"):
-                continue
-            if not line.strip():
-                continue
-            fields = line.strip().split()
-            chromSize[fields[0]] = int(fields[1])
-    return chromSize
+from rseqc.cli_common import load_chromsize
 
 
 def main():
@@ -113,7 +91,7 @@ def main():
 
     args = parser.parse_args()
 
-    if not (args.output_prefix and args.input_file and args.chromSize and args.output_prefix):
+    if not (args.output_prefix and args.input_file and args.chromSize):
         parser.print_help()
         sys.exit(1)
     for file in (args.input_file, args.chromSize):

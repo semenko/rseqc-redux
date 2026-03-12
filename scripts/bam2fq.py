@@ -42,7 +42,6 @@ def main():
     )
     args = parser.parse_args()
 
-    # print args.single
     if not (args.output_prefix and args.input_file):
         parser.print_help()
         sys.exit(1)
@@ -69,7 +68,6 @@ def main():
                     pass
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        # parser.print_help()
         sys.exit(1)
 
 

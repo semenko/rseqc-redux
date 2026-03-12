@@ -40,12 +40,12 @@ def main():
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(1)
 
-    samfile = pysam.Samfile(args.input_file, "rb")
+    samfile = pysam.AlignmentFile(args.input_file, "rb")
 
     sub_bam = {}
     count_bam = {}
     for i in range(0, args.subset_num):
-        sub_bam[i] = pysam.Samfile(args.output_prefix + "_" + str(i) + ".bam", "wb", template=samfile)
+        sub_bam[i] = pysam.AlignmentFile(args.output_prefix + "_" + str(i) + ".bam", "wb", template=samfile)
         count_bam[i] = 0
 
     total_alignment = 0

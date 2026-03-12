@@ -4,17 +4,8 @@
 import argparse
 import os
 import sys
-from time import strftime
 
 from rseqc import SAM
-
-
-def printlog(mesg):
-    """print progress into stderr and log file"""
-    mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    print(mesg, file=sys.stderr)
-    with open("class.log", "a") as LOG:
-        print(mesg, file=LOG)
 
 
 def main():
@@ -80,7 +71,6 @@ def main():
 
     else:
         print("Unknown Data type")
-    # print mesg
 
 
 if __name__ == "__main__":

@@ -154,7 +154,6 @@ def main():
 
     if not path.exists(args.ref_gene_model):
         print("\n\n" + args.ref_gene_model + " does NOT exists", end="\n", file=sys.stderr)
-        # parser.print_help()
         sys.exit(1)
 
     if path.exists(args.input_file):
@@ -170,7 +169,6 @@ def main():
             pass
     else:
         print("\n\n" + args.input_file + " does NOT exists", end="\n", file=sys.stderr)
-        # parser.print_help()
         sys.exit(1)
 
 

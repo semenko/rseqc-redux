@@ -8,32 +8,11 @@ reads per kilobase exon) for each gene in BED file.
 import argparse
 import os
 import sys
-from time import strftime
 
 from bx.intervals import Intersecter, Interval
 
 from rseqc import SAM
 from rseqc.SAM import _pysam_iter
-
-
-def printlog(mesg):
-    """print progress into stderr and log file"""
-    mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    print(mesg, file=sys.stderr)
-
-
-def load_chromsize(file):
-    """read chrom.size file"""
-    chromSize = {}
-    with open(file, "r") as _fh:
-        for line in _fh:
-            if line.startswith("#"):
-                continue
-            if not line.strip():
-                continue
-            fields = line.strip().split()
-            chromSize[fields[0]] = int(fields[1])
-    return chromSize
 
 
 def build_range(refgene):

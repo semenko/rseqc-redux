@@ -29,7 +29,7 @@ def main():
     )
     args = parser.parse_args()
 
-    if not (args.input_file):
+    if not args.input_file:
         parser.print_help()
         sys.exit(1)
     if not os.path.exists(args.input_file):

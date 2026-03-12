@@ -19,11 +19,9 @@ def getCDSExonFromFile(bedfile: str) -> list[list[Any]]:
             f = f.strip().split()  # type: ignore[assignment]
             chrom = f[0]
             chrom_start = int(f[1])
-            f[4]
             strand = f[5]
             cdsStart = int(f[6])
             cdsEnd = int(f[7])
-            int(f[9])
             blockSizes = [int(i) for i in f[10].strip(",").split(",")]
             blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
             # grab cdsStart - cdsEnd
@@ -206,11 +204,9 @@ def getCDSExonFromLine(bedline: str) -> list[list[Any]] | None:
     f = line.strip().split()
     chrom = f[0]
     chrom_start = int(f[1])
-    f[4]
     strand = f[5]
     cdsStart = int(f[6])
     cdsEnd = int(f[7])
-    int(f[9])
     blockSizes = [int(i) for i in f[10].strip(",").split(",")]
     blockStarts = [chrom_start + int(i) for i in f[11].strip(",").split(",")]
     # grab cdsStart - cdsEnd

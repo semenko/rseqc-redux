@@ -108,7 +108,7 @@ def genebody_coverage(bam, position_list):
     position_list is dict returned from genebody_percentile
     position is 1-based genome coordinate
     """
-    samfile = pysam.Samfile(bam, "rb")
+    samfile = pysam.AlignmentFile(bam, "rb")
     aggreagated_cvg = collections.defaultdict(int)
 
     gene_finished = 0
@@ -301,7 +301,6 @@ def main():
 
     if not os.path.exists(args.ref_gene_model):
         print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
-        # parser.print_help()
         sys.exit(1)
     if args.min_mRNA_length < 100:
         print('The number specified to "-l" cannot be smaller than 100.' + "\n", file=sys.stderr)

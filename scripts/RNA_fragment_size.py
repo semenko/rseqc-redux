@@ -140,7 +140,7 @@ def main():
             ]
         )
     )
-    for tmp in fragment_size(args.refgene_bed, pysam.Samfile(args.input_file), args.map_qual, args.fragment_num):
+    for tmp in fragment_size(args.refgene_bed, pysam.AlignmentFile(args.input_file), args.map_qual, args.fragment_num):
         print(tmp)
 
 

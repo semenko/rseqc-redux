@@ -7,15 +7,8 @@ import argparse
 import os
 import subprocess
 import sys
-from time import strftime
 
 from rseqc import SAM
-
-
-def printlog(mesg):
-    """print progress into stderr and log file"""
-    mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    print(mesg, file=sys.stderr)
 
 
 def main():
@@ -58,7 +51,7 @@ def main():
     )
     args = parser.parse_args()
 
-    if not (args.input_bam):
+    if not args.input_bam:
         parser.print_help()
         sys.exit(1)
     for f in [args.input_bam]:
@@ -67,12 +60,12 @@ def main():
             parser.print_help()
             sys.exit(1)
 
-    if not (args.output_prefix):
+    if not args.output_prefix:
         print("\n\n You must specify the output prefix", file=sys.stderr)
         parser.print_help()
         sys.exit(1)
 
-    if not (args.read_alignment_length):
+    if not args.read_alignment_length:
         print("\n\n You must specify read alignment length. It is usually the read length.", file=sys.stderr)
         parser.print_help()
         sys.exit(1)

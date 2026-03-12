@@ -31,21 +31,21 @@ def main():
     )
     args = parser.parse_args()
 
-    if not (args.input_file):
+    if not args.input_file:
         parser.print_help()
         sys.exit(1)
     if not os.path.exists(args.input_file):
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         sys.exit(1)
 
-    samfile = pysam.Samfile(args.input_file, "rb")
-    OUT1 = pysam.Samfile(
+    samfile = pysam.AlignmentFile(args.input_file, "rb")
+    OUT1 = pysam.AlignmentFile(
         args.output_prefix + ".R1.bam", "wb", template=samfile
     )  # bam file containing reads hit to exon region
-    OUT2 = pysam.Samfile(
+    OUT2 = pysam.AlignmentFile(
         args.output_prefix + ".R2.bam", "wb", template=samfile
     )  # bam file containing reads not hit to exon region
-    OUT3 = pysam.Samfile(
+    OUT3 = pysam.AlignmentFile(
         args.output_prefix + ".unmap.bam", "wb", template=samfile
     )  # bam file containing reads not hit to exon region
 

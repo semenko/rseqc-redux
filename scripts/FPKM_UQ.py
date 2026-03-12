@@ -19,15 +19,10 @@ import os
 import shutil
 import subprocess
 import sys
-from time import strftime
 
 import numpy as np
 
-
-def printlog(mesg):
-    """print progress into stderr and log file"""
-    mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    print(mesg, file=sys.stderr)
+from rseqc.cli_common import printlog
 
 
 def run_HTseq(bam_file, gtf_file, out_file, print_cmd=False):
@@ -218,17 +213,15 @@ def main():
     )
     args = parser.parse_args()
 
-    if not (args.bam_file):
+    if not args.bam_file:
         print(__doc__)
         parser.print_help()
         sys.exit(101)
-    args = parser.parse_args()
-    if not (args.GTF_file):
+    if not args.GTF_file:
         print(__doc__)
         parser.print_help()
         sys.exit(102)
-    args = parser.parse_args()
-    if not (args.infor_file):
+    if not args.infor_file:
         print(__doc__)
         parser.print_help()
         sys.exit(102)

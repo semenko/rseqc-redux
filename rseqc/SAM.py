@@ -39,13 +39,13 @@ class ParseBAM:
     def __init__(self, inputFile: str):
         """constructor. input could be bam or sam"""
         try:
-            self.samfile = pysam.Samfile(inputFile, "rb")
+            self.samfile = pysam.AlignmentFile(inputFile, "rb")
             if len(self.samfile.header) == 0:  # type: ignore[arg-type]
                 print("BAM/SAM file has no header section. Exit!", file=sys.stderr)
                 sys.exit(1)
             self.bam_format = True
         except (OSError, ValueError):
-            self.samfile = pysam.Samfile(inputFile, "r")
+            self.samfile = pysam.AlignmentFile(inputFile, "r")
             if len(self.samfile.header) == 0:  # type: ignore[arg-type]
                 print("BAM/SAM file has no header section. Exit!", file=sys.stderr)
                 sys.exit(1)

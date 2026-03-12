@@ -12,9 +12,8 @@ import argparse
 import os
 import sys
 
-from bx.intervals import Intersecter, Interval
-
 from rseqc import BED, SAM, bam_cigar
+from rseqc.cli_common import build_bitsets
 from rseqc.SAM import _pysam_iter
 
 
@@ -31,19 +30,6 @@ def foundone(chrom, ranges, st, end):
     if chrom in ranges:
         found = len(ranges[chrom].find(st, end))
     return found
-
-
-def build_bitsets(list):
-    """build intevalTree from list"""
-    ranges = {}
-    for entry in list:
-        chrom = entry[0].upper()
-        st = int(entry[1])
-        end = int(entry[2])
-        if chrom not in ranges:
-            ranges[chrom] = Intersecter()
-        ranges[chrom].add_interval(Interval(st, end))
-    return ranges
 
 
 def process_gene_model(gene_model):
@@ -180,7 +166,6 @@ def main():
         sys.exit(1)
     if not os.path.exists(args.ref_gene_model):
         print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
-        # parser.print_help()
         sys.exit(1)
     if not os.path.exists(args.input_file):
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)

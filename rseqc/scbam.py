@@ -128,7 +128,7 @@ def barcode_edits(
             Only process this number of alignments and stop.
     """
     logging.info('Reading BAM file "%s" ...' % infile)
-    samfile = pysam.Samfile(infile, "rb")
+    samfile = pysam.AlignmentFile(infile, "rb")
 
     CB_miss = 0  # number of reads without cell barcode
     CB_same = 0  # number of reads whose original cell barcode same as edited barcode

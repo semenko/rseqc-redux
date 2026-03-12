@@ -5,17 +5,8 @@ import argparse
 import os
 import subprocess
 import sys
-from time import strftime
 
 from rseqc import SAM
-
-
-def printlog(mesg):
-    """print progress into stderr and log file"""
-    mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    print(mesg, file=sys.stderr)
-    with open("class.log", "a") as LOG:
-        print(mesg, file=LOG)
 
 
 def main():
@@ -53,7 +44,6 @@ def main():
             pass
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        # parser.print_help()
         sys.exit(1)
 
 

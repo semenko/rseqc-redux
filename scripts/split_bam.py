@@ -6,9 +6,9 @@ import os
 import sys
 
 import pysam
-from bx.intervals import Intersecter, Interval
 
 from rseqc import BED
+from rseqc.cli_common import build_bitsets
 from rseqc.SAM import _pysam_iter
 
 
@@ -20,19 +20,6 @@ def searchit(exon_range, exon_list):
         elif len(exon_range[chrom].find(st, end)) >= 1:
             return 1
     return 0
-
-
-def build_bitsets(list):
-    """build intevalTree from list"""
-    ranges = {}
-    for entry in list:
-        chrom = entry[0].upper()
-        st = int(entry[1])
-        end = int(entry[2])
-        if chrom not in ranges:
-            ranges[chrom] = Intersecter()
-        ranges[chrom].add_interval(Interval(st, end))
-    return ranges
 
 
 def main():
@@ -74,7 +61,6 @@ def main():
         sys.exit(1)
     if not os.path.exists(args.gene_list):
         print("\n\n" + args.gene_list + " does NOT exists" + "\n", file=sys.stderr)
-        # parser.print_help()
         sys.exit(1)
     if not os.path.exists(args.input_file):
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
@@ -87,14 +73,14 @@ def main():
     exon_ranges = build_bitsets(exons)
     print("Done", file=sys.stderr)
 
-    samfile = pysam.Samfile(args.input_file, "rb")
-    out1 = pysam.Samfile(
+    samfile = pysam.AlignmentFile(args.input_file, "rb")
+    out1 = pysam.AlignmentFile(
         args.output_prefix + ".in.bam", "wb", template=samfile
     )  # bam file containing reads hit to exon region
-    out2 = pysam.Samfile(
+    out2 = pysam.AlignmentFile(
         args.output_prefix + ".ex.bam", "wb", template=samfile
     )  # bam file containing reads not hit to exon region
-    out3 = pysam.Samfile(
+    out3 = pysam.AlignmentFile(
         args.output_prefix + ".junk.bam", "wb", template=samfile
     )  # bam file containing reads not hit to exon region
 
