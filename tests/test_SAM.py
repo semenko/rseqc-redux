@@ -363,9 +363,9 @@ def test_parsebam_clipping_profile_exact_counts(tmp_path):
         return a
 
     reads = [
-        _make_read("clip_left", 1000, [(4, 5), (0, 45)]),   # 5S45M
+        _make_read("clip_left", 1000, [(4, 5), (0, 45)]),  # 5S45M
         _make_read("clip_right", 2000, [(0, 45), (4, 5)]),  # 45M5S
-        _make_read("no_clip", 3000, [(0, 50)]),              # 50M
+        _make_read("no_clip", 3000, [(0, 50)]),  # 50M
     ]
 
     unsorted_bam = tmpdir / "unsorted.bam"
