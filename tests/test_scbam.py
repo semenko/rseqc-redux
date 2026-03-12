@@ -2,7 +2,6 @@
 
 import importlib
 import os
-from pathlib import Path
 
 import pysam
 import pytest
@@ -183,7 +182,7 @@ def test_pysam_iter_empty_bam(tmp_path):
     header = pysam.AlignmentHeader.from_dict(
         {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": [{"SN": "chr1", "LN": 1000}]}
     )
-    with pysam.AlignmentFile(bam_path, "wb", header=header) as outf:
+    with pysam.AlignmentFile(bam_path, "wb", header=header):
         pass  # write no reads
     with pysam.AlignmentFile(bam_path, "rb") as inf:
         reads = list(scbam._pysam_iter(inf))

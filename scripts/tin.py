@@ -118,7 +118,6 @@ def genomic_positions(refbed, sample_size):
                 tx_start = int(fields[1])
                 tx_end = int(fields[2])
                 geneName = fields[3]
-                strand = fields[5]
                 mRNA_size = sum([int(i) for i in fields[10].strip(",").split(",")])
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))

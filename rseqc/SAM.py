@@ -573,7 +573,8 @@ class ParseBAM:
             if nx:
                 print("total= A_count + C_count + G_count + T_count + N_count + X_count", file=RS)
                 print(
-                    "ym=max(A_count/total,C_count/total,G_count/total,T_count/total,N_count/total,X_count/total) + 0.05",
+                    "ym=max(A_count/total,C_count/total,G_count/total,"
+                    "T_count/total,N_count/total,X_count/total) + 0.05",
                     file=RS,
                 )
                 print(
