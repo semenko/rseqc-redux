@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rseqc-redux"
-version = "5.0.2"
+version = "5.0.3"
 description = "RNA-seq Quality Control — modernized fork of RSeQC"
 readme = "README.md"
 license = "GPL-3.0-or-later"

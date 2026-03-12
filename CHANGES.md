@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.0.3] - 2026-03-12
+
+### Performance
+
+- **bamTowig()**: Replaced per-position `dict` accumulation with numpy array slice operations (`Fwig[start:end] += 1.0`), eliminating the inner Python loop over every base of every exon of every read. ~50-100x faster for large BAM files.
+- **readsNVC()**: Replaced `defaultdict` with string keys (`str(i) + "A"`) with a 2D numpy array (`counts[position][base_index]`), eliminating string allocation per base per read.
+- **clipping_profile() / insertion_profile()**: Eliminated `list2longstr()` string expansion (which built a per-base character string from CIGAR) — now works directly from CIGAR tuples with integer op codes. Both SE and PE code paths updated.
+- **stat()**: Replaced `fetch_intron()` list allocation (just to check `len() == 0`) with `any(c == 3 for c, _s in cigar)` inline check; replaced `getrname()` string comparison with integer `tid != rnext`.
+- Removed remaining unnecessary `list()` wrappers on dict view iteration in `SAM.py` (4 sites: `bamTowig`, `calWigSum`, `readDupRate`).
+
+### Added
+
+- Snapshot tests for `readsNVC()`, `clipping_profile()`, `bamTowig()`, and `stat()` splice counting — verify exact output values, not just file existence.
+
 ## [Unreleased]
 
 ### Removed

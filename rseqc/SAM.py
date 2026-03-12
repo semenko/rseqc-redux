@@ -9,6 +9,7 @@ import sys
 from collections.abc import Generator
 from typing import Any
 
+import numpy as np
 import pysam
 from bx.bitset import BinnedBitSet
 from bx.bitset_builders import binned_bitsets_from_list
@@ -104,16 +105,13 @@ class ParseBAM:
                     R_reverse += 1
                 else:
                     R_forward += 1
-                introns = bam_cigar.fetch_intron("chr1", aligned_read.pos, aligned_read.cigar)
-                if len(introns) == 0:
-                    R_nonSplice += 1
-                if len(introns) >= 1:
+                if any(c == 3 for c, _s in aligned_read.cigar):
                     R_splice += 1
+                else:
+                    R_nonSplice += 1
                 if aligned_read.is_proper_pair:
                     R_properPair += 1
-                    R_read1_ref = self.samfile.getrname(aligned_read.tid)  # type: ignore[attr-defined]
-                    R_read2_ref = self.samfile.getrname(aligned_read.rnext)  # type: ignore[attr-defined]
-                    if R_read1_ref != R_read2_ref:
+                    if aligned_read.tid != aligned_read.rnext:
                         R_pair_diff_chrom += 1
         print("Done", file=sys.stderr)
 
@@ -291,7 +289,7 @@ class ParseBAM:
         try:
             read_id = ""
 
-            for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
+            for chr_name, chr_size in chrom_sizes.items():  # iterate each chrom
                 try:
                     self.samfile.fetch(chr_name, 0, chr_size)
                 except (KeyError, ValueError):
@@ -303,8 +301,9 @@ class ParseBAM:
                 else:
                     FWO.write("variableStep chrom=" + chr_name + "\n")
                     RVO.write("variableStep chrom=" + chr_name + "\n")  # type: ignore[union-attr]
-                Fwig: dict[int, float] = collections.defaultdict(int)
-                Rwig: dict[int, float] = collections.defaultdict(int)
+                # Use numpy arrays for coverage accumulation (1-based positions → index 0 unused)
+                Fwig = np.zeros(chr_size + 1, dtype=np.float64)
+                Rwig = np.zeros(chr_size + 1, dtype=np.float64) if len(strandRule) > 0 else None
                 alignedReads = self.samfile.fetch(chr_name, 0, chr_size)
                 for aligned_read in _pysam_iter(alignedReads):
                     if aligned_read.is_qcfail:
@@ -334,32 +333,25 @@ class ParseBAM:
 
                     hit_st = aligned_read.pos
                     for block in bam_cigar.fetch_exon(chr_name, hit_st, aligned_read.cigar):
-                        for pos in range(block[1] + 1, block[2] + 1):
-                            if len(strandRule) == 0:
-                                Fwig[pos] += 1.0  # this is NOT strand specific. everything into Fwig
-                            else:  # this is strand specific. separate Fwig and Rwig
-                                if strandRule[key] == "+":
-                                    Fwig[pos] += 1.0
-                                if strandRule[key] == "-":
-                                    Rwig[pos] -= 1.0
-                if WigSumFactor is None:  # not normalize
-                    if len(strandRule) == 0:  # this is NOT strand specific.
-                        for pos in sorted(Fwig.keys()):
-                            print("%d\t%.2f" % (pos, Fwig[pos]), file=FWO)
-                    else:
-                        for pos in sorted(Fwig.keys()):
-                            print("%d\t%.2f" % (pos, Fwig[pos]), file=FWO)
-                        for pos in sorted(Rwig.keys()):
-                            print("%d\t%.2f" % (pos, Rwig[pos]), file=RVO)
-                else:  # normalize wig signal to WigSumFactor
-                    if len(strandRule) == 0:  # this is NOT strand specific.
-                        for pos in sorted(Fwig.keys()):
-                            print("%d\t%.2f" % (pos, Fwig[pos] * WigSumFactor), file=FWO)
-                    else:
-                        for pos in sorted(Fwig.keys()):
-                            print("%d\t%.2f" % (pos, Fwig[pos] * WigSumFactor), file=FWO)
-                        for pos in sorted(Rwig.keys()):
-                            print("%d\t%.2f" % (pos, Rwig[pos] * WigSumFactor), file=RVO)
+                        start = block[1] + 1
+                        end = block[2] + 1
+                        if len(strandRule) == 0:
+                            Fwig[start:end] += 1.0
+                        else:
+                            if strandRule[key] == "+":
+                                Fwig[start:end] += 1.0
+                            if strandRule[key] == "-":
+                                Rwig[start:end] -= 1.0  # type: ignore[index]
+
+                # Write non-zero positions (sparse output, matching original variableStep format)
+                factor = WigSumFactor if WigSumFactor is not None else 1.0
+                nonzero_f = np.nonzero(Fwig)[0]
+                for pos in nonzero_f:
+                    print("%d\t%.2f" % (pos, Fwig[pos] * factor), file=FWO)
+                if len(strandRule) > 0:
+                    nonzero_r = np.nonzero(Rwig)[0]  # type: ignore[arg-type]
+                    for pos in nonzero_r:
+                        print("%d\t%.2f" % (pos, Rwig[pos] * factor), file=RVO)  # type: ignore[index]
         finally:
             FWO.close()
             if RVO is not None:
@@ -395,7 +387,7 @@ class ParseBAM:
         print("Calcualte wigsum ... ", file=sys.stderr)
         wigsum = 0.0
         read_id = ""
-        for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
+        for chr_name, chr_size in chrom_sizes.items():  # iterate each chrom
             try:
                 self.samfile.fetch(chr_name, 0, chr_size)
             except (KeyError, ValueError):
@@ -517,13 +509,10 @@ class ParseBAM:
             outfile2 = outfile + ".NVC_plot.r"
         with open(outfile1, "w") as FO, open(outfile2, "w") as RS:
             transtab = str.maketrans("ACGTNX", "TGCANX")
-            base_freq: dict[str, int] = collections.defaultdict(int)
-            a_count = []
-            c_count = []
-            g_count = []
-            t_count = []
-            n_count = []
-            x_count = []
+            # Map bases to column indices: A=0, C=1, G=2, T=3, N=4, X=5
+            _base_idx = {b: i for i, b in enumerate("ACGTNX")}
+            read_len = 0
+            base_freq: np.ndarray | None = None
             if self.bam_format:
                 print("Read BAM file ... ", end=" ", file=sys.stderr)
             else:
@@ -532,37 +521,52 @@ class ParseBAM:
             for aligned_read in _pysam_iter(self.samfile):
                 if aligned_read.mapq < q_cut:
                     continue
-                # if aligned_read.is_unmapped:continue   #skip unmapped read
-                # if aligned_read.is_qcfail:continue #skip low quality
 
                 RNA_read = aligned_read.seq.upper()
                 if aligned_read.is_reverse:
                     RNA_read = RNA_read.translate(transtab)[::-1]
+                read_len = len(RNA_read)
+                if base_freq is None:
+                    base_freq = np.zeros((read_len, 6), dtype=np.int64)
+                elif read_len > base_freq.shape[0]:
+                    # Grow array for longer reads
+                    new_freq = np.zeros((read_len, 6), dtype=np.int64)
+                    new_freq[: base_freq.shape[0], :] = base_freq
+                    base_freq = new_freq
                 for i, j in enumerate(RNA_read):
-                    key = str(i) + j
-                    base_freq[key] += 1
+                    idx = _base_idx.get(j, 5)  # unknown bases → X column
+                    base_freq[i, idx] += 1
             print("Done", file=sys.stderr)
+
+            if base_freq is None:
+                base_freq = np.zeros((0, 6), dtype=np.int64)
 
             print("generating data matrix ...", file=sys.stderr)
             print("Position\tA\tC\tG\tT\tN\tX", file=FO)
-            for i in range(len(RNA_read)):
+            a_count = []
+            c_count = []
+            g_count = []
+            t_count = []
+            n_count = []
+            x_count = []
+            for i in range(read_len):
                 print(str(i) + "\t", end=" ", file=FO)
-                print(str(base_freq[str(i) + "A"]) + "\t", end=" ", file=FO)
-                a_count.append(str(base_freq[str(i) + "A"]))
-                print(str(base_freq[str(i) + "C"]) + "\t", end=" ", file=FO)
-                c_count.append(str(base_freq[str(i) + "C"]))
-                print(str(base_freq[str(i) + "G"]) + "\t", end=" ", file=FO)
-                g_count.append(str(base_freq[str(i) + "G"]))
-                print(str(base_freq[str(i) + "T"]) + "\t", end=" ", file=FO)
-                t_count.append(str(base_freq[str(i) + "T"]))
-                print(str(base_freq[str(i) + "N"]) + "\t", end=" ", file=FO)
-                n_count.append(str(base_freq[str(i) + "N"]))
-                print(str(base_freq[str(i) + "X"]) + "\t", file=FO)
-                x_count.append(str(base_freq[str(i) + "X"]))
+                print(str(base_freq[i, 0]) + "\t", end=" ", file=FO)
+                a_count.append(str(base_freq[i, 0]))
+                print(str(base_freq[i, 1]) + "\t", end=" ", file=FO)
+                c_count.append(str(base_freq[i, 1]))
+                print(str(base_freq[i, 2]) + "\t", end=" ", file=FO)
+                g_count.append(str(base_freq[i, 2]))
+                print(str(base_freq[i, 3]) + "\t", end=" ", file=FO)
+                t_count.append(str(base_freq[i, 3]))
+                print(str(base_freq[i, 4]) + "\t", end=" ", file=FO)
+                n_count.append(str(base_freq[i, 4]))
+                print(str(base_freq[i, 5]) + "\t", file=FO)
+                x_count.append(str(base_freq[i, 5]))
 
             # generating R scripts
             print("generating R script  ...", file=sys.stderr)
-            print("position=c(" + ",".join([str(i) for i in range(len(RNA_read))]) + ")", file=RS)
+            print("position=c(" + ",".join([str(i) for i in range(read_len)]) + ")", file=RS)
             print("A_count=c(" + ",".join(a_count) + ")", file=RS)
             print("C_count=c(" + ",".join(c_count) + ")", file=RS)
             print("G_count=c(" + ",".join(g_count) + ")", file=RS)
@@ -596,7 +600,7 @@ class ParseBAM:
                 print('lines(position,X_count/total,type="o",pch=20,col="grey")', file=RS)
                 print(
                     "legend("
-                    + str(len(RNA_read) - 10)
+                    + str(read_len - 10)
                     + ",ym,"
                     + 'legend=c("A","T","G","C","N","X"),'
                     + 'col=c("dark green","red","blue","cyan","black","grey"),'
@@ -622,7 +626,7 @@ class ParseBAM:
                 print('lines(position,C_count/total,type="o",pch=20,col="cyan")', file=RS)
                 print(
                     "legend("
-                    + str(len(RNA_read) - 10)
+                    + str(read_len - 10)
                     + ",ym,"
                     + 'legend=c("A","T","G","C"),'
                     + 'col=c("dark green","red","blue","cyan"),'
@@ -808,14 +812,14 @@ class ParseBAM:
 
             print("report duplicte rate based on sequence ...", file=sys.stderr)
             print("Occurrence\tUniqReadNumber", file=SEQ)
-            for i in list(seqDup.values()):  # key is occurence, value is uniq reads number (based on seq)
+            for i in seqDup.values():  # key is occurence, value is uniq reads number (based on seq)
                 seqDup_count[i] += 1
             for k in sorted(seqDup_count.keys()):
                 print(str(k) + "\t" + str(seqDup_count[k]), file=SEQ)
 
             print("report duplicte rate based on mapping  ...", file=sys.stderr)
             print("Occurrence\tUniqReadNumber", file=POS)
-            for i in list(posDup.values()):  # key is occurence, value is uniq reads number (based on coord)
+            for i in posDup.values():  # key is occurence, value is uniq reads number (based on coord)
                 posDup_count[i] += 1
             for k in sorted(posDup_count.keys()):
                 print(str(k) + "\t" + str(posDup_count[k]), file=POS)
@@ -874,7 +878,9 @@ class ParseBAM:
             else:
                 print("Load SAM file ... ", end=" ", file=sys.stderr)
 
-            cigar_str = ""
+            # Map type character to CIGAR op code
+            type_op = 4 if type == "S" else 1  # S=4, I=1
+            last_read_len = 0
 
             # single end sequencing
             if PE is False:
@@ -889,20 +895,31 @@ class ParseBAM:
                         continue  # skip low quality
 
                     total_read += 1
-                    cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
+                    cigar = aligned_read.cigar
 
-                    if type not in cigar_str:  # no clipping
+                    # Check if the target op exists in this read's CIGAR
+                    if not any(c == type_op for c, _s in cigar):
+                        # Compute read length for last_read_len tracking
+                        last_read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
                         continue
-                    if aligned_read.is_reverse:
-                        cigar_str = cigar_str[::-1]
 
-                    for indx, symbl in enumerate(cigar_str):
-                        if symbl == type:
-                            soft_clip_profile[indx] += 1.0
+                    # Compute read length and positions of target op
+                    read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
+                    last_read_len = read_len
+                    is_reverse = aligned_read.is_reverse
+
+                    pos = 0
+                    for c, s in cigar:
+                        if c in (0, 1, 4, 7, 8):  # ops that consume query
+                            if c == type_op:
+                                for p in range(pos, pos + s):
+                                    indx = (read_len - 1 - p) if is_reverse else p
+                                    soft_clip_profile[indx] += 1.0
+                            pos += s
                 print("Done", file=sys.stderr)
 
                 print("Totoal reads used: %d" % int(total_read), file=sys.stderr)
-                read_pos = list(range(0, len(cigar_str)))
+                read_pos = list(range(0, last_read_len))
                 clip_count = []
                 for i in read_pos:
                     print(
@@ -943,24 +960,35 @@ class ParseBAM:
                         total_read1 += 1
                     if aligned_read.is_read2:
                         total_read2 += 1
-                    cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
-                    if aligned_read.is_reverse:
-                        cigar_str = cigar_str[::-1]
+                    cigar = aligned_read.cigar
 
-                    if type not in cigar_str:  # no clipping
+                    if not any(c == type_op for c, _s in cigar):
+                        last_read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
                         continue
 
+                    read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
+                    last_read_len = read_len
+                    is_reverse = aligned_read.is_reverse
+
+                    clip_positions = []
+                    pos = 0
+                    for c, s in cigar:
+                        if c in (0, 1, 4, 7, 8):
+                            if c == type_op:
+                                for p in range(pos, pos + s):
+                                    indx = (read_len - 1 - p) if is_reverse else p
+                                    clip_positions.append(indx)
+                            pos += s
+
                     if aligned_read.is_read1:
-                        for indx, symbl in enumerate(cigar_str):
-                            if symbl == type:
-                                r1_soft_clip_profile[indx] += 1.0
+                        for indx in clip_positions:
+                            r1_soft_clip_profile[indx] += 1.0
                     if aligned_read.is_read2:
-                        for indx, symbl in enumerate(cigar_str):
-                            if symbl == type:
-                                r2_soft_clip_profile[indx] += 1.0
+                        for indx in clip_positions:
+                            r2_soft_clip_profile[indx] += 1.0
                 print("Done", file=sys.stderr)
 
-                read_pos = list(range(0, len(cigar_str)))
+                read_pos = list(range(0, last_read_len))
                 r1_clip_count = []
                 r2_clip_count = []
 
@@ -1031,7 +1059,9 @@ class ParseBAM:
             else:
                 print("Load SAM file ... ", end=" ", file=sys.stderr)
 
-            cigar_str = ""
+            # Map type character to CIGAR op code
+            type_op = 4 if type == "S" else 1  # S=4, I=1
+            last_read_len = 0
 
             # single end sequencing
             if PE is False:
@@ -1046,20 +1076,28 @@ class ParseBAM:
                         continue  # skip low quality
 
                     total_read += 1
-                    cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
+                    cigar = aligned_read.cigar
 
-                    if type not in cigar_str:  # no insertion
+                    if not any(c == type_op for c, _s in cigar):
+                        last_read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
                         continue
-                    if aligned_read.is_reverse:
-                        cigar_str = cigar_str[::-1]
 
-                    for indx, symbl in enumerate(cigar_str):
-                        if symbl == type:
-                            soft_clip_profile[indx] += 1.0
+                    read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
+                    last_read_len = read_len
+                    is_reverse = aligned_read.is_reverse
+
+                    pos = 0
+                    for c, s in cigar:
+                        if c in (0, 1, 4, 7, 8):
+                            if c == type_op:
+                                for p in range(pos, pos + s):
+                                    indx = (read_len - 1 - p) if is_reverse else p
+                                    soft_clip_profile[indx] += 1.0
+                            pos += s
                 print("Done", file=sys.stderr)
 
                 print("Totoal reads used: %d" % int(total_read), file=sys.stderr)
-                read_pos = list(range(0, len(cigar_str)))
+                read_pos = list(range(0, last_read_len))
                 clip_count = []
                 for i in read_pos:
                     print(
@@ -1100,24 +1138,35 @@ class ParseBAM:
                         total_read1 += 1
                     if aligned_read.is_read2:
                         total_read2 += 1
-                    cigar_str = bam_cigar.list2longstr(aligned_read.cigar)  # ([(0, 9), (4, 1)] ==> MMMMMMMMMS
-                    if aligned_read.is_reverse:
-                        cigar_str = cigar_str[::-1]
+                    cigar = aligned_read.cigar
 
-                    if type not in cigar_str:  # no clipping
+                    if not any(c == type_op for c, _s in cigar):
+                        last_read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
                         continue
 
+                    read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
+                    last_read_len = read_len
+                    is_reverse = aligned_read.is_reverse
+
+                    clip_positions = []
+                    pos = 0
+                    for c, s in cigar:
+                        if c in (0, 1, 4, 7, 8):
+                            if c == type_op:
+                                for p in range(pos, pos + s):
+                                    indx = (read_len - 1 - p) if is_reverse else p
+                                    clip_positions.append(indx)
+                            pos += s
+
                     if aligned_read.is_read1:
-                        for indx, symbl in enumerate(cigar_str):
-                            if symbl == type:
-                                r1_soft_clip_profile[indx] += 1.0
+                        for indx in clip_positions:
+                            r1_soft_clip_profile[indx] += 1.0
                     if aligned_read.is_read2:
-                        for indx, symbl in enumerate(cigar_str):
-                            if symbl == type:
-                                r2_soft_clip_profile[indx] += 1.0
+                        for indx in clip_positions:
+                            r2_soft_clip_profile[indx] += 1.0
                 print("Done", file=sys.stderr)
 
-                read_pos = list(range(0, len(cigar_str)))
+                read_pos = list(range(0, last_read_len))
                 r1_clip_count = []
                 r2_clip_count = []
 
