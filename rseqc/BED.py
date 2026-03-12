@@ -1,5 +1,4 @@
 # mypy: disable-error-code="assignment,var-annotated,operator,attr-defined,arg-type,misc"
-import os
 import sys
 from collections.abc import Generator
 from typing import Any
@@ -12,10 +11,7 @@ class ParseBED:
 
     def __init__(self, bedFile: str):
         """This is constructor of ParseBED"""
-        self.transtab = str.maketrans("ACGTNX", "TGCANX")
         self.f = open(bedFile, "r")
-        self.fileName = os.path.basename(bedFile)
-        self.ABS_fileName = bedFile
 
     def __enter__(self):
         return self

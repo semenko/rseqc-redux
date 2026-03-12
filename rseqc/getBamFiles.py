@@ -66,7 +66,3 @@ def get_bam_files(input: str, printit: bool = False) -> list[str]:
         for i in bam_files:
             print(i)
     return bam_files
-
-
-if __name__ == "__main__":
-    get_bam_files(sys.argv[1])

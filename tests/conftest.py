@@ -6,12 +6,6 @@ import pytest
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
-@pytest.fixture
-def fixtures_dir() -> Path:
-    """Return the path to the test fixtures directory."""
-    return FIXTURES_DIR
-
-
 @pytest.fixture(scope="session")
 def mini_bam(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Create a small sorted+indexed BAM file matching mini.bed genes.
