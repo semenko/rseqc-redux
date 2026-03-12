@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
 - Snapshot tests for `readsNVC()`, `clipping_profile()`, `bamTowig()`, and `stat()` splice counting — verify exact output values, not just file existence.
 - Tests for `wiggle.ParseWig2` sum/avg methods (`fetch_avg_scores_by_range`, `fetch_avg_scores_by_positions`, `fetch_sum_scores_by_range`, `fetch_sum_scores_by_positions`).
 - Test for `mystat.shannon_entropy_es` with multi-element input.
+- CLI integration tests for 17 additional scripts: `bam2fq`, `bam2wig`, `divide_bam`, `split_bam`, `split_paired_bam`, `FPKM_count`, `RNA_fragment_size`, `RPKM_saturation`, `read_hexamer`, `sc_seqLogo`, `sc_seqQual`, `sc_bamStat`, `sc_editMatrix`, `geneBody_coverage2`, `normalize_bigwig`, `overlay_bigwig`. All 32 of 33 scripts now have integration tests (only `FPKM_UQ` excluded — requires external `htseq-count`).
+- Test fixtures: `mini.chrom.sizes`, `mini.fa`, `mini.fq`, session-scoped `mini_bigwig` BigWig fixture.
 
 ## [Unreleased]
 

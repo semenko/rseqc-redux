@@ -23,7 +23,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 
 **Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
 
-**Tests:** 413 passing. SAM.py 32%, BED.py expanded, scbam.py expanded, utility modules 62–100%.
+**Tests:** 430 passing. SAM.py 32%, BED.py expanded, scbam.py expanded, utility modules 62–100%.
 
 **Lint/Type:** CI green — ruff (0 errors, E741/E712/E501 all enabled), mypy (0 errors), ruff format clean.
 
@@ -39,7 +39,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - `ParseSAM` and `QCSAM` dead code classes removed from SAM.py (~2,970 lines)
 - All 11 known bugs fixed with regression tests (see CHANGES.md)
 - Session-scoped pysam-built BAM fixture for integration tests
-- CLI integration tests (bam_stat, infer_experiment, read_distribution, read_GC, read_quality, junction_annotation, junction_saturation, inner_distance, mismatch_profile, deletion_profile, read_duplication, clipping_profile, insertion_profile, read_NVC, tin, geneBody_coverage)
+- CLI integration tests for 32 of 33 scripts (all except FPKM_UQ which requires external htseq-count): bam_stat, infer_experiment, read_distribution, read_GC, read_quality, junction_annotation, junction_saturation, inner_distance, mismatch_profile, deletion_profile, read_duplication, clipping_profile, insertion_profile, read_NVC, tin, geneBody_coverage, bam2fq, bam2wig, divide_bam, split_bam, split_paired_bam, FPKM_count, RNA_fragment_size, RPKM_saturation, read_hexamer, sc_seqLogo, sc_seqQual, sc_bamStat, sc_editMatrix, geneBody_coverage2, normalize_bigwig, overlay_bigwig
 - `qcmodule` backward-compat shim removed; all scripts import directly from `rseqc`
 - Syntax modernizations: `class Foo(object)` → `class Foo:`, unnecessary `list()` wrappers removed, Python 2 `__div__` replaced with `/` operator
 - `exit(0)`/`sys.exit(0)` → `sys.exit(1)` in ~90 error paths across all scripts and library code
