@@ -13,7 +13,7 @@ import pyBigWig
 from rseqc import BED
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
 

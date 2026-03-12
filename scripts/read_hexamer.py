@@ -8,7 +8,7 @@ import sys
 from rseqc import FrameKmer
 
 
-def file_exist(file):
+def file_exist(file: str) -> bool:
     try:
         with open(file):
             return True
@@ -16,7 +16,7 @@ def file_exist(file):
         return False
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
     parser.add_argument(

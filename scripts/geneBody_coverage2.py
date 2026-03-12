@@ -16,7 +16,7 @@ from rseqc import mystat
 from rseqc.cli_common import run_rscript
 
 
-def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
+def coverageGeneBody_bigwig(bigFile: str, refbed: str, outfile: str, gtype: str = "png") -> None:
     """Calculate reads coverage over gene body, from 5'to 3'. each gene will be equally divided
     into 100 regsions. bigFile is bigwig format file"""
 
@@ -112,7 +112,7 @@ def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
         handle.write("dev.off()\n")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
     parser.add_argument(

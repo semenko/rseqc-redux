@@ -14,7 +14,7 @@ from rseqc import SAM
 from rseqc.cli_common import run_rscript
 
 
-def generate_bed12(infile, size=1):
+def generate_bed12(infile: str, size: int = 1) -> None:
     """
     infile: input file. eg: chrX    66766604        66788677        348     partial_novel
     size: the block size representing exons
@@ -73,7 +73,7 @@ def generate_bed12(infile, size=1):
                 )
 
 
-def generate_interact(infile, bam_file, size=1):
+def generate_interact(infile: str, bam_file: str, size: int = 1) -> None:
     """
     infile: input file. eg: chrX    66766604        66788677        348     partial_novel
     size: the block size representing exons
@@ -154,7 +154,7 @@ def generate_interact(infile, bam_file, size=1):
                 )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
     parser.add_argument(

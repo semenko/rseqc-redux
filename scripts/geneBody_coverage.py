@@ -22,7 +22,7 @@ from rseqc import getBamFiles, mystat
 from rseqc.cli_common import run_rscript
 
 
-def valid_name(s):
+def valid_name(s: str) -> str:
     """make sure the string 's' is valid name for R variable"""
     symbols = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_."
     digit = "0123456789"
@@ -38,7 +38,7 @@ def valid_name(s):
     return tmp
 
 
-def printlog(mesg):
+def printlog(mesg: str) -> None:
     """print progress into stderr and log file"""
     mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
     print(mesg, file=sys.stderr)
@@ -46,7 +46,7 @@ def printlog(mesg):
         print(mesg, file=LOG)
 
 
-def pearson_moment_coefficient(lst):
+def pearson_moment_coefficient(lst: list[float]) -> float:
     """measure skewness"""
     mid_value = lst[int(len(lst) / 2)]
     sigma = std(lst, ddof=1)
@@ -56,7 +56,7 @@ def pearson_moment_coefficient(lst):
     return mean(tmp)
 
 
-def genebody_percentile(refbed, mRNA_len_cut=100):
+def genebody_percentile(refbed: str, mRNA_len_cut: int = 100) -> dict:
     """
     return percentile points of gene body
     mRNA length < mRNA_len_cut will be skipped
@@ -103,7 +103,7 @@ def genebody_percentile(refbed, mRNA_len_cut=100):
     return g_percentiles
 
 
-def genebody_coverage(bam, position_list):
+def genebody_coverage(bam: str, position_list: dict) -> dict:
     """
     position_list is dict returned from genebody_percentile
     position is 1-based genome coordinate
@@ -158,7 +158,7 @@ def genebody_coverage(bam, position_list):
     return aggreagated_cvg
 
 
-def Rcode_write(dataset, file_prefix, format="pdf", colNum=100):
+def Rcode_write(dataset: list, file_prefix: str, format: str = "pdf", colNum: int = 100) -> None:
     """generate R script for visualization"""
     with open(file_prefix + ".r", "w") as ROUT:
         names = []
@@ -249,7 +249,7 @@ def Rcode_write(dataset, file_prefix, format="pdf", colNum=100):
         print("dev.off()", file=ROUT)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
     parser.add_argument(

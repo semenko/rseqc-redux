@@ -7,15 +7,18 @@ calculate fragment size for each gene/transcript. For each transcript/gene, it W
 4) stdev of fragment size
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import sys
+from collections.abc import Generator
 
 import pysam
 from numpy import mean, median, std
 
 
-def overlap_length2(lst1, lst2):
+def overlap_length2(lst1: list[list[int]], lst2: list[list[int]]) -> int:
     overlap_len = 0
     for x in lst1:
         for y in lst2:
@@ -23,7 +26,9 @@ def overlap_length2(lst1, lst2):
     return overlap_len
 
 
-def fragment_size(bedfile, samfile, qcut=30, ncut=5):
+def fragment_size(
+    bedfile: str, samfile: pysam.AlignmentFile, qcut: int = 30, ncut: int = 5
+) -> Generator[str, None, None]:
     """calculate the fragment size for each gene"""
     with open(bedfile, "r") as _fh:
         for line in _fh:
@@ -87,7 +92,7 @@ def fragment_size(bedfile, samfile, qcut=30, ncut=5):
                 )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
     parser.add_argument("-i", "--input", dest="input_file", help="Input BAM file")

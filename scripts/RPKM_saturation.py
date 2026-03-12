@@ -13,7 +13,7 @@ from rseqc import SAM
 from rseqc.cli_common import run_rscript
 
 
-def square_error(lst):
+def square_error(lst: list[float]) -> list[float] | None:
     """transform list into normalized squared error (squared error divided by range)"""
     SE = []
     true_rpkm = lst[-1]
@@ -27,7 +27,7 @@ def square_error(lst):
     return SE
 
 
-def show_saturation(infile, outfile, rpkm_cut=0.01):
+def show_saturation(infile: str, outfile: str, rpkm_cut: float = 0.01) -> None:
 
     RPKM_values = collections.defaultdict(list)
     RPKM_mean = {}
@@ -78,7 +78,7 @@ def show_saturation(infile, outfile, rpkm_cut=0.01):
         print("dev.off()", file=ROUT)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
     parser.add_argument(

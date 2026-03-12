@@ -17,7 +17,7 @@ from rseqc.cli_common import build_bitsets
 from rseqc.SAM import _pysam_iter
 
 
-def cal_size(list):
+def cal_size(list: list[list]) -> int:
     """calcualte bed list total size"""
     size = 0
     for entry in list:
@@ -25,14 +25,14 @@ def cal_size(list):
     return size
 
 
-def foundone(chrom, ranges, st, end):
+def foundone(chrom: str, ranges: dict, st: int, end: int) -> int:
     found = 0
     if chrom in ranges:
         found = len(ranges[chrom].find(st, end))
     return found
 
 
-def process_gene_model(gene_model):
+def process_gene_model(gene_model: str) -> tuple:
     print("processing " + gene_model + " ...", end=" ", file=sys.stderr)
     obj = BED.ParseBED(gene_model)
     utr_3 = obj.getUTR(utr=3)
@@ -144,7 +144,7 @@ def process_gene_model(gene_model):
     )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
     parser.add_argument(

@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Tests
 
-- Expanded unit test coverage from 409 to 503 tests (+94 tests).
+- Expanded unit test coverage from 409 to 544 tests (+135 tests).
 - **bam_cigar.py**: 75% → 100% — 35 edge-case CIGAR tests covering all operation types in every fetch function.
 - **quantile.py**: 84% → 100% — boundary conditions (`j < 0`, `j >= n`), `issorted=True`, single-element input.
 - **twoList.py**: 81% → 100% — `Division`, `Max`, `Min` functions.
@@ -15,6 +15,12 @@ All notable changes to this project will be documented in this file.
 - **orf.py**: 35% → 83% — `longest_orf_bed` (+/- strand, no ORF), custom codons, `_reverse_comp` edge cases.
 - **getBamFiles.py**: 75% → 93% — single BAM, comment lines, comma-separated input, `printit` flag.
 - **ireader.py**: 79% → 95% — pipe commands, stdin/stdout, bz2 files.
+- **scripts/ helpers**: 41 new tests for directly-importable helper functions across 7 scripts: `square_error` (RPKM_saturation), `valid_name`/`pearson_moment_coefficient` (geneBody_coverage), `cal_size`/`foundone` (read_distribution), `overlap_length2` (RNA_fragment_size), `uniqify`/`shannon_entropy`/`tin_score` (tin), `build_range` (FPKM_count), `file_exist` (read_hexamer).
+
+### Added
+
+- Type hints on all 33 CLI scripts: `main() -> None` and all helper function signatures.
+- `from __future__ import annotations` added to `tin.py` and `RNA_fragment_size.py`.
 
 ### Performance
 

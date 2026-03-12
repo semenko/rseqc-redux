@@ -184,7 +184,7 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
                 )
 
 
-def main():
+def main() -> None:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")

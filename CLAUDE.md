@@ -23,9 +23,9 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 
 **Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
 
-**Tests:** 503 passing. SAM.py 41%, BED.py 92%, scbam.py 66%, utility modules 83–100% (bam_cigar, quantile, twoList, changePoint, wiggle all 100%).
+**Tests:** 544 passing. SAM.py 41%, BED.py 92%, scbam.py 66%, utility modules 83–100% (bam_cigar, quantile, twoList, changePoint, wiggle all 100%). Script helper functions tested (RPKM_saturation, geneBody_coverage, read_distribution, RNA_fragment_size, tin, FPKM_count, read_hexamer).
 
-**Lint/Type:** CI green — ruff (0 errors, E741/E712/E501 all enabled), mypy (0 errors), ruff format clean.
+**Lint/Type:** CI green — ruff (0 errors, E741/E712/E501 all enabled), mypy (0 errors), ruff format clean. Type hints on all 33 scripts' `main()` and all helper functions.
 
 **What's been modernized:**
 - Star imports replaced with explicit imports in all `rseqc/` and `scripts/` files
@@ -70,6 +70,8 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - Dead functions removed: `searchit` (split_bam), `normalize` (RPKM_saturation), `kmer_freq_seq` (FrameKmer)
 - Dead modules removed: `dotProduct.py` (benchmark-only), `wiggle.py` ParseWig/ParseWig2 classes
 - Coverage config fixed: CI now measures `--cov=rseqc --cov=scripts`
+- Type hints added to all 33 scripts: `main() -> None` + all helper function signatures
+- `from __future__ import annotations` added to `tin.py`, `RNA_fragment_size.py`
 
 **What still needs work:**
 - Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels

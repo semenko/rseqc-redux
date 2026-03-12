@@ -15,7 +15,7 @@ from rseqc import SAM
 from rseqc.SAM import _pysam_iter
 
 
-def build_range(refgene):
+def build_range(refgene: str) -> dict:
     """build ranges for exonic region"""
     ranges = {}
     with open(refgene, "r") as _fh:
@@ -44,7 +44,7 @@ def build_range(refgene):
     return ranges
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
     parser.add_argument(

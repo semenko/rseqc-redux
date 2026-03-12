@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 """Calculate transcript integrity number (TIN) for each transcript in a BED file."""
 
+from __future__ import annotations
+
 import argparse
 import math
 import os
 import sys
+from collections.abc import Generator
 
 import pysam
 from bx.intervals import Intersecter, Interval
@@ -14,7 +17,7 @@ from rseqc import getBamFiles
 from rseqc.cli_common import printlog
 
 
-def uniqify(seq):
+def uniqify(seq: list) -> list:
     """
     duplicated members only keep one copy. [1,2,2,3,3,4] => [1,2,3,4].
     """
@@ -22,7 +25,7 @@ def uniqify(seq):
     return [x for x in seq if x not in seen and not seen.add(x)]
 
 
-def shannon_entropy(arg):
+def shannon_entropy(arg: list[float]) -> float:
     """
     calculate shannon's H = -sum(P*log(P)). arg is a list of float numbers. Note we used
     natural log here.
@@ -37,7 +40,7 @@ def shannon_entropy(arg):
         return -entropy
 
 
-def build_bitsets(list):
+def build_bitsets(list: list) -> dict:
     """
     build intevalTree from list
     """
@@ -52,7 +55,7 @@ def build_bitsets(list):
     return ranges
 
 
-def union_exons(refbed):
+def union_exons(refbed: str) -> dict:
     """
     take the union of all exons defined in refbed file and build bitset
     """
@@ -65,7 +68,7 @@ def union_exons(refbed):
     return exon_ranges
 
 
-def estimate_bg_noise(chrom, tx_st, tx_end, samfile, e_ranges):
+def estimate_bg_noise(chrom: str, tx_st: int, tx_end: int, samfile: pysam.AlignmentFile, e_ranges: dict) -> float:
     """
     estimate background noise level for a particular transcript
     """
@@ -90,7 +93,7 @@ def estimate_bg_noise(chrom, tx_st, tx_end, samfile, e_ranges):
     return intron_sig
 
 
-def genomic_positions(refbed, sample_size):
+def genomic_positions(refbed: str, sample_size: int) -> Generator:
     """
     return genomic positions of each nucleotide in mRNA. sample_size: Number of nucleotide
     positions sampled from mRNA.
@@ -143,7 +146,7 @@ def genomic_positions(refbed, sample_size):
                 yield (geneName, chrom, tx_start, tx_end, intron_size, uniqify(exon_bounds + chose_bases))
 
 
-def check_min_reads(samfile, chrom, tx_st, tx_end, cutoff):
+def check_min_reads(samfile: pysam.AlignmentFile, chrom: str, tx_st: int, tx_end: int, cutoff: int) -> bool:
     """
     make sure the gene has minimum reads coverage. if cutoff = 10, each gene must have
     10 *different* reads.
@@ -173,7 +176,9 @@ def check_min_reads(samfile, chrom, tx_st, tx_end, cutoff):
         return False
 
 
-def genebody_coverage(samfile, chrom, positions, bg_level=0):
+def genebody_coverage(
+    samfile: pysam.AlignmentFile, chrom: str, positions: list[int], bg_level: float = 0
+) -> list[float]:
     """
     calculate coverage for each nucleotide in *positions*. some times len(cvg) < len(positions)
     because positions where there is no mapped reads were ignored.
@@ -218,7 +223,7 @@ def genebody_coverage(samfile, chrom, positions, bg_level=0):
         return tmp
 
 
-def tin_score(cvg, length):
+def tin_score(cvg: list[float], length: int) -> float:
     """calcualte TIN score"""
 
     if len(cvg) == 0:
@@ -232,7 +237,7 @@ def tin_score(cvg, length):
     return tin
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="version", version="5.0.2")
     parser.add_argument(
