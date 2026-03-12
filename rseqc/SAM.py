@@ -343,9 +343,9 @@ class ParseBAM:
                     key = read_id + map_strand
 
                     hit_st = aligned_read.pos
-                    for block in bam_cigar.fetch_exon(chr_name, hit_st, aligned_read.cigar):
-                        start = block[1] + 1
-                        end = block[2] + 1
+                    for block in bam_cigar.fetch_exon(hit_st, aligned_read.cigar):
+                        start = block[0] + 1
+                        end = block[1] + 1
                         if len(strandRule) == 0:
                             Fwig[start:end] += 1.0
                         else:
@@ -417,8 +417,8 @@ class ParseBAM:
                     continue
 
                 hit_st = aligned_read.pos
-                for block in bam_cigar.fetch_exon(chr_name, hit_st, aligned_read.cigar):
-                    wigsum += block[2] - block[1]
+                for block in bam_cigar.fetch_exon(hit_st, aligned_read.cigar):
+                    wigsum += block[1] - block[0]
         return wigsum
 
     def bam2fq(self, prefix: str, paired: bool = True) -> None:
@@ -774,8 +774,8 @@ class ParseBAM:
 
                 chrom = self.samfile.getrname(aligned_read.tid)  # type: ignore[attr-defined]
                 hit_st = aligned_read.pos
-                exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
-                exon_boundary = ":".join(f"{ex[1]}-{ex[2]}" for ex in exon_blocks)
+                exon_blocks = bam_cigar.fetch_exon(hit_st, aligned_read.cigar)
+                exon_boundary = ":".join(f"{ex[0]}-{ex[1]}" for ex in exon_blocks)
                 key = f"{chrom}:{hit_st}:{exon_boundary}"
                 posDup[key] += 1
             print("Done", file=sys.stderr)
@@ -1270,18 +1270,18 @@ class ParseBAM:
                     continue
 
                 chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
-                intron_blocks = bam_cigar.fetch_intron(chrom, read1_start, aligned_read.cigar)
+                intron_blocks = bam_cigar.fetch_intron(read1_start, aligned_read.cigar)
                 for intron in intron_blocks:
-                    splice_intron_size += intron[2] - intron[1]
+                    splice_intron_size += intron[1] - intron[0]
                 read1_end = read1_start + read1_len + splice_intron_size
 
                 if read2_start >= read1_end:
                     inner_distance = read2_start - read1_end
                 else:
                     exon_positions = []
-                    exon_blocks = bam_cigar.fetch_exon(chrom, read1_start, aligned_read.cigar)
+                    exon_blocks = bam_cigar.fetch_exon(read1_start, aligned_read.cigar)
                     for ex in exon_blocks:
-                        for i in range(ex[1] + 1, ex[2] + 1):
+                        for i in range(ex[0] + 1, ex[1] + 1):
                             exon_positions.append(i)
                     inner_distance = -len([i for i in exon_positions if i > read2_start and i <= read1_end])
 
@@ -1438,18 +1438,18 @@ class ParseBAM:
 
                 chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
                 hit_st = aligned_read.pos
-                intron_blocks = bam_cigar.fetch_intron(chrom, hit_st, aligned_read.cigar)
+                intron_blocks = bam_cigar.fetch_intron(hit_st, aligned_read.cigar)
                 if len(intron_blocks) == 0:
                     continue
                 for intrn in intron_blocks:
                     total_junc += 1
-                    if intrn[2] - intrn[1] < min_intron:
+                    if intrn[1] - intrn[0] < min_intron:
                         filtered_junc += 1
                         continue
-                    splicing_events[intrn[0] + ":" + str(intrn[1]) + ":" + str(intrn[2])] += 1
-                    if intrn[1] in refIntronStarts[chrom] and intrn[2] in refIntronEnds[chrom]:
+                    splicing_events[chrom + ":" + str(intrn[0]) + ":" + str(intrn[1])] += 1
+                    if intrn[0] in refIntronStarts[chrom] and intrn[1] in refIntronEnds[chrom]:
                         known_junc += 1  # known both
-                    elif intrn[1] not in refIntronStarts[chrom] and intrn[2] not in refIntronEnds[chrom]:
+                    elif intrn[0] not in refIntronStarts[chrom] and intrn[1] not in refIntronEnds[chrom]:
                         novel35_junc += 1
                     else:
                         novel3or5_junc += 1
@@ -1624,13 +1624,13 @@ class ParseBAM:
                     continue
 
                 hit_st = aligned_read.pos
-                intron_blocks = bam_cigar.fetch_intron(chrom, hit_st, aligned_read.cigar)
+                intron_blocks = bam_cigar.fetch_intron(hit_st, aligned_read.cigar)
                 if len(intron_blocks) == 0:
                     continue
                 for intrn in intron_blocks:
-                    if intrn[2] - intrn[1] < min_intron:
+                    if intrn[1] - intrn[0] < min_intron:
                         continue
-                    samSpliceSites.append(intrn[0] + ":" + str(intrn[1]) + "-" + str(intrn[2]))
+                    samSpliceSites.append(chrom + ":" + str(intrn[0]) + "-" + str(intrn[1]))
             print("Done", file=sys.stderr)
 
             print("shuffling alignments ...", end=" ", file=sys.stderr)
@@ -1734,13 +1734,12 @@ class ParseBAM:
         raw_file = outfile + ".rawCount.xls"
 
         with open(rpkm_file, "w") as RPKM_OUT, open(raw_file, "w") as RAW_OUT:
-            ranges: dict[str, Intersecter] = {}
-            cUR_num = 0  # number of fragements
+            cUR_num = 0  # number of fragments
             cUR_plus = 0
             cUR_minus = 0
-            block_list_plus: list[str] = []  # non-spliced read AS IS, splicing reads were counted multiple times
-            block_list_minus: list[str] = []
-            block_list: list[str] = []
+            midpoints_plus: list[tuple[str, int]] = []
+            midpoints_minus: list[tuple[str, int]] = []
+            midpoints: list[tuple[str, int]] = []
             strandRule = _parse_strand_rule(strand_rule)
 
             # read SAM or BAM
@@ -1777,7 +1776,7 @@ class ParseBAM:
                 strand_key = read_id + map_strand  # used to determine if a read should assign to gene(+) or gene(-)
 
                 hit_st = aligned_read.pos
-                exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
+                exon_blocks = bam_cigar.fetch_exon(hit_st, aligned_read.cigar)
                 cUR_num += len(exon_blocks)
 
                 # strand specific
@@ -1787,25 +1786,26 @@ class ParseBAM:
                     if strandRule[strand_key] == "-":
                         cUR_minus += len(exon_blocks)
                     for exn in exon_blocks:
+                        mid = exn[0] + (exn[1] - exn[0]) // 2
                         if strandRule[strand_key] == "+":
-                            block_list_plus.append(exn[0] + ":" + str(exn[1] + int((exn[2] - exn[1]) / 2)))
+                            midpoints_plus.append((chrom, mid))
                         if strandRule[strand_key] == "-":
-                            block_list_minus.append(exn[0] + ":" + str(exn[1] + int((exn[2] - exn[1]) / 2)))
+                            midpoints_minus.append((chrom, mid))
                 # Not strand specific
                 else:
                     for exn in exon_blocks:
-                        block_list.append(exn[0] + ":" + str(exn[1] + int((exn[2] - exn[1]) / 2)))
+                        midpoints.append((chrom, exn[0] + (exn[1] - exn[0]) // 2))
             print("Done", file=sys.stderr)
 
             print("shuffling alignments ...", end=" ", file=sys.stderr)
-            random.shuffle(block_list_plus)
-            random.shuffle(block_list_minus)
-            random.shuffle(block_list)
+            random.shuffle(midpoints_plus)
+            random.shuffle(midpoints_minus)
+            random.shuffle(midpoints)
             print("Done", file=sys.stderr)
 
-            ranges_plus: dict[str, Intersecter] = {}
-            ranges_minus: dict[str, Intersecter] = {}
-            ranges = {}
+            accum: dict[str, list[int]] = collections.defaultdict(list)
+            accum_plus: dict[str, list[int]] = collections.defaultdict(list)
+            accum_minus: dict[str, list[int]] = collections.defaultdict(list)
             sample_size: float = 0
             RPKM_table = collections.defaultdict(list)
             rawCount_table = collections.defaultdict(list)
@@ -1858,11 +1858,8 @@ class ParseBAM:
                         + ") forward strand fragments ...",
                         file=sys.stderr,
                     )
-                    for i in block_list_plus[int(cUR_plus * percent_st) : int(cUR_plus * percent_end)]:
-                        (chr, coord) = i.split(":")
-                        if chr not in ranges_plus:
-                            ranges_plus[chr] = Intersecter()
-                        ranges_plus[chr].add_interval(Interval(int(coord), int(coord) + 1))
+                    for ch, coord in midpoints_plus[int(cUR_plus * percent_st) : int(cUR_plus * percent_end)]:
+                        accum_plus[ch].append(coord)
 
                     print(
                         "sampling "
@@ -1872,19 +1869,18 @@ class ParseBAM:
                         + ") reverse strand fragments ...",
                         file=sys.stderr,
                     )
-                    for i in block_list_minus[int(cUR_minus * percent_st) : int(cUR_minus * percent_end)]:
-                        (chr, coord) = i.split(":")
-                        if chr not in ranges_minus:
-                            ranges_minus[chr] = Intersecter()
-                        ranges_minus[chr].add_interval(Interval(int(coord), int(coord) + 1))
+                    for ch, coord in midpoints_minus[int(cUR_minus * percent_st) : int(cUR_minus * percent_end)]:
+                        accum_minus[ch].append(coord)
 
                 else:
                     print("sampling " + str(pertl) + "% (" + str(int(sample_size)) + ") fragments ...", file=sys.stderr)
-                    for i in block_list[int(cUR_num * percent_st) : int(cUR_num * percent_end)]:
-                        (chr, coord) = i.split(":")
-                        if chr not in ranges:
-                            ranges[chr] = Intersecter()
-                        ranges[chr].add_interval(Interval(int(coord), int(coord) + 1))
+                    for ch, coord in midpoints[int(cUR_num * percent_st) : int(cUR_num * percent_end)]:
+                        accum[ch].append(coord)
+
+                # Build sorted numpy arrays for interval counting
+                sorted_accum = {ch: np.sort(np.array(coords)) for ch, coords in accum.items()}
+                sorted_plus = {ch: np.sort(np.array(coords)) for ch, coords in accum_plus.items()}
+                sorted_minus = {ch: np.sort(np.array(coords)) for ch, coords in accum_minus.items()}
 
                 # ========================= calculating RPKM based on sub-population
                 print("assign reads to transcripts in " + refbed + " ...", file=sys.stderr)
@@ -1893,13 +1889,16 @@ class ParseBAM:
                     mRNA_count = 0
                     for st, end in exon_intervals:
                         if strand_rule is not None:
-                            if (strand == "+") and (chrom in ranges_plus):
-                                mRNA_count += len(ranges_plus[chrom].find(st, end))
-                            if (strand == "-") and (chrom in ranges_minus):
-                                mRNA_count += len(ranges_minus[chrom].find(st, end))
+                            if (strand == "+") and (chrom in sorted_plus):
+                                arr = sorted_plus[chrom]
+                                mRNA_count += int(np.searchsorted(arr, end, "left") - np.searchsorted(arr, st, "left"))
+                            if (strand == "-") and (chrom in sorted_minus):
+                                arr = sorted_minus[chrom]
+                                mRNA_count += int(np.searchsorted(arr, end, "left") - np.searchsorted(arr, st, "left"))
                         else:
-                            if chrom in ranges:
-                                mRNA_count += len(ranges[chrom].find(st, end))
+                            if chrom in sorted_accum:
+                                arr = sorted_accum[chrom]
+                                mRNA_count += int(np.searchsorted(arr, end, "left") - np.searchsorted(arr, st, "left"))
                     if sample_size == 0:
                         print("Too few reads to sample. Exit!", file=sys.stderr)
                         sys.exit(1)

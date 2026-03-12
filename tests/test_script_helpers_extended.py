@@ -18,12 +18,12 @@ MINI_BED = str(FIXTURES_DIR / "mini.bed")
 class TestProcessGeneModel:
     """Test read_distribution.process_gene_model with the mini.bed fixture."""
 
-    def test_returns_20_element_tuple(self):
+    def test_returns_21_element_tuple(self):
         from scripts.read_distribution import process_gene_model
 
         result = process_gene_model(MINI_BED)
         assert isinstance(result, tuple)
-        assert len(result) == 20
+        assert len(result) == 21
 
     def test_cds_exon_ranges_populated(self):
         from scripts.read_distribution import process_gene_model

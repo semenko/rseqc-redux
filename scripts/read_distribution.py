@@ -12,6 +12,8 @@ import argparse
 import os
 import sys
 
+from bx.intervals import Intersecter, Interval
+
 from rseqc import BED, SAM, bam_cigar
 from rseqc.cli_common import build_bitsets
 from rseqc.SAM import _pysam_iter
@@ -30,6 +32,26 @@ def foundone(chrom: str, ranges: dict, st: int, end: int) -> int:
     if chrom in ranges:
         found = len(ranges[chrom].find(st, end))
     return found
+
+
+def build_unified_tree(
+    labeled_lists: list[tuple[str, list[list]]],
+) -> dict[str, Intersecter]:
+    """Build a single interval tree per chrom with labeled intervals.
+
+    Each entry in labeled_lists is (label, bed3_list) where bed3_list is
+    a list of [chrom, start, end] entries.
+    """
+    tree: dict[str, Intersecter] = {}
+    for label, entries in labeled_lists:
+        for entry in entries:
+            chrom = entry[0].upper()
+            st = int(entry[1])
+            end = int(entry[2])
+            if chrom not in tree:
+                tree[chrom] = Intersecter()
+            tree[chrom].add_interval(Interval(st, end, value=label))
+    return tree
 
 
 def process_gene_model(gene_model: str) -> tuple:
@@ -108,6 +130,22 @@ def process_gene_model(gene_model: str) -> tuple:
     interg_ranges_down_5kb_ranges = build_bitsets(intergenic_down_5kb)
     interg_ranges_down_10kb_ranges = build_bitsets(intergenic_down_10kb)
 
+    # build unified labeled interval tree for single-lookup classification
+    unified = build_unified_tree(
+        [
+            ("cds_exon", cds_exon),
+            ("utr_5", utr_5),
+            ("utr_3", utr_3),
+            ("intron", intron),
+            ("intergenic_up_1kb", intergenic_up_1kb),
+            ("intergenic_up_5kb", intergenic_up_5kb),
+            ("intergenic_up_10kb", intergenic_up_10kb),
+            ("intergenic_down_1kb", intergenic_down_1kb),
+            ("intergenic_down_5kb", intergenic_down_5kb),
+            ("intergenic_down_10kb", intergenic_down_10kb),
+        ]
+    )
+
     exon_size = cal_size(cds_exon)
     intron_size = cal_size(intron)
     utr3_size = cal_size(utr_3)
@@ -141,6 +179,7 @@ def process_gene_model(gene_model: str) -> tuple:
         int_down1k_size,
         int_down5k_size,
         int_down10k_size,
+        unified,
     )
 
 
@@ -193,6 +232,7 @@ def main() -> None:
         intergenic_down1kb_base,
         intergenic_down5kb_base,
         intergenic_down10kb_base,
+        unified,
     ) = process_gene_model(args.ref_gene_model)
 
     intron_read = 0
@@ -234,50 +274,54 @@ def main() -> None:
         totalReads += 1
         chrom = obj.samfile.getrname(aligned_read.tid)
         chrom = chrom.upper()
-        exons = bam_cigar.fetch_exon(chrom, aligned_read.pos, aligned_read.cigar)
+        exons = bam_cigar.fetch_exon(aligned_read.pos, aligned_read.cigar)
         totalFrags += len(exons)
 
         for exn in exons:
-            mid = int(exn[1]) + int((int(exn[2]) - int(exn[1])) / 2)
-            if foundone(chrom, cds_exon_r, mid, mid) > 0:
+            mid = int(exn[0]) + int((int(exn[1]) - int(exn[0])) / 2)
+
+            # Single unified tree lookup instead of up to 11 separate lookups
+            if chrom in unified:
+                labels = {h.value for h in unified[chrom].find(mid, mid)}
+            else:
+                labels = set()
+
+            if "cds_exon" in labels:
                 cds_exon_read += 1
                 continue
-            elif foundone(chrom, utr_5_r, mid, mid) > 0 and foundone(chrom, utr_3_r, mid, mid) == 0:
+            elif "utr_5" in labels and "utr_3" not in labels:
                 utr_5_read += 1
                 continue
-            elif foundone(chrom, utr_3_r, mid, mid) > 0 and foundone(chrom, utr_5_r, mid, mid) == 0:
+            elif "utr_3" in labels and "utr_5" not in labels:
                 utr_3_read += 1
                 continue
-            elif foundone(chrom, utr_3_r, mid, mid) > 0 and foundone(chrom, utr_5_r, mid, mid) > 0:
+            elif "utr_3" in labels and "utr_5" in labels:
                 unAssignFrags += 1
                 continue
-            elif foundone(chrom, intron_r, mid, mid) > 0:
+            elif "intron" in labels:
                 intron_read += 1
                 continue
-            elif (
-                foundone(chrom, intergenic_up_10kb_r, mid, mid) > 0
-                and foundone(chrom, intergenic_down_10kb_r, mid, mid) > 0
-            ):
+            elif "intergenic_up_10kb" in labels and "intergenic_down_10kb" in labels:
                 unAssignFrags += 1
                 continue
-            elif foundone(chrom, intergenic_up_1kb_r, mid, mid) > 0:
+            elif "intergenic_up_1kb" in labels:
                 intergenic_up1kb_read += 1
                 intergenic_up5kb_read += 1
                 intergenic_up10kb_read += 1
-            elif foundone(chrom, intergenic_up_5kb_r, mid, mid) > 0:
+            elif "intergenic_up_5kb" in labels:
                 intergenic_up5kb_read += 1
                 intergenic_up10kb_read += 1
-            elif foundone(chrom, intergenic_up_10kb_r, mid, mid) > 0:
+            elif "intergenic_up_10kb" in labels:
                 intergenic_up10kb_read += 1
 
-            elif foundone(chrom, intergenic_down_1kb_r, mid, mid) > 0:
+            elif "intergenic_down_1kb" in labels:
                 intergenic_down1kb_read += 1
                 intergenic_down5kb_read += 1
                 intergenic_down10kb_read += 1
-            elif foundone(chrom, intergenic_down_5kb_r, mid, mid) > 0:
+            elif "intergenic_down_5kb" in labels:
                 intergenic_down5kb_read += 1
                 intergenic_down10kb_read += 1
-            elif foundone(chrom, intergenic_down_10kb_r, mid, mid) > 0:
+            elif "intergenic_down_10kb" in labels:
                 intergenic_down10kb_read += 1
             else:
                 unAssignFrags += 1
