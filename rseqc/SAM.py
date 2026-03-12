@@ -232,10 +232,13 @@ class ParseBAM:
                 readStart = aligned_read.pos
                 readEnd = readStart + aligned_read.qlen
                 if chrom in gene_ranges:
-                    tmp = set(gene_ranges[chrom].find(readStart, readEnd))
-                    if len(tmp) == 0:
+                    hits = gene_ranges[chrom].find(readStart, readEnd)
+                    if not hits:
                         continue
-                    strand_from_gene = ":".join(tmp)
+                    if len(hits) == 1:
+                        strand_from_gene = hits[0]
+                    else:
+                        strand_from_gene = ":".join(sorted(set(hits)))
                     p_strandness[read_id + map_strand + strand_from_gene] += 1
                     count += 1
             else:
@@ -246,10 +249,13 @@ class ParseBAM:
                 readStart = aligned_read.pos
                 readEnd = readStart + aligned_read.qlen
                 if chrom in gene_ranges:
-                    tmp = set(gene_ranges[chrom].find(readStart, readEnd))
-                    if len(tmp) == 0:
+                    hits = gene_ranges[chrom].find(readStart, readEnd)
+                    if not hits:
                         continue
-                    strand_from_gene = ":".join(tmp)
+                    if len(hits) == 1:
+                        strand_from_gene = hits[0]
+                    else:
+                        strand_from_gene = ":".join(sorted(set(hits)))
                     s_strandness[map_strand + strand_from_gene] += 1
                     count += 1
         print("Finished", file=sys.stderr)
@@ -1646,7 +1652,8 @@ class ParseBAM:
             # resampling
             SR_num = len(samSpliceSites)
             sample_size = 0
-            all_junctionNum = 0
+            known_junctionNum = 0
+            unknown_junctionNum = 0
             known_junc = []
             all_junc = []
             unknown_junc = []
@@ -1664,26 +1671,26 @@ class ParseBAM:
                     "sampling " + str(pertl) + "% (" + str(sample_size) + ") splicing reads.", end=" ", file=sys.stderr
                 )
 
-                # all splice juntion
+                # Incrementally update counts as new splice sites are added
                 for i in range(index_st, index_end):
-                    uniqSpliceSites[samSpliceSites[i]] += 1
+                    sj = samSpliceSites[i]
+                    old_count = uniqSpliceSites[sj]
+                    uniqSpliceSites[sj] = old_count + 1
+                    if old_count == 0:
+                        # Brand new junction
+                        if sj not in knownSpliceSites:
+                            unknown_junctionNum += 1
+                    # Junction just crossed the recur threshold → count as known
+                    if sj in knownSpliceSites and old_count < recur <= old_count + 1:
+                        known_junctionNum += 1
+
                 all_junctionNum = len(uniqSpliceSites)
                 all_junc.append(str(all_junctionNum))
                 print(str(all_junctionNum) + " splicing junctions.", end=" ", file=sys.stderr)
 
-                # known splice junction
-                known_junctionNum = 0
-                for sj in uniqSpliceSites:
-                    if sj in knownSpliceSites and uniqSpliceSites[sj] >= recur:
-                        known_junctionNum += 1
                 print(str(known_junctionNum) + " known splicing junctions.", end=" ", file=sys.stderr)
                 known_junc.append(str(known_junctionNum))
 
-                # unknown splice junction
-                unknown_junctionNum = 0
-                for sj in uniqSpliceSites:
-                    if sj not in knownSpliceSites:
-                        unknown_junctionNum += 1
                 unknown_junc.append(str(unknown_junctionNum))
                 print(str(unknown_junctionNum) + " novel splicing junctions.", file=sys.stderr)
 
