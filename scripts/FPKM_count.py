@@ -262,7 +262,7 @@ def main() -> None:
                     alignedReads = obj.samfile.fetch(chrom, tx_start, tx_end)
                 except (KeyError, ValueError):
                     continue
-                for aligned_read in alignedReads:
+                for aligned_read in _pysam_iter(alignedReads):
                     if aligned_read.is_qcfail:
                         continue  # skip low quanlity
                     if aligned_read.is_duplicate:

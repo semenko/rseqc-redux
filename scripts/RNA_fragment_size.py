@@ -17,6 +17,8 @@ from collections.abc import Generator
 import pysam
 from numpy import mean, median, std
 
+from rseqc.SAM import _pysam_iter
+
 
 def overlap_length2(lst1: list[list[int]], lst2: list[list[int]]) -> int:
     overlap_len = 0
@@ -56,7 +58,7 @@ def fragment_size(
                 continue
 
             frag_sizes = []
-            for aligned_read in alignedReads:
+            for aligned_read in _pysam_iter(alignedReads):
                 if not aligned_read.is_paired:  # skip single sequencing
                     continue
                 if aligned_read.is_read2:

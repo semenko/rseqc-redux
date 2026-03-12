@@ -20,6 +20,7 @@ from numpy import mean, std
 
 from rseqc import getBamFiles, mystat
 from rseqc.cli_common import run_rscript
+from rseqc.SAM import _pysam_iter
 
 
 def valid_name(s: str) -> str:
@@ -125,7 +126,7 @@ def genebody_coverage(bam: str, position_list: dict) -> dict:
         except (KeyError, ValueError):
             continue
 
-        for pileupcolumn in samfile.pileup(chrom, chrom_start, chrom_end, truncate=True):
+        for pileupcolumn in _pysam_iter(samfile.pileup(chrom, chrom_start, chrom_end, truncate=True)):
             ref_pos = pileupcolumn.pos + 1
             if ref_pos not in positions:
                 continue

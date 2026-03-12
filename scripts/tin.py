@@ -15,6 +15,7 @@ from numpy import mean, median, std
 
 from rseqc import getBamFiles
 from rseqc.cli_common import printlog
+from rseqc.SAM import _pysam_iter
 
 
 def uniqify(seq: list) -> list:
@@ -74,7 +75,7 @@ def estimate_bg_noise(chrom: str, tx_st: int, tx_end: int, samfile: pysam.Alignm
     """
     intron_sig = 0.0  # reads_num * reads_len
     alignedReads = samfile.fetch(chrom, tx_st, tx_end)
-    for aligned_read in alignedReads:
+    for aligned_read in _pysam_iter(alignedReads):
         if aligned_read.is_qcfail:
             continue
         if aligned_read.is_unmapped:
@@ -155,7 +156,7 @@ def check_min_reads(samfile: pysam.AlignmentFile, chrom: str, tx_st: int, tx_end
     read_count = set()
     try:
         alignedReads = samfile.fetch(chrom, tx_st, tx_end)
-        for aligned_read in alignedReads:
+        for aligned_read in _pysam_iter(alignedReads):
             if aligned_read.is_qcfail:
                 continue
             if aligned_read.is_unmapped:
@@ -188,7 +189,7 @@ def genebody_coverage(
     end = positions[-1]
 
     try:
-        for pileupcolumn in samfile.pileup(chrom, start, end, truncate=True):
+        for pileupcolumn in _pysam_iter(samfile.pileup(chrom, start, end, truncate=True)):
             ref_pos = pileupcolumn.pos + 1
             if ref_pos not in positions:
                 continue
