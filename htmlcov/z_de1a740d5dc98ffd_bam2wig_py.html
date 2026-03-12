@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_de1a740d5dc98ffd_bam_stat_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-03-12 18:42 +0000
+            created at 2026-03-12 18:53 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -194,7 +194,7 @@
     <p class="mis show_mis"><span class="n"><a id="t112" href="#t112">112</a></span><span class="t">    <span class="nam">norm_factor</span> <span class="op">=</span> <span class="key">None</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t113" href="#t113">113</a></span><span class="t">    <span class="key">if</span> <span class="nam">args</span><span class="op">.</span><span class="nam">total_wigsum</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t114" href="#t114">114</a></span><span class="t">        <span class="nam">obj</span> <span class="op">=</span> <span class="nam">SAM</span><span class="op">.</span><span class="nam">ParseBAM</span><span class="op">(</span><span class="nam">args</span><span class="op">.</span><span class="nam">input_file</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t115" href="#t115">115</a></span><span class="t">        <span class="nam">wig_sum</span> <span class="op">=</span> <span class="nam">obj</span><span class="op">.</span><span class="nam">calWigSum</span><span class="op">(</span><span class="nam">chrom_sizes</span><span class="op">=</span><span class="nam">chromSizes</span><span class="op">,</span> <span class="nam">skip_multi</span><span class="op">=</span><span class="nam">args</span><span class="op">.</span><span class="nam">skip_multi</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t115" href="#t115">115</a></span><span class="t">        <span class="nam">wig_sum</span> <span class="op">=</span> <span class="nam">obj</span><span class="op">.</span><span class="nam">calWigSum</span><span class="op">(</span><span class="nam">chrom_sizes</span><span class="op">=</span><span class="nam">chromSizes</span><span class="op">,</span> <span class="nam">skip_multi</span><span class="op">=</span><span class="nam">args</span><span class="op">.</span><span class="nam">skip_multi</span><span class="op">,</span> <span class="nam">q_cut</span><span class="op">=</span><span class="nam">args</span><span class="op">.</span><span class="nam">map_qual</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t116" href="#t116">116</a></span><span class="t">        <span class="nam">print</span><span class="op">(</span><span class="str">"\n\ntotal wigsum is:"</span> <span class="op">+</span> <span class="nam">str</span><span class="op">(</span><span class="nam">wig_sum</span><span class="op">)</span> <span class="op">+</span> <span class="str">"\n"</span><span class="op">,</span> <span class="nam">file</span><span class="op">=</span><span class="nam">sys</span><span class="op">.</span><span class="nam">stderr</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t117" href="#t117">117</a></span><span class="t">        <span class="key">try</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t118" href="#t118">118</a></span><span class="t">            <span class="nam">norm_factor</span> <span class="op">=</span> <span class="nam">args</span><span class="op">.</span><span class="nam">total_wigsum</span> <span class="op">/</span> <span class="nam">wig_sum</span>&nbsp;</span><span class="r"></span></p>
@@ -224,7 +224,7 @@
             <a class="nav" href="z_de1a740d5dc98ffd_bam_stat_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-03-12 18:42 +0000
+            created at 2026-03-12 18:53 +0000
         </p>
     </div>
 </footer>
