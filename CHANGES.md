@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file.
 - Fixed `subtractBed3` no-op guard in `BED.py` — dead `if chrom not in bitsets1` check removed (Bug #9).
 - Fixed `Hill_number` q=1 in `mystat.py` — now correctly parses comma-separated string before passing to `shannon_entropy()` (Bug #11).
 - Fixed `sys.exit()` → `sys.exit(1)` in 6 library error paths (`SAM.py`, `BED.py`) so errors exit non-zero.
+- Fixed Python 3.13 compatibility: catch `ValueError` alongside `StopIteration` when iterating pysam alignments (pysam bug with PEP 745 changes). 29 sites across 7 files.
 
 ### Changed
 

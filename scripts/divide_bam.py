@@ -58,7 +58,7 @@ def main():
             sub_bam[tmp].write(aligned_read)
             count_bam[tmp] += 1
 
-    except StopIteration:
+    except (StopIteration, ValueError):
         print("Done", file=sys.stderr)
 
     for i in range(0, args.subset_num):

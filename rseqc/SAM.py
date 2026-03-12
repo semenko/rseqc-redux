@@ -102,7 +102,7 @@ class ParseBAM:
                         if R_read1_ref != R_read2_ref:
                             R_pair_diff_chrom += 1
 
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         print("\n#==================================================", file=sys.stdout)
@@ -212,7 +212,7 @@ class ParseBAM:
                         s_strandness[map_strand + strand_from_gene] += 1
                         count += 1
 
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Finished", file=sys.stderr)
 
         print("Total " + str(count) + " usable reads were sampled", file=sys.stderr)
@@ -477,7 +477,7 @@ class ParseBAM:
                     print("+", file=OUT)
                     print(read_qual, file=OUT)
 
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
         if paired:
             print("read_1 count: %d" % read1_count, file=sys.stderr)
@@ -591,7 +591,7 @@ class ParseBAM:
                             unstrand_ranges[chrom] = Intersecter()
                         unstrand_ranges[chrom].add_interval(Interval(mid, mid + 1))
 
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
         print("#Total uniquely mapped reads = " + str(uniq_read), file=RPKM_OUT)
         print("#Total fragments = " + str(total_tags), file=RPKM_OUT)
@@ -922,7 +922,7 @@ class ParseBAM:
                 for i, j in enumerate(RNA_read):
                     key = str(i) + j
                     base_freq[key] += 1
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         print("generating data matrix ...", file=sys.stderr)
@@ -1043,7 +1043,7 @@ class ParseBAM:
                         quality[i][q] += 1
                     except Exception:
                         quality[i][q] = 1
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         for p in range(0, read_len):
@@ -1117,7 +1117,7 @@ class ParseBAM:
                 RNA_read = aligned_read.seq.upper()
                 gc_percent = "%4.2f" % ((RNA_read.count("C") + RNA_read.count("G")) / (len(RNA_read) + 0.0) * 100)
                 gc_hist[gc_percent] += 1
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         print("writing GC content ...", file=sys.stderr)
@@ -1189,7 +1189,7 @@ class ParseBAM:
                 key = chrom + ":" + str(hit_st) + ":" + exon_boundary
                 posDup[key] += 1
 
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         print("report duplicte rate based on sequence ...", file=sys.stderr)
@@ -1278,7 +1278,7 @@ class ParseBAM:
                     for indx, symbl in enumerate(cigar_str):
                         if symbl == type:
                             soft_clip_profile[indx] += 1.0
-            except StopIteration:
+            except (StopIteration, ValueError):
                 print("Done", file=sys.stderr)
 
             print("Totoal reads used: %d" % int(total_read), file=sys.stderr)
@@ -1335,7 +1335,7 @@ class ParseBAM:
                         for indx, symbl in enumerate(cigar_str):
                             if symbl == type:
                                 r2_soft_clip_profile[indx] += 1.0
-            except StopIteration:
+            except (StopIteration, ValueError):
                 print("Done", file=sys.stderr)
 
             read_pos = list(range(0, len(cigar_str)))
@@ -1422,7 +1422,7 @@ class ParseBAM:
                     for indx, symbl in enumerate(cigar_str):
                         if symbl == type:
                             soft_clip_profile[indx] += 1.0
-            except StopIteration:
+            except (StopIteration, ValueError):
                 print("Done", file=sys.stderr)
 
             print("Totoal reads used: %d" % int(total_read), file=sys.stderr)
@@ -1479,7 +1479,7 @@ class ParseBAM:
                         for indx, symbl in enumerate(cigar_str):
                             if symbl == type:
                                 r2_soft_clip_profile[indx] += 1.0
-            except StopIteration:
+            except (StopIteration, ValueError):
                 print("Done", file=sys.stderr)
 
             read_pos = list(range(0, len(cigar_str)))
@@ -1565,7 +1565,7 @@ class ParseBAM:
                     if chrom not in ranges:
                         ranges[chrom] = Intersecter()
                     ranges[chrom].add_interval(Interval(exon[1], exon[2]))
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         print("calculating coverage over gene body ...", file=sys.stderr)
@@ -1788,7 +1788,7 @@ class ParseBAM:
                     FO.write(aligned_read.qname + "\t" + str(inner_distance) + "\treadPairOverlap\n")
                     ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
 
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         print("Total read pairs  used " + str(pair_num), file=sys.stderr)
@@ -1907,7 +1907,7 @@ class ParseBAM:
                         novel35_junc += 1
                     else:
                         novel3or5_junc += 1
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         print("total = " + str(total_junc))
@@ -2120,7 +2120,7 @@ class ParseBAM:
                     if intrn[2] - intrn[1] < min_intron:
                         continue
                     samSpliceSites.append(intrn[0] + ":" + str(intrn[1]) + "-" + str(intrn[2]))
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         print("shuffling alignments ...", end=" ", file=sys.stderr)
@@ -2296,7 +2296,7 @@ class ParseBAM:
                 else:
                     for exn in exon_blocks:
                         block_list.append(exn[0] + ":" + str(exn[1] + int((exn[2] - exn[1]) / 2)))
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         print("shuffling alignments ...", end=" ", file=sys.stderr)
@@ -2511,7 +2511,7 @@ class ParseBAM:
                 else:
                     for exn in exon_blocks:
                         block_list.append(exn[0] + ":" + str(exn[1] + (exn[2] - exn[1]) / 2))
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Done", file=sys.stderr)
 
         RPKM_table = collections.defaultdict(list)
@@ -2714,7 +2714,7 @@ class ParseBAM:
                                 if read_base == ref_base:
                                     print(aligned_read)
 
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Total reads used: " + str(count), file=DOUT)
         print("\n")
 
@@ -2840,7 +2840,7 @@ class ParseBAM:
                         p = read_length - p
                     del_postns[p] += 1
 
-        except StopIteration:
+        except (StopIteration, ValueError):
             print("Total reads used: " + str(count), file=sys.stderr)
         print("\n")
 

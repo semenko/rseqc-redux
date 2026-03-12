@@ -213,7 +213,7 @@ def main():
                         ):
                             exonic_frags += 1
 
-    except StopIteration:
+    except (StopIteration, ValueError):
         print("Done", file=sys.stderr)
     print("Total fragment = %-20s" % (str(total_frags)), file=sys.stderr)
     print("Total exonic fragment = %-20s" % (str(exonic_frags)), file=sys.stderr)

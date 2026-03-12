@@ -145,7 +145,7 @@ def barcode_edits(infile, outfile, step_size=10000, limit=2000000, CR_tag="CR", 
                 if total_alignments >= limit:
                     break
 
-    except StopIteration:
+    except (StopIteration, ValueError):
         pass
     logging.info("Total alignments processed: %d" % total_alignments)
 
@@ -480,7 +480,7 @@ def readCount(infile, outfile, step_size=10000, limit=1000000, csv_out=False):
                 if total_alignments >= limit:
                     break
 
-    except StopIteration:
+    except (StopIteration, ValueError):
         pass
     """
 	logging.info('Total %d alignments processed' % total_alignments)
@@ -561,7 +561,7 @@ def CBC_UMIcount(
             total_alignments += 1
             if total_alignments % step_size == 0:
                 print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
-    except StopIteration:
+    except (StopIteration, ValueError):
         pass
     logging.info("Total %d alignments processed" % total_alignments)
 
@@ -622,7 +622,7 @@ def CBC_UMIcount(
             total_alignments += 1
             if total_alignments % step_size == 0:
                 print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
-    except StopIteration:
+    except (StopIteration, ValueError):
         pass
     logging.info("Total %d alignments processed" % total_alignments)
 

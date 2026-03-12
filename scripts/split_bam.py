@@ -142,7 +142,7 @@ def main():
                         out2.write(aligned_read)
                         ex_alignment += 1
 
-    except StopIteration:
+    except (StopIteration, ValueError):
         print("Done", file=sys.stderr)
 
     print("%-55s%d" % ("Total records:", total_alignment))

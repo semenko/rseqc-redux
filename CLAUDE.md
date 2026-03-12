@@ -45,9 +45,11 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - `sys.exit()` → `sys.exit(1)` in library error paths (SAM.py, BED.py)
 - Dead `open()` call removed in annoGene.py
 - `type: ignore` comments cleaned up in changePoint.py
+- Python 3.13 compatibility: pysam iterator `ValueError` workaround (29 sites across 7 files)
 
 **What still needs work:**
 - E501 (line length) — 930 violations, needs incremental reformatting
+- Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels
 - More SAM.py/BED.py method-level integration tests
 
 ## Commands

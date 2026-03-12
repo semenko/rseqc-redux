@@ -298,7 +298,7 @@ def main():
                     intergenic_down10kb_read += 1
                 else:
                     unAssignFrags += 1
-    except StopIteration:
+    except (StopIteration, ValueError):
         print("Finished\n", file=sys.stderr)
 
     print("%-30s%d" % ("Total Reads", totalReads))
