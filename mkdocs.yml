@@ -1,10 +1,95 @@
 site_name: rseqc-redux
 site_description: Modernized RNA-seq Quality Control
+site_url: https://nick.semenkovich.com/rseqc-redux/
 repo_url: https://github.com/semenko/rseqc-redux
 repo_name: semenko/rseqc-redux
 
 theme:
   name: material
+  palette:
+    - scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+  - tables
+  - pymdownx.details
+
+plugins:
+  - search
+  - minify:
+      minify_html: true
 
 nav:
   - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Input Formats: getting-started/input-formats.md
+  - Tools:
+    - Overview: tools/index.md
+    - BAM Statistics:
+      - bam_stat: tools/bam_stat.md
+      - bam2fq: tools/bam2fq.md
+      - bam2wig: tools/bam2wig.md
+      - divide_bam: tools/divide_bam.md
+      - split_bam: tools/split_bam.md
+      - split_paired_bam: tools/split_paired_bam.md
+    - Read Quality:
+      - read_quality: tools/read_quality.md
+      - read_GC: tools/read_GC.md
+      - read_NVC: tools/read_NVC.md
+      - read_hexamer: tools/read_hexamer.md
+      - read_duplication: tools/read_duplication.md
+      - read_distribution: tools/read_distribution.md
+    - Alignment Profiles:
+      - clipping_profile: tools/clipping_profile.md
+      - deletion_profile: tools/deletion_profile.md
+      - insertion_profile: tools/insertion_profile.md
+      - mismatch_profile: tools/mismatch_profile.md
+    - Gene Body & Expression:
+      - geneBody_coverage: tools/geneBody_coverage.md
+      - geneBody_coverage2: tools/geneBody_coverage2.md
+      - FPKM_count: tools/FPKM_count.md
+      - FPKM-UQ: tools/FPKM_UQ.md
+      - RPKM_saturation: tools/RPKM_saturation.md
+      - tin: tools/tin.md
+    - Junction Analysis:
+      - junction_annotation: tools/junction_annotation.md
+      - junction_saturation: tools/junction_saturation.md
+    - Fragment & Strandedness:
+      - infer_experiment: tools/infer_experiment.md
+      - inner_distance: tools/inner_distance.md
+      - RNA_fragment_size: tools/RNA_fragment_size.md
+    - BigWig Utilities:
+      - normalize_bigwig: tools/normalize_bigwig.md
+      - overlay_bigwig: tools/overlay_bigwig.md
+    - Single Cell:
+      - sc_bamStat: tools/sc_bamStat.md
+      - sc_editMatrix: tools/sc_editMatrix.md
+      - sc_seqLogo: tools/sc_seqLogo.md
+      - sc_seqQual: tools/sc_seqQual.md
+  - Changelog: changelog.md
+  - Contributing: contributing.md

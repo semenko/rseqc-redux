@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-"""-------------------------------------------------------------------------------------------------
-For each nucleotide  position of read (5'->3'), check the nucleotide frequency. The generated R script will
-gives NVC (Nucleotide Versus Cycle) plot.
--------------------------------------------------------------------------------------------------"""
+"""Check nucleotide frequency at each read position (5'->3') and generate an NVC plot."""
 
 import argparse
 import os

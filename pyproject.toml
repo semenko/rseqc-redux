@@ -45,6 +45,10 @@ dev = [
     "mypy",
     "nox",
 ]
+docs = [
+    "mkdocs-material",
+    "mkdocs-minify-plugin",
+]
 
 [project.urls]
 Homepage = "https://github.com/semenko/rseqc-redux"

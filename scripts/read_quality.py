@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-"""-------------------------------------------------------------------------------------------------
-Calculating Phred Quality Score for each position on read. Note that each read should have
-the fixed (same) length
--------------------------------------------------------------------------------------------------"""
+"""Calculate Phred quality score distribution for each position on the read."""
 
 import argparse
 import os

@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""---------------------------------------------------------------------------------------
-Calculate Hexamer frequency
-------------------------------------------------------------------------------------------"""
+"""Calculate hexamer (6-mer) frequency from read sequences."""
 
 import argparse
 import os

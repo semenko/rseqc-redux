@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""-------------------------------------------------------------------------------------------------
-Split bam file according to input gene list (bed).
--------------------------------------------------------------------------------------------------"""
+"""Split BAM file according to an input gene list (BED format)."""
 
 import argparse
 import os

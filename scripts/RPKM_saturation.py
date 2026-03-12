@@ -1,9 +1,5 @@
 #!/usr/bin/env python
-"""-------------------------------------------------------------------------------------------------
-For each gene, check whether the RPKM value was saturated or not. Saturation analysis is based on
-re-sampling. For example, sample 5%, 10%, ... , 95%, 100% from total mapped reads, then
-calculate RPKM value for each step. Strand specific sequencing protocol is supported.
--------------------------------------------------------------------------------------------------"""
+"""Check RPKM saturation by re-sampling reads at increasing percentages."""
 
 import argparse
 import collections

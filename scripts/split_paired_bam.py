@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""-------------------------------------------------------------------------------------------------
-Split bam file (pair-end) into 2 single-end bam file
--------------------------------------------------------------------------------------------------"""
+"""Split a paired-end BAM file into two single-end BAM files."""
 
 import argparse
 import os

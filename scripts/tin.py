@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-"""-------------------------------------------------------------------------------------------------
-This program calculates transcript integrity number (TIN) for each transcript (or gene) in
-BED file. TIN is conceptually similar to RIN (RNA integrity number) but provides transcript
-level measurement of RNA quality and is more sensitive to measure low quality RNA samples:
-
-1) TIN score of a transcript is used to measure the RNA integrity of the transcript.
-2) Median TIN score across all transcripts can be used to measure RNA integrity  of that
-   "RNA sample".
-3) TIN ranges from 0 (the worst) to 100 (the best). TIN = 60 means: 60% of the transcript
-   has been covered if the reads coverage were uniform.
-4) TIN will be assigned to 0 if the transcript has no coverage or covered reads is fewer than
-   cutoff.
--------------------------------------------------------------------------------------------------"""
+"""Calculate transcript integrity number (TIN) for each transcript in a BED file."""
 
 import argparse
 import math

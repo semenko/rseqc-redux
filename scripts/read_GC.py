@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""-------------------------------------------------------------------------------------------------
-Calculate distribution of reads' GC content
--------------------------------------------------------------------------------------------------"""
+"""Calculate the GC content distribution of mapped reads."""
 
 import argparse
 import os

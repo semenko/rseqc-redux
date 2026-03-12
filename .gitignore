@@ -35,3 +35,6 @@ coverage.xml
 
 # Nox
 .nox/
+
+# MkDocs
+site/

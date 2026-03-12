@@ -1,33 +1,5 @@
 #!/usr/bin/env python
-"""=================================================================================================
-Infer RNA-seq experiment design from SAM/BAM file. This module will determine if the RNA-seq
-experiment is:
-1) pair-end or single-end
-2) if experiment is strand-specific, how reads were stranded.
- * For pair-end RNA-seq, there are two different ways to strand reads:
-  i) 1++,1--,2+-,2-+
-     read1 mapped to '+' strand indicates parental gene on '+' strand
-     read1 mapped to '-' strand indicates parental gene on '-' strand
-     read2 mapped to '+' strand indicates parental gene on '-' strand
-     read2 mapped to '-' strand indicates parental gene on '+' strand
-  ii) 1+-,1-+,2++,2--
-     read1 mapped to '+' strand indicates parental gene on '-' strand
-     read1 mapped to '-' strand indicates parental gene on '+' strand
-     read2 mapped to '+' strand indicates parental gene on '+' strand
-     read2 mapped to '-' strand indicates parental gene on '-' strand
- * For single-end RNA-seq, there are two different ways to strand reads:
-  i) ++,--
-     read mapped to '+' strand indicates parental gene on '+' strand
-     read mapped to '-' strand indicates parental gene on '-' strand
-  ii) +-,-+
-     read mapped to '+' strand indicates parental gene on '-' strand
-     read mapped to '-' strand indicates parental gene on '+' strand
-
- NOTE:
-        You don't need to know the RNA sequencing protocol before mapping your reads to the reference
-        genome. Mapping your RNA-seq reads as if they were non-strand specific, this script can
-        "guess" how RNA-seq reads were stranded.
-================================================================================================="""
+"""Infer RNA-seq experiment design (strandedness and layout) from a SAM/BAM file."""
 
 import argparse
 import os
