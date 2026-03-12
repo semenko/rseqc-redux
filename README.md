@@ -9,7 +9,7 @@
 | rseqc/SAM.py                    |     1431 |      669 |     53% |80, 82-84, 190, 199, 221, 229, 263, 266-270, 308-309, 315, 352-355, 366-371, 375, 450, 596-620, 630, 666, 719, 762, 769, 848, 914-915, 921, 931-1010, 1023, 1047, 1052-1061, 1089-1187, 1201-1380, 1387-1557, 1572-1715, 1731-1732, 1749, 1752, 1784-1793, 1820, 1833-1835, 1837-1838, 1848, 1853-1873, 1892-1897, 1903-1904, 1923-2048, 2056-2120 |
 | rseqc/\_\_init\_\_.py           |        1 |        0 |    100% |           |
 | rseqc/bam\_cigar.py             |       50 |        0 |    100% |           |
-| rseqc/cli\_common.py            |       35 |        4 |     89% |     48-51 |
+| rseqc/cli\_common.py            |       55 |       15 |     73% |19-21, 32, 43, 52, 62, 67-70, 108-111 |
 | rseqc/fastq.py                  |      134 |       51 |     62% |69, 99-116, 145, 152, 154-155, 269-321 |
 | rseqc/getBamFiles.py            |       42 |        2 |     95% |     57-58 |
 | rseqc/heatmap.py                |       24 |        1 |     96% |        57 |
@@ -17,41 +17,41 @@
 | rseqc/mystat.py                 |       17 |        0 |    100% |           |
 | rseqc/scbam.py                  |      261 |      114 |     56% |187, 247-352, 357-362, 367, 371-376, 382-387, 390, 393-398, 410-446 |
 | rseqc/twoList.py                |       29 |        0 |    100% |           |
-| scripts/FPKM\_UQ.py             |      119 |       53 |     55% |44-81, 176-182, 191-236, 245 |
-| scripts/FPKM\_count.py          |      218 |      188 |     14% |48-416, 420 |
-| scripts/RNA\_fragment\_size.py  |       90 |       29 |     68% |67, 69, 71, 73, 75, 80, 82, 96-149, 153 |
-| scripts/RPKM\_saturation.py     |       98 |       38 |     61% |46, 56-57, 82-205, 209 |
+| scripts/FPKM\_UQ.py             |      117 |       52 |     56% |43-80, 175-181, 190-234, 243 |
+| scripts/FPKM\_count.py          |      217 |      187 |     14% |54-396, 400 |
+| scripts/RNA\_fragment\_size.py  |       89 |       28 |     69% |67, 69, 71, 73, 75, 80, 82, 96-137, 141 |
+| scripts/RPKM\_saturation.py     |       93 |       35 |     62% |52, 62-63, 88-182, 186 |
 | scripts/\_\_init\_\_.py         |        0 |        0 |    100% |           |
-| scripts/bam2fq.py               |       40 |       33 |     18% | 15-71, 75 |
-| scripts/bam2wig.py              |       43 |       36 |     16% |16-123, 135 |
-| scripts/bam\_stat.py            |       20 |       14 |     30% | 14-40, 44 |
-| scripts/clipping\_profile.py    |       29 |       22 |     24% | 17-61, 65 |
-| scripts/deletion\_profile.py    |       35 |       28 |     20% | 15-81, 85 |
-| scripts/divide\_bam.py          |       40 |       32 |     20% | 18-64, 68 |
-| scripts/geneBody\_coverage2.py  |       99 |       88 |     11% |23-112, 116-164, 168 |
-| scripts/geneBody\_coverage.py   |      214 |       80 |     63% |66-67, 90-92, 122, 126-127, 134-135, 141, 143, 145, 147, 158, 233-244, 254-358, 362 |
-| scripts/infer\_experiment.py    |       39 |       33 |     15% | 12-73, 77 |
-| scripts/inner\_distance.py      |       33 |       26 |     21% |24-101, 105 |
-| scripts/insertion\_profile.py   |       29 |       22 |     24% | 16-60, 64 |
-| scripts/junction\_annotation.py |      106 |       35 |     67% |32, 48, 97, 109, 158-232, 236 |
-| scripts/junction\_saturation.py |       41 |       34 |     17% |17-128, 132 |
-| scripts/mismatch\_profile.py    |       35 |       28 |     20% | 15-80, 84 |
-| scripts/normalize\_bigwig.py    |      111 |      102 |      8% |16-164, 168 |
-| scripts/overlay\_bigwig.py      |       56 |       49 |     12% |14-100, 104 |
-| scripts/read\_GC.py             |       23 |       16 |     30% | 13-44, 48 |
-| scripts/read\_NVC.py            |       24 |       17 |     29% | 13-56, 60 |
-| scripts/read\_distribution.py   |      217 |      112 |     48% |187-398, 402 |
-| scripts/read\_duplication.py    |       24 |       17 |     29% | 17-57, 61 |
-| scripts/read\_hexamer.py        |       55 |       43 |     22% |20-97, 101 |
-| scripts/read\_quality.py        |       24 |       17 |     29% | 13-65, 69 |
-| scripts/sc\_bamStat.py          |       31 |       25 |     19% |15-113, 117 |
-| scripts/sc\_editMatrix.py       |       39 |       33 |     15% |17-149, 164 |
-| scripts/sc\_seqLogo.py          |       47 |       41 |     13% |16-153, 169 |
-| scripts/sc\_seqQual.py          |       33 |       27 |     18% |14-122, 136 |
-| scripts/split\_bam.py           |       80 |       71 |     11% |16-133, 137 |
-| scripts/split\_paired\_bam.py   |       62 |       55 |     11% |14-96, 100 |
-| scripts/tin.py                  |      226 |       78 |     65% |80, 82, 87, 89, 93, 103-104, 125-128, 161, 163, 168, 170, 197-198, 202, 204, 206, 208, 221, 242-371, 375 |
-| **TOTAL**                       | **4681** | **2382** | **49%** |           |
+| scripts/bam2fq.py               |       36 |       30 |     17% | 14-56, 60 |
+| scripts/bam2wig.py              |       38 |       32 |     16% |15-111, 123 |
+| scripts/bam\_stat.py            |       16 |       11 |     31% | 13-27, 31 |
+| scripts/clipping\_profile.py    |       23 |       18 |     22% | 22-53, 57 |
+| scripts/deletion\_profile.py    |       28 |       23 |     18% | 13-62, 66 |
+| scripts/divide\_bam.py          |       36 |       29 |     19% | 17-60, 64 |
+| scripts/geneBody\_coverage2.py  |       95 |       85 |     11% |22-111, 115-150, 154 |
+| scripts/geneBody\_coverage.py   |      209 |       77 |     63% |64-65, 88-90, 120, 124-125, 132-133, 139, 141, 143, 145, 156, 231-242, 252-343, 347 |
+| scripts/infer\_experiment.py    |       38 |       32 |     16% | 12-63, 67 |
+| scripts/inner\_distance.py      |       26 |       21 |     19% | 29-86, 90 |
+| scripts/insertion\_profile.py   |       23 |       18 |     22% | 21-52, 56 |
+| scripts/junction\_annotation.py |       98 |       29 |     70% |37, 53, 102, 114, 163-216, 220 |
+| scripts/junction\_saturation.py |       36 |       31 |     14% |22-109, 113 |
+| scripts/mismatch\_profile.py    |       28 |       23 |     18% | 13-61, 65 |
+| scripts/normalize\_bigwig.py    |      110 |      101 |      8% |16-158, 162 |
+| scripts/overlay\_bigwig.py      |       55 |       48 |     13% |14-99, 103 |
+| scripts/read\_GC.py             |       18 |       13 |     28% | 18-30, 34 |
+| scripts/read\_NVC.py            |       19 |       14 |     26% | 18-37, 41 |
+| scripts/read\_distribution.py   |      209 |      106 |     49% |185-380, 384 |
+| scripts/read\_duplication.py    |       19 |       14 |     26% | 22-49, 53 |
+| scripts/read\_hexamer.py        |       54 |       42 |     22% |20-96, 100 |
+| scripts/read\_quality.py        |       19 |       14 |     26% | 18-46, 50 |
+| scripts/sc\_bamStat.py          |       30 |       24 |     20% |15-112, 116 |
+| scripts/sc\_editMatrix.py       |       38 |       32 |     16% |17-148, 163 |
+| scripts/sc\_seqLogo.py          |       46 |       40 |     13% |16-152, 168 |
+| scripts/sc\_seqQual.py          |       32 |       26 |     19% |14-121, 135 |
+| scripts/split\_bam.py           |       72 |       65 |     10% |20-124, 128 |
+| scripts/split\_paired\_bam.py   |       58 |       52 |     10% | 13-90, 94 |
+| scripts/tin.py                  |      221 |       74 |     67% |79, 81, 86, 88, 92, 102-103, 124-127, 160, 162, 167, 169, 196-197, 201, 203, 205, 207, 220, 241-361, 365 |
+| **TOTAL**                       | **4567** | **2297** | **50%** |           |
 
 
 ## Setup coverage badge
