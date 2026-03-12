@@ -29,20 +29,24 @@ def _pysam_iter(samfile: pysam.AlignmentFile) -> Generator[pysam.AlignedSegment,
 def _write_edits_csv(mat: dict[int, dict[str, int]], outfile: str) -> None:
     """Write a nucleotide editing matrix (dict of dicts) to CSV.
 
-    Rows = sorted row keys (edit types), Columns = sorted column keys (positions).
-    Missing values filled with 0.
+    Input *mat* maps position (int) -> {edit_type (str): count}.
+    Output CSV has rows = edit types (sorted), columns = positions (sorted),
+    matching the original pandas ``DataFrame.from_dict(mat)`` layout where
+    outer keys become columns and inner keys become rows.
     """
-    all_col_keys: set[str] = set()
-    for row_dict in mat.values():
-        all_col_keys.update(row_dict.keys())
-    row_keys = sorted(mat.keys())
-    col_keys = sorted(all_col_keys)
+    # Columns = outer keys (positions)
+    col_keys = sorted(mat.keys())
+    # Rows = union of inner keys (edit types)
+    row_keys_set: set[str] = set()
+    for d in mat.values():
+        row_keys_set.update(d.keys())
+    row_keys = sorted(row_keys_set)
 
     with open(outfile, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Edits"] + col_keys)
+        writer.writerow(["Index"] + [str(c) for c in col_keys])
         for rk in row_keys:
-            writer.writerow([rk] + [mat[rk].get(ck, 0) for ck in col_keys])
+            writer.writerow([rk] + [mat[ck].get(rk, 0) for ck in col_keys])
 
 
 def diff_str(s1: str, s2: str) -> list[list[Any]]:

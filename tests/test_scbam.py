@@ -399,8 +399,13 @@ class TestBarcodeEdits:
         with open(outprefix + ".CB_edits_count.csv") as fh:
             content = fh.read()
         # read_cb_diff: CR=ACGT -> CB=ACTT, pos 2: G->T
-        # Should be in the matrix
-        assert "Edits" in content or "Index" in content  # header present
+        # Header should start with "Index" (matching original pandas index_label)
+        assert content.startswith("Index,")
+        # Edit types should be row labels (not column headers)
+        lines = content.strip().split("\n")
+        # First column of data rows should be edit types like "G:T"
+        data_rows = [line.split(",")[0] for line in lines[1:]]
+        assert "G:T" in data_rows
 
 
 # --- readCount ---
@@ -526,3 +531,82 @@ class TestCigarRoundtrip:
     def test_insertion_is_others(self):
         cigar = scbam.list2str([(0, 40), (1, 5), (0, 55)])
         assert scbam.read_match_type(cigar) == "Others"
+
+
+# --- _write_edits_csv ---
+
+
+class TestWriteEditsCsv:
+    """Verify _write_edits_csv matches the original pandas-based output layout."""
+
+    def test_basic_layout(self, tmp_path):
+        """Rows should be edit types (sorted), columns should be positions (sorted)."""
+        # mat: {position: {edit_type: count}}
+        mat = {
+            0: {"A:T": 5, "C:G": 2},
+            2: {"A:T": 3},
+            1: {"C:G": 1, "G:T": 4},
+        }
+        outfile = str(tmp_path / "edits.csv")
+        scbam._write_edits_csv(mat, outfile)
+
+        with open(outfile) as f:
+            lines = f.read().strip().split("\n")
+
+        # Header: Index, then positions sorted
+        assert lines[0] == "Index,0,1,2"
+        # Rows: edit types sorted alphabetically
+        # A:T row: pos0=5, pos1=0 (missing), pos2=3
+        assert lines[1] == "A:T,5,0,3"
+        # C:G row: pos0=2, pos1=1, pos2=0
+        assert lines[2] == "C:G,2,1,0"
+        # G:T row: pos0=0, pos1=4, pos2=0
+        assert lines[3] == "G:T,0,4,0"
+
+    def test_matches_pandas(self, tmp_path):
+        """Output should be identical to the original pandas-based code."""
+        import pandas as pd
+
+        mat = {
+            0: {"A:T": 5, "C:G": 2},
+            2: {"A:T": 3, "G:T": 1},
+            1: {"C:G": 1, "G:T": 4},
+        }
+
+        # Reproduce original pandas code
+        df = pd.DataFrame.from_dict(mat)
+        df = df.fillna(0).astype(int)
+        df.sort_index(inplace=True)
+        df = df.sort_index(axis=1)
+        df.index.name = "Edits"
+
+        pandas_file = str(tmp_path / "pandas.csv")
+        df.to_csv(pandas_file, index=True, index_label="Index")
+
+        new_file = str(tmp_path / "new.csv")
+        scbam._write_edits_csv(mat, new_file)
+
+        with open(pandas_file) as f:
+            pandas_content = f.read()
+        with open(new_file) as f:
+            new_content = f.read()
+
+        assert new_content == pandas_content
+
+    def test_single_position_single_edit(self, tmp_path):
+        mat = {0: {"A:T": 1}}
+        outfile = str(tmp_path / "single.csv")
+        scbam._write_edits_csv(mat, outfile)
+
+        with open(outfile) as f:
+            content = f.read().strip()
+        assert content == "Index,0\nA:T,1"
+
+    def test_empty_dict(self, tmp_path):
+        mat: dict[int, dict[str, int]] = {}
+        outfile = str(tmp_path / "empty.csv")
+        scbam._write_edits_csv(mat, outfile)
+
+        with open(outfile) as f:
+            content = f.read().strip()
+        assert content == "Index"
