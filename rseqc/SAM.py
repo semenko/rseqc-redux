@@ -43,7 +43,7 @@ class ParseBAM:
                 print("BAM/SAM file has no header section. Exit!", file=sys.stderr)
                 sys.exit(1)
             self.bam_format = True
-        except Exception:
+        except (OSError, ValueError):
             self.samfile = pysam.Samfile(inputFile, "r")
             if len(self.samfile.header) == 0:  # type: ignore[arg-type]
                 print("BAM/SAM file has no header section. Exit!", file=sys.stderr)
@@ -163,7 +163,7 @@ class ParseBAM:
                     txStart = int(fields[1])
                     txEnd = int(fields[2])
                     strand = fields[5]
-                except Exception:
+                except (IndexError, ValueError):
                     print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
                     continue
                 if chrom not in gene_ranges:
@@ -294,7 +294,7 @@ class ParseBAM:
             for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
                 try:
                     self.samfile.fetch(chr_name, 0, chr_size)
-                except Exception:
+                except (KeyError, ValueError):
                     print("No alignments for " + chr_name + ". skipped", file=sys.stderr)
                     continue
                 print("Processing " + chr_name + " ...", file=sys.stderr)
@@ -369,25 +369,25 @@ class ParseBAM:
                 import subprocess
 
                 print("Run " + "wigToBigWig " + outfile + ".wig " + chrom_file + " " + outfile + ".bw ")
-                subprocess.call(
-                    "wigToBigWig -clip " + outfile + ".wig " + chrom_file + " " + outfile + ".bw ", shell=True
+                subprocess.run(
+                    ["wigToBigWig", "-clip", outfile + ".wig", chrom_file, outfile + ".bw"], check=False
                 )
-            except Exception:
+            except OSError:
                 print('Failed to call "wigToBigWig".', file=sys.stderr)
                 pass
         else:
             try:
                 import subprocess
 
-                subprocess.call(
-                    "wigToBigWig -clip " + outfile + ".Forward.wig " + chrom_file + " " + outfile + ".Forward.bw ",
-                    shell=True,
+                subprocess.run(
+                    ["wigToBigWig", "-clip", outfile + ".Forward.wig", chrom_file, outfile + ".Forward.bw"],
+                    check=False,
                 )
-                subprocess.call(
-                    "wigToBigWig -clip " + outfile + ".Reverse.wig " + chrom_file + " " + outfile + ".Reverse.bw ",
-                    shell=True,
+                subprocess.run(
+                    ["wigToBigWig", "-clip", outfile + ".Reverse.wig", chrom_file, outfile + ".Reverse.bw"],
+                    check=False,
                 )
-            except Exception:
+            except OSError:
                 print('Failed to call "wigToBigWig".', file=sys.stderr)
                 pass
 
@@ -400,7 +400,7 @@ class ParseBAM:
         for chr_name, chr_size in list(chrom_sizes.items()):  # iterate each chrom
             try:
                 self.samfile.fetch(chr_name, 0, chr_size)
-            except Exception:
+            except (KeyError, ValueError):
                 print("No alignments for " + chr_name + ". skipped", file=sys.stderr)
                 continue
             print("Processing " + chr_name + " ...", file=sys.stderr)
@@ -641,7 +641,7 @@ class ParseBAM:
                         intron_starts = exon_ends[:-1]
                         intron_ends = exon_starts[1:]
                         "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
-                    except Exception:
+                    except (IndexError, ValueError):
                         print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                         continue
 
@@ -717,7 +717,7 @@ class ParseBAM:
                                 + str(mRNA_count * 1000000000.0 / (mRNA_len * total_tags))
                                 + "\n"
                             )
-                        except Exception:
+                        except ZeroDivisionError:
                             RPKM_OUT.write(
                                 chrom.lower()
                                 + "\t"
@@ -801,7 +801,7 @@ class ParseBAM:
                                 + str(mRNA_count * 1000000000.0 / (mRNA_len * total_tags))
                                 + "\n"
                             )
-                        except Exception:
+                        except ZeroDivisionError:
                             RPKM_OUT.write(
                                 chrom.lower()
                                 + "\t"
@@ -885,7 +885,7 @@ class ParseBAM:
                                 + str(mRNA_count * 1000000000.0 / (mRNA_len * total_tags))
                                 + "\n"
                             )
-                        except Exception:
+                        except ZeroDivisionError:
                             RPKM_OUT.write(
                                 chrom.lower()
                                 + "\t"
@@ -1065,7 +1065,7 @@ class ParseBAM:
                         q_min = q
                     try:
                         quality[i][q] += 1
-                    except Exception:
+                    except KeyError:
                         quality[i][q] = 1
             print("Done", file=sys.stderr)
 
@@ -1633,7 +1633,7 @@ class ParseBAM:
                         exon_starts = [x + tx_start for x in exon_starts]
                         exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
                         exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
-                    except Exception:
+                    except (IndexError, ValueError):
                         print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                         continue
                     gene_all_base: list[int] = []
@@ -1781,7 +1781,7 @@ class ParseBAM:
                         read1_end - 1, read1_end
                     ):  # gene: Interval(0, 10, value=a)
                         read1_gene_names.add(gene.value)
-                except Exception:
+                except KeyError:
                     pass
 
                 read2_gene_names = set()  # read2_start
@@ -1790,7 +1790,7 @@ class ParseBAM:
                         read2_start, read2_start + 1
                     ):  # gene: Interval(0, 10, value=a)
                         read2_gene_names.add(gene.value)
-                except Exception:
+                except KeyError:
                     pass
 
                 if len(read1_gene_names.intersection(read2_gene_names)) == 0:  # no common gene
@@ -2071,7 +2071,7 @@ class ParseBAM:
         junc_freq: dict[str, int] = collections.defaultdict(int)
         try:
             alignedReads = self.samfile.fetch(chrom, st, end)
-        except Exception:
+        except (KeyError, ValueError):
             return junc_freq
         for aligned_read in alignedReads:
             if aligned_read.is_qcfail:
@@ -2161,7 +2161,7 @@ class ParseBAM:
             for aligned_read in _pysam_iter(self.samfile):
                 try:
                     chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
-                except Exception:
+                except (ValueError, KeyError, AttributeError):
                     continue
                 if chrom not in chrom_list:
                     continue
@@ -2446,7 +2446,7 @@ class ParseBAM:
                             exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                             exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                             key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
-                        except Exception:
+                        except (IndexError, ValueError):
                             print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
                             continue
                         mRNA_count = 0  # we need to initializ it to 0 for each gene
@@ -2640,7 +2640,7 @@ class ParseBAM:
                             exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                             exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                             key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
-                        except Exception:
+                        except (IndexError, ValueError):
                             print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
                             continue
                         mRNA_count = 0  # we need to initializ it to 0 for each gene
@@ -2680,7 +2680,7 @@ class ParseBAM:
         Note: BAM file must be indexed"""
         try:
             return _pysam_iter(self.samfile.fetch(chr, st, end))
-        except Exception:
+        except (KeyError, ValueError):
             return None
 
     def mismatchProfile(self, read_length: int, read_num: int, outfile: str, q_cut: int = 30) -> None:

@@ -71,23 +71,18 @@ def run_HTseq(bam_file, gtf_file, out_file, print_cmd=False):
     }
 
     # run HTSeq
-    cmd = (
-        htseq_cmd
-        + " "
-        + " ".join([str(i) + " " + str(j) for i, j in paras.items()])
-        + " "
-        + os.path.abspath(bam_file)
-        + " "
-        + os.path.abspath(gtf_file)
-        + " > "
-        + out_file
-    )
+    htseq_args = [htseq_cmd]
+    for flag, value in paras.items():
+        htseq_args.extend([flag, str(value).strip()])
+    htseq_args.append(os.path.abspath(bam_file))
+    htseq_args.append(os.path.abspath(gtf_file))
 
     if print_cmd:
-        return cmd
+        return " ".join(htseq_args) + " > " + out_file
     else:
-        printlog("Running : %s" % cmd)
-        subprocess.call(cmd, shell=True)
+        printlog("Running : %s" % (" ".join(htseq_args) + " > " + out_file))
+        with open(out_file, "w") as fout:
+            subprocess.run(htseq_args, stdout=fout, check=False)
 
 
 def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
@@ -182,7 +177,7 @@ def cal_fpkm(count_file, infor_file, out_file, log2_flag=False):
                             fpkm_uq = (count * 1000000000) / (gene_sizes[gene] * uq_count)
                             fpkm = (count * 1000000000) / (gene_sizes[gene] * total_count)
 
-                    except Exception:
+                    except ZeroDivisionError:
                         fpkm_uq = "NA"
                         fpkm = "NA"
 

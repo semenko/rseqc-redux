@@ -5,7 +5,9 @@ Analzye 10X genomics single cell BAM files.
 from __future__ import annotations
 
 import collections
+import glob
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -124,7 +126,7 @@ def barcode_edits(infile: str, outfile: str, step_size: int = 10000, limit: int 
                 for diff in diff_str(original_CB, corrected_CB):
                     try:
                         CB_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] += 1
-                    except Exception:
+                    except KeyError:
                         CB_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] = 1
             else:
                 CB_same += 1
@@ -142,7 +144,7 @@ def barcode_edits(infile: str, outfile: str, step_size: int = 10000, limit: int 
                 for diff in diff_str(original_UMI, corrected_UMI):
                     try:
                         UMI_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] += 1
-                    except Exception:
+                    except KeyError:
                         UMI_corrected_bases[diff[0]][diff[1] + ":" + diff[2]] = 1
             else:
                 UMI_same += 1
@@ -226,7 +228,7 @@ def mapping_stat(
     try:
         # older versions of pysam
         samfile = pysam.AlignmentFile(infile, mode="rb", require_index=True, thread=n_thread)  # type: ignore[call-arg]
-    except Exception:
+    except (TypeError, ValueError):
         # latest verion of pysam (v0.19.1)
         samfile = pysam.AlignmentFile(infile, mode="rb", require_index=True, threads=n_thread)
     if samfile.check_index():
@@ -353,8 +355,10 @@ def mapping_stat(
     )
 
     logging.info("Removing intermediate files ...")
-    subprocess.run("rm -rf *.all_reads_id.txt", shell=True)
-    subprocess.run("rm -rf *.confident_reads_id.txt", shell=True)
+    for f in glob.glob("*.all_reads_id.txt"):
+        os.unlink(f)
+    for f in glob.glob("*.confident_reads_id.txt"):
+        os.unlink(f)
 
     total_reads_n = int(output1.decode("utf-8").strip())
     confi_reads_n = int(output2.decode("utf-8").strip())

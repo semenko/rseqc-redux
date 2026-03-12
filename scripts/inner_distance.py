@@ -108,8 +108,8 @@ def main():
         q_cut=args.map_qual,
     )
     try:
-        subprocess.call("Rscript " + args.output_prefix + ".inner_distance_plot.r", shell=True)
-    except Exception:
+        subprocess.run(["Rscript", args.output_prefix + ".inner_distance_plot.r"], check=False)
+    except OSError:
         print("Cannot generate pdf file from " + args.output_prefix + ".inner_distance_plot.r", file=sys.stderr)
         pass
 

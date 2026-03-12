@@ -85,8 +85,8 @@ def main():
         outfile=args.output_prefix,
     )
     try:
-        subprocess.call("Rscript " + args.output_prefix + ".mismatch_profile.r", shell=True)
-    except Exception:
+        subprocess.run(["Rscript", args.output_prefix + ".mismatch_profile.r"], check=False)
+    except OSError:
         print("Cannot generate pdf file from " + args.output_prefix + ".mismatch_profile.r", file=sys.stderr)
         pass
 

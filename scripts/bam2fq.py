@@ -53,19 +53,19 @@ def main():
             if args.gzip is True:
                 try:
                     print("run gzip ... ", end=" ", file=sys.stderr)
-                    subprocess.call("gzip " + args.output_prefix + ".fastq", shell=True)
+                    subprocess.run(["gzip", args.output_prefix + ".fastq"], check=False)
                     print("Done.", file=sys.stderr)
-                except Exception:
+                except OSError:
                     pass
         else:
             obj.bam2fq(prefix=args.output_prefix, paired=True)
             if args.gzip is True:
                 try:
                     print("run gzip ...", file=sys.stderr)
-                    subprocess.call("gzip " + args.output_prefix + ".R1.fastq", shell=True)
-                    subprocess.call("gzip " + args.output_prefix + ".R2.fastq", shell=True)
+                    subprocess.run(["gzip", args.output_prefix + ".R1.fastq"], check=False)
+                    subprocess.run(["gzip", args.output_prefix + ".R2.fastq"], check=False)
                     print("Done.", file=sys.stderr)
-                except Exception:
+                except OSError:
                     pass
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)

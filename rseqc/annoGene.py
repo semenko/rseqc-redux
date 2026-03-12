@@ -104,7 +104,7 @@ def getExonFromFile(bedfile: str) -> list[list[Any]]:
                 exon_start = [x + txStart for x in exon_start]
                 exon_end = list(map(int, fields[10].rstrip(",").split(",")))
                 exon_end = [x + y for x, y in zip(exon_start, exon_end)]
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
             chrom = chrom + ":" + strand
@@ -139,7 +139,7 @@ def getExonFromFile2(bedfile: str) -> dict[str, set[Any]]:
                 exon_end = [x + y for x, y in zip(exon_start, exon_end)]
                 txEnd = int(fields[2])
                 key = chrom + ":" + str(txStart) + "-" + str(txEnd) + ":" + strand + ":" + geneName
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
             for st, end in zip(exon_start, exon_end):

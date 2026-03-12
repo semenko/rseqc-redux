@@ -26,6 +26,17 @@ class ParseBED:
         self.fileName = os.path.basename(bedFile)
         self.ABS_fileName = bedFile
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    def close(self):
+        if self.f and not self.f.closed:
+            self.f.close()
+
     def groupingBED(infile: str, outfile: str | None = None, strand: bool = True, boundary: str = "utr") -> Any:
         """Group overlapping bed entries together. When strand=Ture, overlapping bed entries within
         the same strand will be merged. When strand=False, all overlapping bed entries are merged,
@@ -257,7 +268,7 @@ class ParseBED:
                         )
                         for line in groups[k]:
                             FO.write("\t" + line + "\n")
-            except Exception:
+            except OSError:
                 # return (groups,groups_boundary_st,groups_boundary_end)
                 return groups
 
@@ -388,21 +399,21 @@ class ParseBED:
                         else:
                             try:
                                 feature = elems[3]
-                            except Exception:
+                            except IndexError:
                                 feature = "feature%d" % (i + 1)
                         start = int(elems[1]) + 1
                         end = int(elems[2])
                         try:
                             score = elems[4]
-                        except Exception:
+                        except IndexError:
                             score = "0"
                         try:
                             strand = elems[5]
-                        except Exception:
+                        except IndexError:
                             strand = "+"
                         try:
                             group = elems[3]
-                        except Exception:
+                        except IndexError:
                             group = "group%d" % (i + 1)
                         if complete_bed:
                             out.write(
@@ -426,7 +437,7 @@ class ParseBED:
                                     "%s\tbed2gff\texon\t%d\t%d\t%s\t%s\t.\texon %s;\n"
                                     % (chrom, exon_start, exon_end, score, strand, group)
                                 )
-                    except Exception:
+                    except (IndexError, ValueError):
                         skipped_lines += 1
                         if not first_skipped_line:
                             first_skipped_line = i + 1
@@ -537,7 +548,7 @@ class ParseBED:
                 strand = fields[5]
                 geneName = fields[3]
                 yield ([chrom, txStart, txEnd, strand, geneName + ":" + chrom + ":" + str(txStart) + "-" + str(txEnd)])
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
         self.f.seek(0)
@@ -707,7 +718,7 @@ class ParseBED:
                         #   "\t0\t" + strand + '\n')
                         # intronNum += 1
                         ret_lst.append([chrom, st, end])
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
         self.f.seek(0)
@@ -748,7 +759,7 @@ class ParseBED:
                 for st, end in zip(intron_start, intron_end):
                     tmp.append(chrom + ":" + str(st) + "-" + str(end))
                 yield ((geneName, chrom, tx_start, tx_end, tmp))
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -868,7 +879,7 @@ class ParseBED:
                     if cds_start == cds_end:
                         utr3len = 0
                         utr5len = 0
-                except Exception:
+                except (IndexError, ValueError):
                     print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                     continue
                 for st, end in zip(intron_start, intron_end):
@@ -930,7 +941,7 @@ class ParseBED:
                     exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                     intron_start = exon_ends[:-1]
                     intron_end = exon_starts[1:]
-                except Exception:
+                except (IndexError, ValueError):
                     print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                     continue
                 if exon_num <= 1:  # intron size is 0
@@ -1043,7 +1054,7 @@ class ParseBED:
                     if int(fields[9]) >= 3:  # if bed has more than 3 blocks
                         print(line, end=" ", file=FO)
                         continue
-                except Exception:
+                except (IndexError, ValueError):
                     print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                     continue
                 exonSize = list(map(int, fields[10].rstrip(",\n").split(",")))
@@ -1636,6 +1647,18 @@ class CompareBED:
         self.B_full_Name = bedFileB
         self.B_base_Name = os.path.basename(bedFileB)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
+
+    def close(self):
+        for fh in (self.A_fh, self.B_fh):
+            if fh and not fh.closed:
+                fh.close()
+
     def annotateEvents(self, outfile: str | None = None) -> None:
         """Compare bed file A to bed file B (usually a bed file for reference gene model).
         NOTE that only intron boundaries are compared. This function is useful if one want to
@@ -1979,7 +2002,7 @@ class CompareBED:
                     exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                     intron_starts = exon_ends[:-1]
                     intron_ends = exon_starts[1:]
-                except Exception:
+                except (IndexError, ValueError):
                     print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                     continue
 
@@ -2169,7 +2192,7 @@ class CompareBED:
                 tx_end = int(fields[2])
                 geneName = fields[3]
                 strand = fields[5].replace(" ", "_")
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -2292,7 +2315,7 @@ class CompareBED:
                 tx_end = int(fields[2])
                 geneName = fields[3]
                 strand = fields[5].replace(" ", "_")
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -2659,7 +2682,7 @@ class CompareBED:
                     CDSS = int(fields[6])
                     CDSE = int(fields[7])
                 # line_id = geneName
-            except Exception:
+            except (IndexError, ValueError):
                 print("Reference gene model must 12 column BED files", file=sys.stderr)
                 sys.sys.exit(1)
             if chrom in ranges:
@@ -2780,7 +2803,7 @@ class CompareBED:
                 exon_start = [x + txStart for x in exon_start]
                 exon_end = list(map(int, fields[10].rstrip(",").split(",")))
                 exon_end = [x + y for x, y in zip(exon_start, exon_end)]
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 

@@ -138,7 +138,7 @@ def main():
         print("\n\ntotal wigsum is:" + str(wig_sum) + "\n", file=sys.stderr)
         try:
             norm_factor = args.total_wigsum / wig_sum
-        except Exception:
+        except ZeroDivisionError:
             norm_factor = None
 
     obj = SAM.ParseBAM(args.input_file)

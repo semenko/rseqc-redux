@@ -132,8 +132,8 @@ def main():
             q_cut=args.map_qual,
         )
         try:
-            subprocess.call("Rscript " + args.output_prefix + ".junctionSaturation_plot.r", shell=True)
-        except Exception:
+            subprocess.run(["Rscript", args.output_prefix + ".junctionSaturation_plot.r"], check=False)
+        except OSError:
             print("Cannot generate pdf file from " + ".junctionSaturation_plot.r", file=sys.stderr)
             pass
     else:

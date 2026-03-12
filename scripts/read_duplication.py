@@ -61,8 +61,8 @@ def main():
         obj = SAM.ParseBAM(args.input_file)
         obj.readDupRate(outfile=args.output_prefix, up_bound=args.upper_limit, q_cut=args.map_qual)
         try:
-            subprocess.call("Rscript " + args.output_prefix + ".DupRate_plot.r", shell=True)
-        except Exception:
+            subprocess.run(["Rscript", args.output_prefix + ".DupRate_plot.r"], check=False)
+        except OSError:
             pass
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)

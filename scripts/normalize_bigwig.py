@@ -112,7 +112,7 @@ def main():
 
         try:
             weight = args.total_wigsum / WIG_SUM
-        except Exception:
+        except ZeroDivisionError:
             "Error, WIG_SUM cannot be 0"
             sys.exit(1)
 

@@ -47,7 +47,7 @@ def fragment_size(bedfile, samfile, qcut=30, ncut=5):
 
             try:
                 alignedReads = samfile.fetch(chrom, tx_start, tx_end)
-            except Exception:
+            except (KeyError, ValueError):
                 yield "\t".join([str(i) for i in (geneID, 0, 0, 0)])
                 continue
 

@@ -140,7 +140,7 @@ def genomic_positions(refbed, sample_size):
                 intron_size = tx_end - tx_start - mRNA_size
                 if intron_size < 0:
                     intron_size = 0
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -190,7 +190,7 @@ def check_min_reads(samfile, chrom, tx_st, tx_end, cutoff):
                 tmp = True
                 break
         return tmp
-    except Exception:
+    except (KeyError, ValueError):
         return False
 
 
@@ -224,7 +224,7 @@ def genebody_coverage(samfile, chrom, positions, bg_level=0):
                 # if pileupread.alignment.is_duplicate:continue
                 cover_read += 1.0
             cvg.append(cover_read)
-    except Exception:
+    except (KeyError, ValueError):
         cvg = []
 
     if bg_level <= 0:

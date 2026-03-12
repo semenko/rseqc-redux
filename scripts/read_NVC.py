@@ -63,8 +63,8 @@ def main():
         obj = SAM.ParseBAM(args.input_file)
         obj.readsNVC(outfile=args.output_prefix, nx=args.unknown_nucleotide, q_cut=args.map_qual)
         try:
-            subprocess.call("Rscript " + args.output_prefix + ".NVC_plot.r", shell=True)
-        except Exception:
+            subprocess.run(["Rscript", args.output_prefix + ".NVC_plot.r"], check=False)
+        except OSError:
             pass
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)

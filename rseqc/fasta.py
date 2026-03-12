@@ -77,7 +77,7 @@ class Fasta:
         else:
             try:
                 seqlen[seqID] = len(self.seqs[seqID])
-            except Exception:
+            except KeyError:
                 print("Not found", file=sys.stderr)
         return seqlen
 
@@ -233,7 +233,7 @@ class Fasta:
         else:
             try:
                 return self.seqs[chr][st:end].upper()  # type: ignore[index]
-            except Exception:
+            except KeyError:
                 print(
                     "cannot fetch sequence from " + str(self.filename) + " for " + str(chr) + ":" + str(st) + "-" + str(end),
                     file=sys.stderr,

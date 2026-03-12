@@ -86,7 +86,7 @@ def genebody_percentile(refbed, mRNA_len_cut=100):
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 transcript_count += 1
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
             gene_all_base = []
@@ -122,7 +122,7 @@ def genebody_coverage(bam, position_list):
         chrom_end = positions[-1]
         try:
             samfile.pileup(chrom, 1, 2)
-        except Exception:
+        except (KeyError, ValueError):
             continue
 
         for pileupcolumn in samfile.pileup(chrom, chrom_start, chrom_end, truncate=True):
@@ -354,8 +354,8 @@ def main():
 
     printlog("Running R script ...")
     try:
-        subprocess.call("Rscript " + args.output_prefix + ".geneBodyCoverage.r", shell=True)
-    except Exception:
+        subprocess.run(["Rscript", args.output_prefix + ".geneBodyCoverage.r"], check=False)
+    except OSError:
         print("Cannot generate pdf file from " + args.output_prefix + ".geneBodyCoverage.r", file=sys.stderr)
         pass
 

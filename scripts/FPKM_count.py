@@ -54,7 +54,7 @@ def build_range(refgene):
                 exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
@@ -196,7 +196,7 @@ def main():
                     continue
             try:
                 chrom = obj.samfile.getrname(aligned_read.tid).upper()
-            except Exception:
+            except (KeyError, ValueError):
                 continue
             read_st = aligned_read.pos
             read_end = read_st + aligned_read.rlen  # not exactly the end position in case of splicing, insertion,etc
@@ -282,7 +282,7 @@ def main():
                 # extract reads mapped gene region
                 try:
                     alignedReads = obj.samfile.fetch(chrom, tx_start, tx_end)
-                except Exception:
+                except (KeyError, ValueError):
                     continue
                 for aligned_read in alignedReads:
                     if aligned_read.is_qcfail:

@@ -54,7 +54,7 @@ def get_bam_files(input: str, printit: bool = False) -> list[str]:
                         continue
                     if isbamfile(line):
                         bam_files.append(line)
-        except Exception:
+        except OSError:
             pass
     else:
         tmp = input.split(",")

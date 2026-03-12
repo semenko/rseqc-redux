@@ -59,8 +59,8 @@ def main():
     else:
         print('unknow sequencing layout. Must be "SE" or "PE"', file=sys.stderr)
     try:
-        subprocess.call("Rscript " + args.output_prefix + ".clipping_profile.r", shell=True)
-    except Exception:
+        subprocess.run(["Rscript", args.output_prefix + ".clipping_profile.r"], check=False)
+    except OSError:
         print("Cannot generate pdf file from " + args.output_prefix + ".clipping_profile.r", file=sys.stderr)
         pass
 

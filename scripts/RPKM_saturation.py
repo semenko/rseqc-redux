@@ -225,8 +225,8 @@ def main():
             rpkm_cut=args.rpkm_cutoff,
         )
         try:
-            subprocess.call("Rscript " + args.output_prefix + ".saturation.r", shell=True)
-        except Exception:
+            subprocess.run(["Rscript", args.output_prefix + ".saturation.r"], check=False)
+        except OSError:
             pass
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)

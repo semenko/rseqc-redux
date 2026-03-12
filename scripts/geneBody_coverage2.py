@@ -5,10 +5,10 @@ This module uses bigwig file as input.
 """
 
 import argparse
+import subprocess
 import sys
 from collections import defaultdict
 from os import path
-from subprocess import call
 
 from numpy import nan_to_num
 from pyBigWig import open as openBigWig
@@ -54,7 +54,7 @@ def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
                 exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
-            except Exception:
+            except (IndexError, ValueError):
                 print("[NOTE: input bed must be 12-column] skipped this line: " + line, end="\n", file=sys.stderr)
                 continue
 
@@ -160,8 +160,8 @@ def main():
     if path.exists(args.input_file):
         coverageGeneBody_bigwig(args.input_file, args.ref_gene_model, args.output_prefix, gtype=args.graph_type)
         try:
-            call("Rscript " + args.output_prefix + ".geneBodyCoverage_plot.r", shell=True)
-        except Exception:
+            subprocess.run(["Rscript", args.output_prefix + ".geneBodyCoverage_plot.r"], check=False)
+        except OSError:
             print(
                 "Cannot generate plot from " + args.output_prefix + ".geneBodyCoverage_plot.r",
                 end="\n",

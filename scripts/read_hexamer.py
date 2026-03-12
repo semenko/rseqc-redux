@@ -95,7 +95,7 @@ def main():
         print(kmer + "\t", end=" ")
         try:
             print("\t".join([str(read_table[name][kmer] / (read_file_sum[name])) for name in read_file_names]))
-        except Exception:
+        except ZeroDivisionError:
             print("\t".join([str(read_table[name][kmer] / (read_file_sum[name] + 1)) for name in read_file_names]))
 
 

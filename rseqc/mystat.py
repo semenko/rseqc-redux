@@ -87,7 +87,7 @@ def simpson_index(arg: str) -> float | int:
         for i in lst:
             simpson = simpson + (i / sum(lst)) ** 2
         return 1 - simpson
-    except Exception:
+    except ZeroDivisionError:
         return 0
 
 
@@ -100,7 +100,7 @@ def simpson_index_es(arg: str) -> float | int:
         for i in lst:
             simpson = simpson + i * (i - 1)
         return 1 - (simpson / (sum(lst) * (sum(lst) - 1)))
-    except Exception:
+    except ZeroDivisionError:
         return 0
 
 
@@ -115,7 +115,7 @@ def Hill_number(arg: str, qvalue: int | float = 1) -> float:
     freq = [(i / sum(lst)) ** qvalue for i in lst]
     try:
         return (sum(freq)) ** (1 / (1 - qvalue))  # type: ignore[no-any-return]
-    except Exception:
+    except ZeroDivisionError:
         return math.exp(shannon_entropy([float(i) for i in arg.split(",") if float(i) > 0]))
 
 

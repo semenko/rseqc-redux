@@ -128,6 +128,6 @@ def make_heatmap(
 
     logging.info('Running R script file "%s"' % (outfile + ".r"))
     try:
-        subprocess.call("Rscript " + outfile + ".r", shell=True)
-    except Exception:
+        subprocess.run(["Rscript", outfile + ".r"], check=False)
+    except OSError:
         logging.error('Failed to run Rscript file "%s"', outfile + ".r")
