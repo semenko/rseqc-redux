@@ -8,13 +8,20 @@ All notable changes to this project will be documented in this file.
 
 - **bamTowig()**: Replaced per-position `dict` accumulation with numpy array slice operations (`Fwig[start:end] += 1.0`), eliminating the inner Python loop over every base of every exon of every read. ~50-100x faster for large BAM files.
 - **readsNVC()**: Replaced `defaultdict` with string keys (`str(i) + "A"`) with a 2D numpy array (`counts[position][base_index]`), eliminating string allocation per base per read.
-- **clipping_profile() / insertion_profile()**: Eliminated `list2longstr()` string expansion (which built a per-base character string from CIGAR) — now works directly from CIGAR tuples with integer op codes. Both SE and PE code paths updated.
-- **stat()**: Replaced `fetch_intron()` list allocation (just to check `len() == 0`) with `any(c == 3 for c, _s in cigar)` inline check; replaced `getrname()` string comparison with integer `tid != rnext`.
+- **clipping_profile() / insertion_profile()**: Eliminated `list2longstr()` string expansion (which built a per-base character string from CIGAR) — now works directly from CIGAR tuples with integer op codes. Both SE and PE code paths updated. Further optimized: single-pass CIGAR loop computes read length + op presence simultaneously (was 2-3 separate passes per read). PE paths now write directly to target profile dict instead of building intermediate `clip_positions` list.
+- **stat()**: Replaced `fetch_intron()` list allocation (just to check `len() == 0`) with `any(c == 3 for c, _s in cigar)` inline check; replaced `getrname()` string comparison with integer `tid != rnext`. Removed redundant `if mapq >= q_cut` guard (always true after prior `continue`).
+- **calWigSum()**: Removed dead `read_id + map_strand` expression and now-unused variable assignments.
+- **mystat.py**: Cached `sum(lst)` before loops in all 6 statistical functions (`shannon_entropy`, `shannon_entropy_es`, `shannon_entropy_ht`, `simpson_index`, `simpson_index_es`, `Hill_number`) — was O(n²), now O(n). Simplified `RSS()` to single `sum(generator)` expression.
+- **cigar.py**: `sum([list comprehension])` → `sum(generator)` to avoid intermediate list allocation (5 sites).
+- **cigar.py / bam_cigar.py**: `list2str()` and `list2longstr()` use `"".join()` with module-level tuple lookup instead of string concatenation with per-call dict construction.
+- **wiggle.py**: Replaced regex + `str()` NaN check with `math.isnan()` in all fetch_avg/fetch_sum methods; replaced `len(list(range(st, end)))` with `(end - st)`.
 - Removed remaining unnecessary `list()` wrappers on dict view iteration in `SAM.py` (4 sites: `bamTowig`, `calWigSum`, `readDupRate`).
 
 ### Added
 
 - Snapshot tests for `readsNVC()`, `clipping_profile()`, `bamTowig()`, and `stat()` splice counting — verify exact output values, not just file existence.
+- Tests for `wiggle.ParseWig2` sum/avg methods (`fetch_avg_scores_by_range`, `fetch_avg_scores_by_positions`, `fetch_sum_scores_by_range`, `fetch_sum_scores_by_positions`).
+- Test for `mystat.shannon_entropy_es` with multi-element input.
 
 ## [Unreleased]
 

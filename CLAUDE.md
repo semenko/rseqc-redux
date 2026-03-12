@@ -23,7 +23,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 
 **Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
 
-**Tests:** 408 passing. SAM.py 32%, BED.py expanded, scbam.py expanded, utility modules 62–100%.
+**Tests:** 413 passing. SAM.py 32%, BED.py expanded, scbam.py expanded, utility modules 62–100%.
 
 **Lint/Type:** CI green — ruff (0 errors, E741/E712/E501 all enabled), mypy (0 errors), ruff format clean.
 
@@ -61,7 +61,8 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - Dead ParseBAM methods removed from SAM.py (5 methods: `calculate_rpkm`, `coverageGeneBody`, `junction_freq`, `shuffle_RPKM`, `fetchAlignments` + `print_bits_as_bed`)
 - BED.py pruned from ~2,960 lines to ~307 lines: `CompareBED` class deleted entirely, 14 unused `ParseBED` methods removed
 - pandas dependency removed: `fastq.py` and `scbam.py` rewritten to use `csv` + `dict` builtins (logomaker still pulls pandas transitively)
-- Performance: `bamTowig()` inner loop replaced with numpy array slice ops; `readsNVC()` string-key dict → 2D numpy array; `clipping_profile()`/`insertion_profile()` `list2longstr()` eliminated in favor of direct CIGAR tuple iteration; `stat()` splice check uses inline `any()` instead of allocating intron list, `getrname()` string comparison replaced with integer `tid != rnext`
+- Performance: `bamTowig()` inner loop replaced with numpy array slice ops; `readsNVC()` string-key dict → 2D numpy array; `clipping_profile()`/`insertion_profile()` `list2longstr()` eliminated in favor of direct CIGAR tuple iteration, then further optimized to single-pass CIGAR loop (was 2-3 passes per read) and PE paths write directly to target dict (no intermediate list); `stat()` splice check uses inline `any()` instead of allocating intron list, `getrname()` string comparison replaced with integer `tid != rnext`, redundant condition removed
+- Performance: `mystat.py` all 6 statistical functions cache `sum(lst)` (O(n²) → O(n)); `cigar.py`/`bam_cigar.py` `list2str`/`list2longstr` use `"".join()` + module-level tuple; `wiggle.py` `math.isnan()` replaces regex+str, `(end - st)` replaces `len(list(range()))`; `calWigSum()` dead code removed
 
 **What still needs work:**
 - Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels
@@ -98,7 +99,7 @@ uv run mypy rseqc/
 
 ### Library (`rseqc/`)
 Core modules imported by the CLI scripts:
-- **SAM.py** (~2,240 lines) — BAM/SAM parsing via pysam, QC metrics computation, gene model overlap. Most scripts depend on this. Contains only `ParseBAM` class (dead `ParseSAM`/`QCSAM`/5 unused methods removed).
+- **SAM.py** (~2,233 lines) — BAM/SAM parsing via pysam, QC metrics computation, gene model overlap. Most scripts depend on this. Contains only `ParseBAM` class (dead `ParseSAM`/`QCSAM`/5 unused methods removed).
 - **BED.py** (~307 lines) — BED format parsing: `ParseBED` (6 methods), plus `unionBed3`/`intersectBed3`/`subtractBed3`/`tillingBed`. Dead `CompareBED` class and 14 unused methods removed.
 - **scbam.py** — single-cell BAM utilities (cell barcode demux, UMI handling).
 - Smaller utilities: `annoGene.py`, `bam_cigar.py`, `cigar.py`, `fasta.py`, `fastq.py`, `ireader.py` (transparent gz/bz2 reader), `wiggle.py`, `orf.py`, `mystat.py`, `quantile.py`.
