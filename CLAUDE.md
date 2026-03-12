@@ -23,7 +23,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 
 **Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
 
-**Tests:** 413 passing. SAM.py 32%, BED.py expanded, scbam.py expanded, utility modules 62–100%.
+**Tests:** 419 passing. SAM.py 32%, BED.py expanded, scbam.py expanded, utility modules 62–100%.
 
 **Lint/Type:** CI green — ruff (0 errors, E741/E712/E501 all enabled), mypy (0 errors), ruff format clean.
 
@@ -39,7 +39,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - `ParseSAM` and `QCSAM` dead code classes removed from SAM.py (~2,970 lines)
 - All 11 known bugs fixed with regression tests (see CHANGES.md)
 - Session-scoped pysam-built BAM fixture for integration tests
-- CLI integration tests (bam_stat, infer_experiment, read_distribution, read_GC, read_quality, junction_annotation, junction_saturation, inner_distance, mismatch_profile, deletion_profile)
+- CLI integration tests (bam_stat, infer_experiment, read_distribution, read_GC, read_quality, junction_annotation, junction_saturation, inner_distance, mismatch_profile, deletion_profile, read_duplication, clipping_profile, insertion_profile, read_NVC, tin, geneBody_coverage)
 - `qcmodule` backward-compat shim removed; all scripts import directly from `rseqc`
 - Syntax modernizations: `class Foo(object)` → `class Foo:`, unnecessary `list()` wrappers removed, Python 2 `__div__` replaced with `/` operator
 - `exit(0)`/`sys.exit(0)` → `sys.exit(1)` in ~90 error paths across all scripts and library code
@@ -54,12 +54,16 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - 95 bare `open()` calls converted to `with` statements (resource leak prevention)
 - Remaining `list()` wrappers removed from dict view iteration in SAM.py, BED.py, geneBody_coverage.py
 - `heatmap.py` string concatenation bug fixed in `logging.error()`
+- `except Exception:` narrowed to specific types (~85 sites) across all `rseqc/` and `scripts/` files
+- `subprocess.call(..., shell=True)` replaced with `subprocess.run([...], check=False)` (23 sites: Rscript, gzip, wigToBigWig, htseq-count)
+- `subprocess.run("rm -rf *.pattern", shell=True)` replaced with `glob.glob()` + `os.unlink()` in `scbam.py`
+- `BED.ParseBED` and `BED.CompareBED` now support context managers (`__enter__`/`__exit__`/`close()`) to fix file handle leaks
 
 **What still needs work:**
 - Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels
 - More SAM.py method-level tests (many methods mix computation with file I/O)
-- `subprocess.call(..., shell=True)` for Rscript calls (~20 sites) — should use `subprocess.run([...])`
 - Standardize logging vs `print(file=sys.stderr)` (430+ print-to-stderr calls)
+- `subprocess.check_output(..., shell=True)` in `scbam.py` (2 sites with complex awk/tee piping)
 
 ## Commands
 

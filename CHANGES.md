@@ -47,3 +47,8 @@ All notable changes to this project will be documented in this file.
 - Converted 95 bare `open()` calls to `with` statements across `rseqc/` and `scripts/` to prevent resource leaks.
 - Replaced ~80 `list(map((lambda ...), ...))` with list comprehensions across all BED-parsing code.
 - Added type hints to all 20 `rseqc/` library modules (SAM.py, BED.py, annoGene.py, fasta.py, fastq.py, scbam.py, wiggle.py, getBamFiles.py, heatmap.py + previously done modules).
+- Narrowed ~85 broad `except Exception:` to specific types (`OSError`, `KeyError`, `IndexError`, `ValueError`, `ZeroDivisionError`, etc.) across all `rseqc/` and `scripts/` files.
+- Replaced 23 `subprocess.call(..., shell=True)` with `subprocess.run([...], check=False)` for Rscript (17), gzip (3), wigToBigWig (3), and htseq-count (1) calls.
+- Replaced `subprocess.run("rm -rf *.pattern", shell=True)` with `glob.glob()` + `os.unlink()` in `scbam.py`.
+- Added `__enter__`/`__exit__`/`close()` context manager support to `BED.ParseBED` and `BED.CompareBED` to fix file handle resource leaks.
+- Added 6 CLI integration tests: `read_duplication`, `clipping_profile`, `insertion_profile`, `read_NVC`, `tin`, `geneBody_coverage`.
