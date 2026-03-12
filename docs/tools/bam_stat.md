@@ -42,8 +42,8 @@ Optical/PCR duplicate:                  0
 Non Primary Hits                        8
 Unmapped reads:                         0
 
-mapq >= 30 (Uniquely mapped):           bindled
+mapq >= 30 (Uniquely mapped):           41084
 mapq < 30 (Multi mapped):              0
-Proper-paired reads:                    bindled
+Proper-paired reads:                    41084
 ...
 ```

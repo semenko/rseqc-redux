@@ -23,15 +23,15 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 
 **Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
 
-**Tests:** 550 passing. SAM.py 41%, BED.py 92%, scbam.py 66%, utility modules 83–100% (bam_cigar, quantile, twoList, changePoint, wiggle all 100%). Script helper functions tested (RPKM_saturation, geneBody_coverage, read_distribution, RNA_fragment_size, tin, FPKM_count, read_hexamer, junction_annotation).
+**Tests:** 476 passing. SAM.py 41%, BED.py 92%, scbam.py 66%, utility modules 83–100% (bam_cigar 100%, twoList 100%). Script helper functions tested (RPKM_saturation, geneBody_coverage, read_distribution, RNA_fragment_size, tin, FPKM_count, read_hexamer, junction_annotation).
 
 **Lint/Type:** CI green — ruff (0 errors, E741/E712/E501 all enabled), mypy (0 errors), ruff format clean. Type hints on all 33 scripts' `main()` and all helper functions.
 
 **What's been modernized:**
 - Star imports replaced with explicit imports in all `rseqc/` and `scripts/` files
-- Bare `except:` → `except Exception:` across entire codebase (97 instances)
+- Bare `except:` → `except Exception:` → narrowed to specific types (~85 sites) across entire codebase
 - Unused variables removed (147 instances via ruff F841)
-- Type hints added to all 20 `rseqc/` library modules
+- Type hints added to all 12 `rseqc/` library modules and all 33 scripts
 - Legacy boilerplate removed: Python 3 version checks (all scripts), `__author__`/`__version__` metadata (44 files), UTF-8 encoding declarations, shebangs from library modules, "converted from python2.7" docstrings, dead code and commented-out prints
 - CLI smoke tests for all 33 scripts (`--help` flag)
 - All 33 CLI scripts migrated from `optparse` to `argparse`
@@ -39,38 +39,30 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - `ParseSAM` and `QCSAM` dead code classes removed from SAM.py (~2,970 lines)
 - All 11 known bugs fixed with regression tests (see CHANGES.md)
 - Session-scoped pysam-built BAM fixture for integration tests
-- CLI integration tests for 32 of 33 scripts (all except FPKM_UQ which requires external htseq-count): bam_stat, infer_experiment, read_distribution, read_GC, read_quality, junction_annotation, junction_saturation, inner_distance, mismatch_profile, deletion_profile, read_duplication, clipping_profile, insertion_profile, read_NVC, tin, geneBody_coverage, bam2fq, bam2wig, divide_bam, split_bam, split_paired_bam, FPKM_count, RNA_fragment_size, RPKM_saturation, read_hexamer, sc_seqLogo, sc_seqQual, sc_bamStat, sc_editMatrix, geneBody_coverage2, normalize_bigwig, overlay_bigwig
+- CLI integration tests for 32 of 33 scripts (all except FPKM_UQ which requires external htseq-count)
 - `qcmodule` backward-compat shim removed; all scripts import directly from `rseqc`
 - Syntax modernizations: `class Foo(object)` → `class Foo:`, unnecessary `list()` wrappers removed, Python 2 `__div__` replaced with `/` operator
 - `exit(0)`/`sys.exit(0)` → `sys.exit(1)` in ~90 error paths across all scripts and library code
-- Dead bare field expressions removed (~70 sites across BED.py, SAM.py, annoGene.py, wiggle.py, scripts)
+- Dead bare field expressions removed (~70 sites across BED.py, SAM.py, scripts)
 - `list(map((lambda ...), ...))` → list comprehensions (~80 sites across all BED-parsing code)
-- Dead `open()` call removed in annoGene.py
-- `type: ignore` comments cleaned up in changePoint.py; dead `bootstrap()` function removed
 - Python 3.13 compatibility: `_pysam_iter()` helper wraps all pysam BAM iteration (handles ValueError bug)
 - `while 1: next(samfile)` anti-pattern replaced with `for` loops across all files
 - E501 (line length) fully resolved and enabled in ruff — 0 violations
-- Dead `outfile` parameter removed from `annoGene.py` `annotateBed()`
 - 95 bare `open()` calls converted to `with` statements (resource leak prevention)
-- Remaining `list()` wrappers removed from dict view iteration in SAM.py, BED.py, geneBody_coverage.py
 - `heatmap.py` string concatenation bug fixed in `logging.error()`
-- `except Exception:` narrowed to specific types (~85 sites) across all `rseqc/` and `scripts/` files
 - `subprocess.call(..., shell=True)` replaced with `subprocess.run([...], check=False)` (23 sites: Rscript, gzip, wigToBigWig, htseq-count)
 - `subprocess.run("rm -rf *.pattern", shell=True)` replaced with `glob.glob()` + `os.unlink()` in `scbam.py`
-- `BED.ParseBED` and `BED.CompareBED` now support context managers (`__enter__`/`__exit__`/`close()`) to fix file handle leaks
+- `BED.ParseBED` supports context managers (`__enter__`/`__exit__`/`close()`) to fix file handle leaks
 - Dead ParseBAM methods removed from SAM.py (5 methods: `calculate_rpkm`, `coverageGeneBody`, `junction_freq`, `shuffle_RPKM`, `fetchAlignments` + `print_bits_as_bed`)
-- BED.py pruned from ~2,960 lines to ~307 lines: `CompareBED` class deleted entirely, 14 unused `ParseBED` methods removed
-- pandas dependency removed: `fastq.py` and `scbam.py` rewritten to use `csv` + `dict` builtins (logomaker still pulls pandas transitively)
-- Performance: `bamTowig()` inner loop replaced with numpy array slice ops; `readsNVC()` string-key dict → 2D numpy array; `clipping_profile()`/`insertion_profile()` `list2longstr()` eliminated in favor of direct CIGAR tuple iteration, then further optimized to single-pass CIGAR loop (was 2-3 passes per read) and PE paths write directly to target dict (no intermediate list); `stat()` splice check uses inline `any()` instead of allocating intron list, `getrname()` string comparison replaced with integer `tid != rnext`, redundant condition removed
-- Performance: `mystat.py` all 6 statistical functions cache `sum(lst)` (O(n²) → O(n)); `cigar.py`/`bam_cigar.py` `list2str`/`list2longstr` use `"".join()` + module-level tuple; `wiggle.py` `math.isnan()` replaces regex+str, `(end - st)` replaces `len(list(range()))`; `calWigSum()` dead code removed
+- BED.py pruned from ~2,960 lines to ~267 lines: `CompareBED` class deleted, `intersectBed3()` removed, 14 unused `ParseBED` methods removed
+- `pandas` removed as direct dependency (logomaker still pulls it transitively; `fastq.py` has one lazy import for logomaker integration)
+- Performance: `bamTowig()` inner loop replaced with numpy array slice ops; `readsNVC()` string-key dict → 2D numpy array; `clipping_profile()`/`insertion_profile()` optimized to single-pass CIGAR loop; `stat()` splice check uses inline `any()`, integer `tid` comparison; `mystat.py` all 6 statistical functions cache `sum(lst)` (O(n²) → O(n)); `bam_cigar.py` `list2str`/`list2longstr` use `"".join()` + module-level tuple
 - Shared `cli_common.py` module created with `printlog`, `build_bitsets`, `load_chromsize`, `run_rscript` — consolidated from 14+ scripts
 - 14 Rscript try/except blocks consolidated into `run_rscript()` calls
-- `while 1:` → `while True:` (4 sites in BED.py, SAM.py)
 - `pysam.Samfile` → `pysam.AlignmentFile` (16 sites across rseqc/ and scripts/)
 - Dead functions removed: `searchit` (split_bam), `normalize` (RPKM_saturation), `kmer_freq_seq` (FrameKmer)
-- Dead modules removed: `dotProduct.py` (benchmark-only), `wiggle.py` ParseWig/ParseWig2 classes
+- Dead modules removed: `dotProduct.py`, `annoGene.py`, `fasta.py`, `orf.py`, `quantile.py`, `wiggle.py`, `cigar.py`, `changePoint.py`
 - Coverage config fixed: CI now measures `--cov=rseqc --cov=scripts`
-- Type hints added to all 33 scripts: `main() -> None` + all helper function signatures
 - `from __future__ import annotations` added to `tin.py`, `RNA_fragment_size.py`
 
 **What still needs work:**
@@ -107,11 +99,12 @@ uv run mypy rseqc/
 ## Architecture
 
 ### Library (`rseqc/`)
-Core modules imported by the CLI scripts:
-- **SAM.py** (~2,233 lines) — BAM/SAM parsing via pysam, QC metrics computation, gene model overlap. Most scripts depend on this. Contains only `ParseBAM` class (dead `ParseSAM`/`QCSAM`/5 unused methods removed).
-- **BED.py** (~298 lines) — BED format parsing: `ParseBED` (6 methods), plus `unionBed3`/`intersectBed3`/`subtractBed3`/`tillingBed`. Dead `CompareBED` class and 14 unused methods removed.
+Core modules imported by the CLI scripts (12 modules):
+- **SAM.py** (~2,121 lines) — BAM/SAM parsing via pysam, QC metrics computation, gene model overlap. Most scripts depend on this. Contains `ParseBAM` class.
+- **BED.py** (~267 lines) — BED format parsing: `ParseBED` class (7 public methods: `getUTR`, `getExon`, `getTranscriptRanges`, `getCDSExon`, `getIntron`, `getIntergenic`, plus context manager support), and module-level functions `unionBed3`, `subtractBed3`, `tillingBed`.
 - **scbam.py** — single-cell BAM utilities (cell barcode demux, UMI handling).
-- Smaller utilities: `annoGene.py`, `bam_cigar.py`, `cigar.py`, `fasta.py`, `fastq.py`, `ireader.py` (transparent gz/bz2 reader), `wiggle.py`, `orf.py`, `mystat.py`, `quantile.py`.
+- **cli_common.py** — shared CLI utilities: `printlog`, `build_bitsets`, `load_chromsize`, `run_rscript`.
+- Smaller utilities: `bam_cigar.py`, `fastq.py`, `FrameKmer.py`, `getBamFiles.py`, `heatmap.py`, `ireader.py` (transparent gz/bz2 reader), `mystat.py`, `twoList.py`.
 
 ### CLI Scripts (`scripts/`)
 33 standalone scripts, each with `argparse`-based CLI and a `main()`. Key ones:
@@ -121,7 +114,7 @@ Core modules imported by the CLI scripts:
 - `geneBody_coverage.py` — gene body coverage profile
 - `junction_annotation.py` / `junction_saturation.py` — splice junction analysis
 - `read_distribution.py` — reads over genomic features
-- `FPKM_count.py` / `FPKM-UQ.py` — expression quantification
+- `FPKM_count.py` / `FPKM_UQ.py` — expression quantification
 - `sc_*.py` — single-cell QC scripts
 
 ### Important: Users only call `scripts/`

@@ -28,7 +28,6 @@ Core dependencies are automatically installed:
 - `pysam` — BAM/SAM file handling
 - `bx-python` — Interval indexing and overlap
 - `numpy` — Numerical operations
-- `pandas` — Data frame operations (single-cell modules)
 - `pyBigWig` — BigWig file I/O
 - `matplotlib` / `logomaker` — Plotting
 
@@ -83,25 +82,38 @@ junction_annotation -r gene_model.bed -i sample.bam -o output
 | Tool | Description |
 |------|-------------|
 | `bam_stat` | Summarize mapping statistics of a BAM file |
+| `bam2fq` | Convert BAM alignments to FASTQ format |
+| `bam2wig` | Convert BAM to wiggle/BigWig |
+| `divide_bam` | Equally divide BAM file into n parts |
+| `split_bam` | Split BAM by chromosome |
+| `split_paired_bam` | Split paired-end BAM into two single-end BAMs |
 | `infer_experiment` | Infer RNA-seq strandedness |
+| `inner_distance` | Inner distance between read pairs |
+| `RNA_fragment_size` | Fragment size statistics per gene |
 | `tin` | Calculate Transcript Integrity Number |
 | `geneBody_coverage` | Gene body coverage profile |
+| `geneBody_coverage2` | Gene body coverage from BigWig input |
 | `read_distribution` | Reads over genomic features (CDS, UTR, intron, etc.) |
-| `junction_annotation` | Annotate splice junctions |
-| `junction_saturation` | Splice junction saturation analysis |
 | `read_duplication` | Read duplication rate |
 | `read_GC` | GC content of reads |
 | `read_NVC` | Nucleotide composition (ACGT) along reads |
 | `read_quality` | Per-position quality scores |
+| `read_hexamer` | Hexamer frequency analysis |
+| `junction_annotation` | Annotate splice junctions |
+| `junction_saturation` | Splice junction saturation analysis |
 | `FPKM_count` | FPKM expression quantification |
 | `FPKM-UQ` | Upper-quartile normalized FPKM |
-| `inner_distance` | Inner distance between read pairs |
-| `bam2wig` | Convert BAM to wiggle/BigWig |
+| `RPKM_saturation` | RPKM saturation analysis |
 | `mismatch_profile` | Mismatch profile along reads |
 | `insertion_profile` | Insertion profile along reads |
 | `deletion_profile` | Deletion profile along reads |
 | `clipping_profile` | Clipping profile along reads |
-| `split_bam` | Split BAM by chromosome |
+| `normalize_bigwig` | Normalize BigWig signal to fixed wigsum |
+| `overlay_bigwig` | Pairwise operations on two BigWig files |
+| `sc_bamStat` | Single-cell RNA-seq mapping statistics |
+| `sc_editMatrix` | Barcode/UMI error correction heatmaps |
+| `sc_seqLogo` | DNA sequence logo from FASTQ/FASTA |
+| `sc_seqQual` | Sequencing quality heatmap from FASTQ |
 
 ## Contributing
 

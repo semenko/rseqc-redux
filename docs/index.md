@@ -24,7 +24,7 @@ rseqc-redux provides **33 command-line tools** for comprehensive quality control
 This is a modernized fork of [RSeQC](http://rseqc.sourceforge.net/) by Liguo Wang, with:
 
 - Python 3.10+ support (tested on 3.10–3.13)
-- 400+ automated tests
+- 470+ automated tests
 - Bug fixes and correctness improvements
 - Modern packaging with `pyproject.toml`
 
