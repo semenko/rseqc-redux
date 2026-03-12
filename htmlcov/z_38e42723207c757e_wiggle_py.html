@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="index.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-03-12 03:26 +0000
+            created at 2026-03-12 14:11 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -257,7 +257,7 @@
     <p class="mis show_mis"><span class="n"><a id="t175" href="#t175">175</a></span><span class="t">                    <span class="nam">exon_start</span> <span class="op">=</span> <span class="op">[</span><span class="nam">x</span> <span class="op">+</span> <span class="nam">txStart</span> <span class="key">for</span> <span class="nam">x</span> <span class="key">in</span> <span class="nam">exon_start</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t176" href="#t176">176</a></span><span class="t">                    <span class="nam">exon_end</span> <span class="op">=</span> <span class="nam">list</span><span class="op">(</span><span class="nam">map</span><span class="op">(</span><span class="nam">int</span><span class="op">,</span> <span class="nam">fields</span><span class="op">[</span><span class="num">10</span><span class="op">]</span><span class="op">.</span><span class="nam">rstrip</span><span class="op">(</span><span class="str">","</span><span class="op">)</span><span class="op">.</span><span class="nam">split</span><span class="op">(</span><span class="str">","</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t177" href="#t177">177</a></span><span class="t">                    <span class="nam">exon_end</span> <span class="op">=</span> <span class="op">[</span><span class="nam">x</span> <span class="op">+</span> <span class="nam">y</span> <span class="key">for</span> <span class="nam">x</span><span class="op">,</span> <span class="nam">y</span> <span class="key">in</span> <span class="nam">zip</span><span class="op">(</span><span class="nam">exon_start</span><span class="op">,</span> <span class="nam">exon_end</span><span class="op">)</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t178" href="#t178">178</a></span><span class="t">                <span class="key">except</span> <span class="nam">Exception</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t178" href="#t178">178</a></span><span class="t">                <span class="key">except</span> <span class="op">(</span><span class="nam">IndexError</span><span class="op">,</span> <span class="nam">ValueError</span><span class="op">)</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t179" href="#t179">179</a></span><span class="t">                    <span class="nam">print</span><span class="op">(</span><span class="str">"[NOTE:input bed must be 12-column] skipped this line: "</span> <span class="op">+</span> <span class="nam">line</span><span class="op">,</span> <span class="nam">end</span><span class="op">=</span><span class="str">" "</span><span class="op">,</span> <span class="nam">file</span><span class="op">=</span><span class="nam">sys</span><span class="op">.</span><span class="nam">stderr</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t180" href="#t180">180</a></span><span class="t">                    <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
 </main>
@@ -269,7 +269,7 @@
             <a class="nav" href="index.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-03-12 03:26 +0000
+            created at 2026-03-12 14:11 +0000
         </p>
     </div>
 </footer>
