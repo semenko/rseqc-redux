@@ -236,33 +236,6 @@ def unionBed3(lst: list[list[Any]]) -> list[list[Any]]:
     return ret_lst
 
 
-def intersectBed3(lst1: list[list[Any]], lst2: list[list[Any]]) -> list[list[Any]]:
-    """Take the intersection of two bed files (3 column bed files)"""
-    bits1 = binned_bitsets_from_list(lst1)
-    bits2 = binned_bitsets_from_list(lst2)
-
-    bitsets = dict()
-    ret_lst = []
-    for key in bits1:
-        if key in bits2:
-            bits1[key].iand(bits2[key])
-            bitsets[key] = bits1[key]
-
-    for chrom in bitsets:
-        bits = bitsets[chrom]
-        end = 0
-        while True:
-            start = bits.next_set(end)
-            if start == bits.size:
-                break
-            end = bits.next_clear(start)
-            ret_lst.append([chrom, start, end])
-    bits1.clear()
-    bits2.clear()
-    bitsets.clear()
-    return ret_lst
-
-
 def subtractBed3(lst1: list[list[Any]], lst2: list[list[Any]]) -> list[list[Any]]:
     """subtrack lst2 from lst1"""
     bitsets1 = binned_bitsets_from_list(lst1)

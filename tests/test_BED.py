@@ -138,57 +138,6 @@ def test_unionbed3_contained():
     assert result[0] == ["chr1", 10, 50]
 
 
-# --- intersectBed3 ---
-
-
-def test_intersectbed3_overlap():
-    lst1 = [["chr1", 10, 30]]
-    lst2 = [["chr1", 20, 40]]
-    result = BED.intersectBed3(lst1, lst2)
-    assert len(result) == 1
-    assert result[0] == ["chr1", 20, 30]
-
-
-def test_intersectbed3_no_overlap():
-    lst1 = [["chr1", 10, 20]]
-    lst2 = [["chr1", 30, 40]]
-    result = BED.intersectBed3(lst1, lst2)
-    assert result == []
-
-
-def test_intersectbed3_contained():
-    lst1 = [["chr1", 10, 50]]
-    lst2 = [["chr1", 20, 30]]
-    result = BED.intersectBed3(lst1, lst2)
-    assert len(result) == 1
-    assert result[0] == ["chr1", 20, 30]
-
-
-def test_intersectbed3_identical():
-    lst1 = [["chr1", 10, 50]]
-    lst2 = [["chr1", 10, 50]]
-    result = BED.intersectBed3(lst1, lst2)
-    assert len(result) == 1
-    assert result[0] == ["chr1", 10, 50]
-
-
-def test_intersectbed3_different_chroms():
-    lst1 = [["chr1", 10, 50]]
-    lst2 = [["chr2", 10, 50]]
-    result = BED.intersectBed3(lst1, lst2)
-    assert result == []
-
-
-def test_intersectbed3_multiple():
-    lst1 = [["chr1", 10, 30], ["chr1", 40, 60]]
-    lst2 = [["chr1", 20, 50]]
-    result = BED.intersectBed3(lst1, lst2)
-    assert len(result) == 2
-    starts = {r[1] for r in result}
-    assert 20 in starts
-    assert 40 in starts
-
-
 # --- subtractBed3 ---
 
 
@@ -537,20 +486,6 @@ class TestUnionBed3Edge:
     def test_single_base(self):
         result = BED.unionBed3([["chr1", 10, 11]])
         assert result == [["chr1", 10, 11]]
-
-
-class TestIntersectBed3Edge:
-    def test_empty_first(self):
-        result = BED.intersectBed3([], [["chr1", 10, 20]])
-        assert result == []
-
-    def test_empty_second(self):
-        result = BED.intersectBed3([["chr1", 10, 20]], [])
-        assert result == []
-
-    def test_both_empty(self):
-        result = BED.intersectBed3([], [])
-        assert result == []
 
 
 class TestSubtractBed3Edge:
