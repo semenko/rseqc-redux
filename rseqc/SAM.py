@@ -94,25 +94,24 @@ class ParseBAM:
             if aligned_read.mapq < q_cut:
                 R_multipleHit += 1
                 continue  # skip multiple map read
-            if aligned_read.mapq >= q_cut:
-                R_uniqHit += 1
+            R_uniqHit += 1
 
-                if aligned_read.is_read1:
-                    R_read1 += 1
-                if aligned_read.is_read2:
-                    R_read2 += 1
-                if aligned_read.is_reverse:
-                    R_reverse += 1
-                else:
-                    R_forward += 1
-                if any(c == 3 for c, _s in aligned_read.cigar):
-                    R_splice += 1
-                else:
-                    R_nonSplice += 1
-                if aligned_read.is_proper_pair:
-                    R_properPair += 1
-                    if aligned_read.tid != aligned_read.rnext:
-                        R_pair_diff_chrom += 1
+            if aligned_read.is_read1:
+                R_read1 += 1
+            if aligned_read.is_read2:
+                R_read2 += 1
+            if aligned_read.is_reverse:
+                R_reverse += 1
+            else:
+                R_forward += 1
+            if any(c == 3 for c, _s in aligned_read.cigar):
+                R_splice += 1
+            else:
+                R_nonSplice += 1
+            if aligned_read.is_proper_pair:
+                R_properPair += 1
+                if aligned_read.tid != aligned_read.rnext:
+                    R_pair_diff_chrom += 1
         print("Done", file=sys.stderr)
 
         print("\n#==================================================", file=sys.stdout)
@@ -386,7 +385,6 @@ class ParseBAM:
 
         print("Calcualte wigsum ... ", file=sys.stderr)
         wigsum = 0.0
-        read_id = ""
         for chr_name, chr_size in chrom_sizes.items():  # iterate each chrom
             try:
                 self.samfile.fetch(chr_name, 0, chr_size)
@@ -415,19 +413,6 @@ class ParseBAM:
                                 break
                     if flag == 1:
                         continue  # skip multiple map read
-
-                if aligned_read.is_paired:
-                    if aligned_read.is_read1:
-                        read_id = "1"
-                    if aligned_read.is_read2:
-                        read_id = "2"
-
-                if aligned_read.is_reverse:
-                    map_strand = "-"
-                else:
-                    map_strand = "+"
-
-                read_id + map_strand
 
                 hit_st = aligned_read.pos
                 for block in bam_cigar.fetch_exon(chr_name, hit_st, aligned_read.cigar):
@@ -897,15 +882,18 @@ class ParseBAM:
                     total_read += 1
                     cigar = aligned_read.cigar
 
-                    # Check if the target op exists in this read's CIGAR
-                    if not any(c == type_op for c, _s in cigar):
-                        # Compute read length for last_read_len tracking
-                        last_read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
+                    # Single pass: compute read length and check for target op
+                    read_len = 0
+                    has_op = False
+                    for c, s in cigar:
+                        if c in (0, 1, 4, 7, 8):
+                            read_len += s
+                        if c == type_op:
+                            has_op = True
+                    last_read_len = read_len
+                    if not has_op:
                         continue
 
-                    # Compute read length and positions of target op
-                    read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
-                    last_read_len = read_len
                     is_reverse = aligned_read.is_reverse
 
                     pos = 0
@@ -962,30 +950,29 @@ class ParseBAM:
                         total_read2 += 1
                     cigar = aligned_read.cigar
 
-                    if not any(c == type_op for c, _s in cigar):
-                        last_read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
+                    # Single pass: compute read length and check for target op
+                    read_len = 0
+                    has_op = False
+                    for c, s in cigar:
+                        if c in (0, 1, 4, 7, 8):
+                            read_len += s
+                        if c == type_op:
+                            has_op = True
+                    last_read_len = read_len
+                    if not has_op:
                         continue
 
-                    read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
-                    last_read_len = read_len
                     is_reverse = aligned_read.is_reverse
+                    target_profile = r1_soft_clip_profile if aligned_read.is_read1 else r2_soft_clip_profile
 
-                    clip_positions = []
                     pos = 0
                     for c, s in cigar:
                         if c in (0, 1, 4, 7, 8):
                             if c == type_op:
                                 for p in range(pos, pos + s):
                                     indx = (read_len - 1 - p) if is_reverse else p
-                                    clip_positions.append(indx)
+                                    target_profile[indx] += 1.0
                             pos += s
-
-                    if aligned_read.is_read1:
-                        for indx in clip_positions:
-                            r1_soft_clip_profile[indx] += 1.0
-                    if aligned_read.is_read2:
-                        for indx in clip_positions:
-                            r2_soft_clip_profile[indx] += 1.0
                 print("Done", file=sys.stderr)
 
                 read_pos = list(range(0, last_read_len))
@@ -1078,12 +1065,18 @@ class ParseBAM:
                     total_read += 1
                     cigar = aligned_read.cigar
 
-                    if not any(c == type_op for c, _s in cigar):
-                        last_read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
+                    # Single pass: compute read length and check for target op
+                    read_len = 0
+                    has_op = False
+                    for c, s in cigar:
+                        if c in (0, 1, 4, 7, 8):
+                            read_len += s
+                        if c == type_op:
+                            has_op = True
+                    last_read_len = read_len
+                    if not has_op:
                         continue
 
-                    read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
-                    last_read_len = read_len
                     is_reverse = aligned_read.is_reverse
 
                     pos = 0
@@ -1140,30 +1133,29 @@ class ParseBAM:
                         total_read2 += 1
                     cigar = aligned_read.cigar
 
-                    if not any(c == type_op for c, _s in cigar):
-                        last_read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
+                    # Single pass: compute read length and check for target op
+                    read_len = 0
+                    has_op = False
+                    for c, s in cigar:
+                        if c in (0, 1, 4, 7, 8):
+                            read_len += s
+                        if c == type_op:
+                            has_op = True
+                    last_read_len = read_len
+                    if not has_op:
                         continue
 
-                    read_len = sum(s for c, s in cigar if c in (0, 1, 4, 7, 8))
-                    last_read_len = read_len
                     is_reverse = aligned_read.is_reverse
+                    target_profile = r1_soft_clip_profile if aligned_read.is_read1 else r2_soft_clip_profile
 
-                    clip_positions = []
                     pos = 0
                     for c, s in cigar:
                         if c in (0, 1, 4, 7, 8):
                             if c == type_op:
                                 for p in range(pos, pos + s):
                                     indx = (read_len - 1 - p) if is_reverse else p
-                                    clip_positions.append(indx)
+                                    target_profile[indx] += 1.0
                             pos += s
-
-                    if aligned_read.is_read1:
-                        for indx in clip_positions:
-                            r1_soft_clip_profile[indx] += 1.0
-                    if aligned_read.is_read2:
-                        for indx in clip_positions:
-                            r2_soft_clip_profile[indx] += 1.0
                 print("Done", file=sys.stderr)
 
                 read_pos = list(range(0, last_read_len))

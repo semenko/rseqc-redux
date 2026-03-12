@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import sys
 
@@ -59,8 +60,12 @@ class ParseWig:
         """
 
         chr = chr.upper()
-        lst = [float(self.scores[chr][i]) for i in range(st, end) if self.num_re.match(str(self.scores[chr][i]))]
-        return sum(lst) / len(list(range(st, end)))
+        total = 0.0
+        for i in range(st, end):
+            val = self.scores[chr][i]
+            if not math.isnan(val):
+                total += val
+        return total / (end - st)
 
     def fetch_sum_scores(self, chr: str, st: int, end: int) -> float:
         """fetch sum score defined by chr, st, end
@@ -68,8 +73,12 @@ class ParseWig:
         """
 
         chr = chr.upper()
-        lst = [float(self.scores[chr][i]) for i in range(st, end) if self.num_re.match(str(self.scores[chr][i]))]
-        return sum(lst)
+        total = 0.0
+        for i in range(st, end):
+            val = self.scores[chr][i]
+            if not math.isnan(val):
+                total += val
+        return total
 
 
 class ParseWig2:
@@ -138,26 +147,44 @@ class ParseWig2:
         1)st and end are 0-based, half-open. (st,end]
         """
         chr = chr.upper()
-        lst = [float(self.scores[chr][i]) for i in range(st, end) if self.num_re.match(str(self.scores[chr][i]))]
-        return sum(lst) / len(list(range(st, end)))
+        total = 0.0
+        for i in range(st, end):
+            val = self.scores[chr][i]
+            if not math.isnan(val):
+                total += val
+        return total / (end - st)
 
     def fetch_avg_scores_by_positions(self, chr: str, lst: list[int]) -> float:
         """fetch average score defined by chr, st, end"""
         chr = chr.upper()
-        lst_score = [float(self.scores[chr][i]) for i in lst if self.num_re.match(str(self.scores[chr][i]))]
-        return sum(lst_score) / len(lst_score)
+        total = 0.0
+        count = 0
+        for i in lst:
+            val = self.scores[chr][i]
+            if not math.isnan(val):
+                total += val
+                count += 1
+        return total / count
 
     def fetch_sum_scores_by_range(self, chr: str, st: int, end: int) -> float:
         """fetch sum score defined by chr, st, end"""
         chr = chr.upper()
-        lst = [float(self.scores[chr][i]) for i in range(st, end) if self.num_re.match(str(self.scores[chr][i]))]
-        return sum(lst)
+        total = 0.0
+        for i in range(st, end):
+            val = self.scores[chr][i]
+            if not math.isnan(val):
+                total += val
+        return total
 
     def fetch_sum_scores_by_positions(self, chr: str, lst: list[int]) -> float:
         """fetch sum score defined by chr, st, end"""
         chr = chr.upper()
-        lst_score = [float(self.scores[chr][i]) for i in lst if self.num_re.match(str(self.scores[chr][i]))]
-        return sum(lst_score)
+        total = 0.0
+        for i in lst:
+            val = self.scores[chr][i]
+            if not math.isnan(val):
+                total += val
+        return total
 
     def distriub_wig(self, bed: str, till_count: int = 100) -> None:
         """calculate coverage over bed file (only consider exon regions). The mRNA sequences in input

@@ -73,3 +73,20 @@ class TestParseWig2:
         assert scores[0] == 1.5
         assert scores[1] == 3.5
         assert scores[2] == 5.5
+
+    def test_fetch_avg_scores_by_range(self):
+        avg = self.wig.fetch_avg_scores_by_range("chr1", 0, 5)
+        assert abs(avg - 3.5) < 0.01
+
+    def test_fetch_avg_scores_by_positions(self):
+        avg = self.wig.fetch_avg_scores_by_positions("chr1", [0, 2, 4])
+        # (1.5 + 3.5 + 5.5) / 3 = 3.5
+        assert abs(avg - 3.5) < 0.01
+
+    def test_fetch_sum_scores_by_range(self):
+        total = self.wig.fetch_sum_scores_by_range("chr1", 0, 5)
+        assert abs(total - (1.5 + 2.5 + 3.5 + 4.5 + 5.5)) < 0.01
+
+    def test_fetch_sum_scores_by_positions(self):
+        total = self.wig.fetch_sum_scores_by_positions("chr1", [0, 2, 4])
+        assert abs(total - (1.5 + 3.5 + 5.5)) < 0.01

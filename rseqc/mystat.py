@@ -6,11 +6,7 @@ from typing import Any
 def RSS(arg: str) -> Any:
     """calculate Square root of sum of square. Input is ',' separated numbers"""
     lst = arg.split(",")
-    lst_sum = 0
-    for i in [int(i) ** 2 for i in lst]:
-        lst_sum += i
-    # nsr=10*math.log10((1+noi_sum**0.5)/(1+sig_sum**0.5))
-    return lst_sum**0.5
+    return sum(int(i) ** 2 for i in lst) ** 0.5
 
 
 def H_mean(arg: str) -> float | str:
@@ -26,9 +22,11 @@ def shannon_entropy(arg: list[int | float]) -> float | int:
     """calculate shannon's entropy (or Shannon-Wiener index)."""
     lst = arg
     lst = [float(i) for i in lst if float(i) > 0]
+    total = sum(lst)
     entropy = 0.0
     for i in lst:
-        entropy += (i / sum(lst)) * math.log((i / sum(lst)))
+        freq = i / total
+        entropy += freq * math.log(freq)
     if entropy == 0:
         return 0
     else:
@@ -52,11 +50,11 @@ def shannon_entropy_es(arg: list[int | float]) -> float | str | int:
         if i == 1:
             singleton += 1
 
-    C_bar = 1 - (singleton / sum(lst))
+    total = sum(lst)
+    C_bar = 1 - (singleton / total)
     for i in lst:
-        entropy += ((C_bar * i / sum(lst)) * math.log((C_bar * i / sum(lst)))) / (
-            1 - (1 - C_bar * i / sum(lst)) ** sum(lst)
-        )
+        freq = C_bar * i / total
+        entropy += (freq * math.log(freq)) / (1 - (1 - freq) ** total)
     if entropy == 0:
         return 0
     else:
@@ -72,9 +70,11 @@ def shannon_entropy_ht(arg: str) -> float | str | int:
         return 0  # if there is only 1 fragmental splicing
 
     # estimate C_bar
+    total = sum(lst)
     entropy = 0.0
     for i in lst:
-        entropy += ((i / sum(lst)) * math.log((i / sum(lst)))) / (1 - (1 - i / sum(lst)) ** sum(lst))
+        freq = i / total
+        entropy += (freq * math.log(freq)) / (1 - (1 - freq) ** total)
     return -entropy
 
 
@@ -84,8 +84,9 @@ def simpson_index(arg: str) -> float | int:
     simpson = 0.0
 
     try:
+        total = sum(lst)
         for i in lst:
-            simpson = simpson + (i / sum(lst)) ** 2
+            simpson = simpson + (i / total) ** 2
         return 1 - simpson
     except ZeroDivisionError:
         return 0
@@ -97,9 +98,10 @@ def simpson_index_es(arg: str) -> float | int:
     simpson = 0.0
 
     try:
+        total = sum(lst)
         for i in lst:
             simpson = simpson + i * (i - 1)
-        return 1 - (simpson / (sum(lst) * (sum(lst) - 1)))
+        return 1 - (simpson / (total * (total - 1)))
     except ZeroDivisionError:
         return 0
 
@@ -112,7 +114,8 @@ def Hill_number(arg: str, qvalue: int | float = 1) -> float:
     is particular case of Hill's function as q=2"""
 
     lst: list[float] = [float(i) for i in arg.split(",") if float(i) > 0]
-    freq = [(i / sum(lst)) ** qvalue for i in lst]
+    total = sum(lst)
+    freq = [(i / total) ** qvalue for i in lst]
     try:
         return (sum(freq)) ** (1 / (1 - qvalue))  # type: ignore[no-any-return]
     except ZeroDivisionError:

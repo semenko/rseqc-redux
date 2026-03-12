@@ -209,31 +209,19 @@ def fetch_insertion(chrom: str, st: int, cigar: list[tuple[int, int]]) -> list[t
     return ins_bound
 
 
+_CODE2CHAR = ("M", "I", "D", "N", "S", "H", "P", "=", "X")
+
+
 def list2str(lst: list[tuple[int, int]]) -> str:
     """translate samtools returned cigar_list into cigar_string
 
     [(4, 1), (0, 9)] ==> '1S9M'
     """
-    code2Char = {"0": "M", "1": "I", "2": "D", "3": "N", "4": "S", "5": "H", "6": "P", "7": "=", "8": "X"}
-
-    cigar_str = ""
-    for i in lst:
-        cigar_str += str(i[1]) + code2Char[str(i[0])]
-    return cigar_str
+    return "".join(f"{s}{_CODE2CHAR[c]}" for c, s in lst)
 
 
 def list2longstr(lst: list[tuple[int, int]]) -> str:
     """translate samtools returned cigar_list into LONG cigar_string
     Sum of lengths of the M/I/S/=/X operations shall equal the length of SEQ
     """
-
-    code2Char = {"0": "M", "1": "I", "2": "D", "3": "N", "4": "S", "5": "H", "6": "P", "7": "=", "8": "X"}
-
-    cigar_str = ""
-    for i in lst:
-        (code, length) = (i[0], i[1])
-        if code in (0, 1, 4, 7, 8):
-            cigar_str += code2Char[str(code)] * int(length)
-        else:
-            continue
-    return cigar_str
+    return "".join(_CODE2CHAR[c] * s for c, s in lst if c in (0, 1, 4, 7, 8))

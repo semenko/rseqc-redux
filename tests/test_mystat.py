@@ -161,6 +161,13 @@ def test_shannon_entropy_es_empty():
     assert result == "NA"
 
 
+def test_shannon_entropy_es_multi():
+    """Chao-Shen estimator with multi-element input should be positive."""
+    result = mystat.shannon_entropy_es([1, 2, 3, 4])
+    assert isinstance(result, float)
+    assert result > 0
+
+
 # --- shannon_entropy_ht ---
 
 

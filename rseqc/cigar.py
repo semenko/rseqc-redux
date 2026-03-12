@@ -50,7 +50,7 @@ def fetch_tail_clip(chr: str, st: int | str, cigar: str) -> list[list]:
         h_len = 0
     else:
         h_len = int(h[0])
-    ref_length = sum([int(i) for i in ref_part.findall(cigar)])
+    ref_length = sum(int(i) for i in ref_part.findall(cigar))
     chrom_end = int(st) + (ref_length - h_len)  # because SAM is 1-based
     chrom_st = chrom_end - t_len
     block.append([chr, chrom_st, chrom_end])
@@ -74,7 +74,7 @@ def fetch_insertion(chr: str, st: int | str, cigar: str) -> list[list]:
         return block
     else:
         for j in m:
-            ref_length += sum([int(i) for i in ref_part.findall(j[0])])
+            ref_length += sum(int(i) for i in ref_part.findall(j[0]))
             chrom_st = int(st) + (ref_length - h_len)
             chrom_end = chrom_st + int(j[1])
             block.append([chr, chrom_st, chrom_end])
@@ -98,7 +98,7 @@ def fetch_deletion(chr: str, st: int | str, cigar: str) -> list[list]:
         return block
     else:
         for j in m:
-            ref_length += sum([int(i) for i in ref_part.findall(j[0])])
+            ref_length += sum(int(i) for i in ref_part.findall(j[0]))
             chrom_st = int(st) + (ref_length - h_len)
             chrom_end = chrom_st + int(j[1])
             block.append([chr, chrom_st, chrom_end])
@@ -124,7 +124,7 @@ def fetch_intron(chr: str, st: int | str, cigar: str) -> list[list]:
         return block
     else:
         for j in m:
-            ref_length += sum([int(i) for i in ref_part.findall(j[0])])
+            ref_length += sum(int(i) for i in ref_part.findall(j[0]))
             chrom_st = int(st) + (ref_length - h_len)
             chrom_end = chrom_st + int(j[1])
             block.append([chr, chrom_st, chrom_end])
@@ -149,7 +149,7 @@ def fetch_exon(chr: str, st: int | str, cigar: str) -> list[list]:
         return block
     else:
         for j in m:
-            ref_length += sum([int(i) for i in ref_part.findall(j[0])])
+            ref_length += sum(int(i) for i in ref_part.findall(j[0]))
             chrom_st = int(st) + (ref_length - h_len)
             chrom_end = chrom_st + int(j[1])
             block.append([chr, chrom_st, chrom_end])
@@ -157,11 +157,9 @@ def fetch_exon(chr: str, st: int | str, cigar: str) -> list[list]:
     return block
 
 
+_CODE2CHAR = ("M", "I", "D", "N", "S", "H", "P", "=", "X")
+
+
 def list2str(lst: list[tuple[int, int]]) -> str:
     """translate samtools returned cigar_list into cigar_string"""
-    code2Char = {"0": "M", "1": "I", "2": "D", "3": "N", "4": "S", "5": "H", "6": "P", "7": "=", "8": "X"}
-
-    cigar_str = ""
-    for i in lst:
-        cigar_str += str(i[1]) + code2Char[str(i[0])]
-    return cigar_str
+    return "".join(f"{s}{_CODE2CHAR[c]}" for c, s in lst)
