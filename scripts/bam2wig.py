@@ -112,7 +112,7 @@ def main() -> None:
     norm_factor = None
     if args.total_wigsum:
         obj = SAM.ParseBAM(args.input_file)
-        wig_sum = obj.calWigSum(chrom_sizes=chromSizes, skip_multi=args.skip_multi)
+        wig_sum = obj.calWigSum(chrom_sizes=chromSizes, skip_multi=args.skip_multi, q_cut=args.map_qual)
         print("\n\ntotal wigsum is:" + str(wig_sum) + "\n", file=sys.stderr)
         try:
             norm_factor = args.total_wigsum / wig_sum

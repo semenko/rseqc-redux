@@ -5,6 +5,7 @@ from __future__ import annotations
 import collections
 import random
 import re
+import subprocess
 import sys
 from collections.abc import Generator
 from typing import Any
@@ -48,11 +49,27 @@ def _passes_qc(read: Any, q_cut: int) -> bool:
     return True
 
 
+def _parse_strand_rule(strand_rule: str | None) -> dict[str, str]:
+    """Parse a strand rule string into a key→strand mapping.
+
+    Returns an empty dict for non-strand-specific data.
+    For paired-end (4 tokens like "1++,1--,2+-,2-+"): maps "1+" → "+", etc.
+    For single-end (2 tokens like "++,--"): maps "+" → "+", etc.
+    """
+    if strand_rule is None:
+        return {}
+    parts = strand_rule.split(",")
+    if len(parts) == 4:  # PairEnd, strand-specific
+        return {p[0] + p[1]: p[2] for p in parts}
+    if len(parts) == 2:  # SingleEnd, strand-specific
+        return {p[0]: p[1] for p in parts}
+    print("Unknown value of option: 'strand_rule' " + strand_rule, file=sys.stderr)
+    sys.exit(1)
+
+
 class ParseBAM:
     """This class provides fuctions to parsing/processing/transforming SAM or BAM files. The input
     file could be either SAM or BAM format file"""
-
-    multi_hit_tags = {"H0", "H1", "H2", "IH", "NH"}
 
     def __init__(self, inputFile: str):
         """constructor. input could be bam or sam"""
@@ -272,19 +289,7 @@ class ParseBAM:
         strandRule should be determined from \"infer_experiment\". such as \"1++,1--,2+-,2-+\". When
         WigSumFactor is provided, output wig file will be normalized to this number"""
 
-        # strand_rule={'1+':'-','1-':'+','2+':'+','2-':'-'}
-        strandRule = {}
-        if strand_rule is None:  # Not strand-specific
-            pass
-        elif len(strand_rule.split(",")) == 4:  # PairEnd, strand-specific
-            for i in strand_rule.split(","):
-                strandRule[i[0] + i[1]] = i[2]
-        elif len(strand_rule.split(",")) == 2:  # singeEnd, strand-specific
-            for i in strand_rule.split(","):
-                strandRule[i[0]] = i[1]
-        else:
-            print("Unknown value of option :'strand_rule' " + strand_rule, file=sys.stderr)
-            sys.exit(1)
+        strandRule = _parse_strand_rule(strand_rule)
         if len(strandRule) == 0:
             wig_files = open(outfile + ".wig", "w")
             FWO = wig_files
@@ -352,41 +357,41 @@ class ParseBAM:
                 # Write non-zero positions (sparse output, matching original variableStep format)
                 factor = WigSumFactor if WigSumFactor is not None else 1.0
                 nonzero_f = np.nonzero(Fwig)[0]
-                for pos in nonzero_f:
-                    print("%d\t%.2f" % (pos, Fwig[pos] * factor), file=FWO)
+                if len(nonzero_f) > 0:
+                    positions = nonzero_f
+                    values = Fwig[positions] * factor
+                    lines = np.column_stack((positions, values))
+                    np.savetxt(FWO, lines, fmt="%d\t%.2f")
                 if len(strandRule) > 0:
                     nonzero_r = np.nonzero(Rwig)[0]  # type: ignore[arg-type]
-                    for pos in nonzero_r:
-                        print("%d\t%.2f" % (pos, Rwig[pos] * factor), file=RVO)  # type: ignore[index]
+                    if len(nonzero_r) > 0:
+                        positions = nonzero_r
+                        values = Rwig[positions] * factor  # type: ignore[index]
+                        lines = np.column_stack((positions, values))
+                        np.savetxt(RVO, lines, fmt="%d\t%.2f")  # type: ignore[arg-type]
         finally:
             FWO.close()
             if RVO is not None:
                 RVO.close()
         if len(strandRule) == 0:
-            try:
-                import subprocess
-
-                print("Run " + "wigToBigWig " + outfile + ".wig " + chrom_file + " " + outfile + ".bw ")
-                subprocess.run(["wigToBigWig", "-clip", outfile + ".wig", chrom_file, outfile + ".bw"], check=False)
-            except OSError:
-                print('Failed to call "wigToBigWig".', file=sys.stderr)
+            wig_pairs = [(outfile + ".wig", outfile + ".bw")]
         else:
+            wig_pairs = [
+                (outfile + ".Forward.wig", outfile + ".Forward.bw"),
+                (outfile + ".Reverse.wig", outfile + ".Reverse.bw"),
+            ]
+        for wig_in, bw_out in wig_pairs:
             try:
-                import subprocess
-
-                subprocess.run(
-                    ["wigToBigWig", "-clip", outfile + ".Forward.wig", chrom_file, outfile + ".Forward.bw"],
-                    check=False,
-                )
-                subprocess.run(
-                    ["wigToBigWig", "-clip", outfile + ".Reverse.wig", chrom_file, outfile + ".Reverse.bw"],
-                    check=False,
-                )
+                print("Run wigToBigWig " + wig_in + " " + chrom_file + " " + bw_out)
+                subprocess.run(["wigToBigWig", "-clip", wig_in, chrom_file, bw_out], check=False)
             except OSError:
                 print('Failed to call "wigToBigWig".', file=sys.stderr)
 
-    def calWigSum(self, chrom_sizes: dict[str, int], skip_multi: bool = True) -> float:
-        """Calculate wigsum from BAM file"""
+    def calWigSum(self, chrom_sizes: dict[str, int], skip_multi: bool = True, q_cut: int = 30) -> float:
+        """Calculate wigsum from BAM file.
+
+        Uses the same mapq-based filtering as bamTowig for consistency.
+        """
 
         print("Calcualte wigsum ... ", file=sys.stderr)
         wigsum = 0.0
@@ -408,7 +413,7 @@ class ParseBAM:
                     continue
                 if aligned_read.is_unmapped:
                     continue
-                if skip_multi and any(tag in ParseBAM.multi_hit_tags and val > 1 for tag, val in aligned_read.tags):
+                if skip_multi and aligned_read.mapq < q_cut:
                     continue
 
                 hit_st = aligned_read.pos
@@ -632,16 +637,13 @@ class ParseBAM:
             for aligned_read in _pysam_iter(self.samfile):
                 if aligned_read.mapq < q_cut:
                     continue
-                # if aligned_read.is_unmapped:continue   #skip unmapped read
-                # if aligned_read.is_qcfail:continue     #skip low quality
 
-                qual_str = aligned_read.qqual
+                quals = aligned_read.query_qualities
                 read_len = aligned_read.rlen
                 if aligned_read.is_reverse:
-                    qual_str = qual_str[::-1]
+                    quals = quals[::-1]
 
-                for i, j in enumerate(qual_str):
-                    q = ord(j) - 33
+                for i, q in enumerate(quals):
                     if q > q_max:
                         q_max = q
                     if q < q_min:
@@ -1739,19 +1741,7 @@ class ParseBAM:
             block_list_plus: list[str] = []  # non-spliced read AS IS, splicing reads were counted multiple times
             block_list_minus: list[str] = []
             block_list: list[str] = []
-            strandRule: dict[str, str] = {}
-
-            if strand_rule is None:  # Not strand-specific
-                pass
-            elif len(strand_rule.split(",")) == 4:  # PairEnd, strand-specific
-                for i in strand_rule.split(","):
-                    strandRule[i[0] + i[1]] = i[2]
-            elif len(strand_rule.split(",")) == 2:  # singeEnd, strand-specific
-                for i in strand_rule.split(","):
-                    strandRule[i[0]] = i[1]
-            else:
-                print("Unknown value of: 'strand_rule' " + strand_rule, file=sys.stderr)
-                sys.exit(1)
+            strandRule = _parse_strand_rule(strand_rule)
 
             # read SAM or BAM
             if self.bam_format:
@@ -1949,10 +1939,6 @@ class ParseBAM:
                     break
                 if not _passes_qc(aligned_read, q_cut):
                     continue
-                if aligned_read.is_reverse:
-                    strand = "-"
-                else:
-                    strand = "+"
 
                 # Skip if there is no mismatch, or there is deletion
                 tags = aligned_read.tags
@@ -1980,38 +1966,23 @@ class ParseBAM:
                     continue
 
                 count += 1
-                if strand == "+":
-                    for tag in tags:
-                        if tag[0] == "MD":
-                            a = MD_pat.findall(tag[1])  # tag[1] = "5G19T75"; a = [('5', 'G'), ('19', 'T')]
-                            read_coord = 0
-                            for match_number, ref_base in a:
-                                read_coord += int(match_number)
-                                read_base = read_seq[read_coord]
-                                if read_base == ref_base:
-                                    continue
-                                genotype = ref_base + "2" + read_base
-                                if genotype not in data[read_coord]:
-                                    data[read_coord][genotype] = 1
-                                else:
-                                    data[read_coord][genotype] += 1
-                                read_coord += 1
-                if strand == "-":
-                    for tag in tags:
-                        if tag[0] == "MD":
-                            a = MD_pat.findall(tag[1])  # tag[1] = "5G19T75"; a = [('5', 'G'), ('19', 'T')]
-                            read_coord = 0
-                            for match_number, ref_base in a:
-                                read_coord += int(match_number)
-                                read_base = read_seq[read_coord]
-                                if read_base == ref_base:
-                                    continue
-                                genotype = ref_base + "2" + read_base
-                                if genotype not in data[read_length - read_coord - 1]:
-                                    data[read_length - read_coord - 1][genotype] = 1
-                                else:
-                                    data[read_length - read_coord - 1][genotype] += 1
-                                read_coord += 1
+                is_reverse = aligned_read.is_reverse
+                for tag in tags:
+                    if tag[0] == "MD":
+                        a = MD_pat.findall(tag[1])  # tag[1] = "5G19T75"; a = [('5', 'G'), ('19', 'T')]
+                        read_coord = 0
+                        for match_number, ref_base in a:
+                            read_coord += int(match_number)
+                            read_base = read_seq[read_coord]
+                            if read_base == ref_base:
+                                continue
+                            genotype = ref_base + "2" + read_base
+                            idx = (read_length - read_coord - 1) if is_reverse else read_coord
+                            if genotype not in data[idx]:
+                                data[idx][genotype] = 1
+                            else:
+                                data[idx][genotype] += 1
+                            read_coord += 1
             else:
                 print("Total reads used: " + str(count), file=DOUT)
             print("\n")

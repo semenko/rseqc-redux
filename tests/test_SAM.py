@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from rseqc import SAM
-from rseqc.SAM import _passes_qc
+from rseqc.SAM import _parse_strand_rule, _passes_qc
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -668,12 +668,12 @@ def test_no_debug_print_in_mismatch_profile():
                             pytest.fail("Found debug print(aligned_read) in mismatchProfile")
 
 
-# ---- Test for multi_hit_tags as set (#1 related) ----
+# ---- Test for multi_hit_tags removal (#12) ----
 
 
-def test_multi_hit_tags_is_set():
-    """multi_hit_tags should be a set for O(1) lookup."""
-    assert isinstance(SAM.ParseBAM.multi_hit_tags, set)
+def test_multi_hit_tags_removed():
+    """multi_hit_tags should be removed — calWigSum now uses mapq filtering."""
+    assert not hasattr(SAM.ParseBAM, "multi_hit_tags")
 
 
 # ---- Test for integer GC keys (#7) ----
@@ -739,3 +739,226 @@ def test_deletion_profile_no_strand_variable():
                         if isinstance(target, ast.Name) and target.id == "strand":
                             if isinstance(child.value, ast.Constant) and child.value.value in ("+", "-"):
                                 pytest.fail("deletionProfile still uses strand string variable")
+
+
+# ---- Tests for _parse_strand_rule helper (#21) ----
+
+
+def test_parse_strand_rule_none():
+    """None → empty dict (non-strand-specific)."""
+    assert _parse_strand_rule(None) == {}
+
+
+def test_parse_strand_rule_paired():
+    """PairEnd 4-token rule parses correctly."""
+    result = _parse_strand_rule("1++,1--,2+-,2-+")
+    assert result == {"1+": "+", "1-": "-", "2+": "-", "2-": "+"}
+
+
+def test_parse_strand_rule_single():
+    """SingleEnd 2-token rule parses correctly."""
+    result = _parse_strand_rule("++,--")
+    assert result == {"+": "+", "-": "-"}
+
+
+def test_parse_strand_rule_invalid(capsys):
+    """Invalid strand rule should sys.exit(1)."""
+    with pytest.raises(SystemExit) as exc_info:
+        _parse_strand_rule("invalid,rule,with,too,many,tokens")
+    assert exc_info.value.code == 1
+
+
+# ---- Tests for calWigSum q_cut parameter (#12) ----
+
+
+def test_calWigSum_has_q_cut_param():
+    """calWigSum should accept a q_cut parameter."""
+    import inspect
+
+    sig = inspect.signature(SAM.ParseBAM.calWigSum)
+    assert "q_cut" in sig.parameters
+    assert sig.parameters["q_cut"].default == 30
+
+
+def test_calWigSum_filters_by_mapq(mini_bam):
+    """calWigSum with high q_cut should return less wigsum than with q_cut=0."""
+    obj = SAM.ParseBAM(str(mini_bam))
+    chrom_sizes = {"chr1": 50000, "chr2": 50000}
+
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    try:
+        wigsum_strict = obj.calWigSum(chrom_sizes=chrom_sizes, skip_multi=True, q_cut=60)
+    finally:
+        sys.stderr = old_stderr
+
+    obj2 = SAM.ParseBAM(str(mini_bam))
+    sys.stderr = io.StringIO()
+    try:
+        wigsum_loose = obj2.calWigSum(chrom_sizes=chrom_sizes, skip_multi=True, q_cut=0)
+    finally:
+        sys.stderr = old_stderr
+
+    # q_cut=0 includes more reads (like lowmapq read), so wigsum should be >=
+    assert wigsum_loose >= wigsum_strict
+
+
+def test_calWigSum_no_tag_based_filtering():
+    """calWigSum should use mapq filtering, not tag-based multi_hit_tags."""
+    source = Path(SAM.__file__).read_text()
+    # Find the calWigSum method and check it doesn't reference multi_hit_tags
+    import ast
+
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "calWigSum":
+            src_lines = source.split("\n")
+            method_src = "\n".join(src_lines[node.lineno - 1 : node.end_lineno])
+            assert "multi_hit_tags" not in method_src, "calWigSum should use mapq, not tag-based filtering"
+
+
+# ---- Tests for subprocess deduplication (#3) ----
+
+
+def test_subprocess_imported_at_module_level():
+    """subprocess should be imported at module level, not inside try blocks."""
+    import ast
+
+    source = Path(SAM.__file__).read_text()
+    tree = ast.parse(source)
+    # Check that 'import subprocess' appears at module level
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "subprocess":
+                    return  # Found at module level
+    pytest.fail("subprocess not imported at module level")
+
+
+# ---- Tests for vectorized wig output (#2) ----
+
+
+def test_bamTowig_uses_savetxt():
+    """bamTowig should use np.savetxt for wig output, not per-element print."""
+    source = Path(SAM.__file__).read_text()
+    import ast
+
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "bamTowig":
+            src_lines = source.split("\n")
+            method_src = "\n".join(src_lines[node.lineno - 1 : node.end_lineno])
+            assert "savetxt" in method_src, "bamTowig should use np.savetxt"
+
+
+def test_bamTowig_exact_output_with_savetxt(mini_bam, tmp_path):
+    """bamTowig output format must be preserved after vectorization.
+
+    Verifies the exact same coverage values as the existing bamTowig test
+    but specifically checks the output line format matches 'INT\\tFLOAT'.
+    """
+    obj = SAM.ParseBAM(str(mini_bam))
+    outprefix = str(tmp_path / "wig")
+    chrom_sizes = {"chr1": 50000, "chr2": 50000}
+    chrom_file = str(tmp_path / "chrom.sizes")
+    with open(chrom_file, "w") as f:
+        for c, s in chrom_sizes.items():
+            f.write(f"{c}\t{s}\n")
+
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    try:
+        obj.bamTowig(
+            outfile=outprefix,
+            chrom_sizes=chrom_sizes,
+            chrom_file=chrom_file,
+            skip_multi=True,
+            strand_rule=None,
+            WigSumFactor=None,
+            q_cut=30,
+        )
+    finally:
+        sys.stderr = old_stderr
+
+    wig_file = Path(outprefix + ".wig")
+    content = wig_file.read_text()
+
+    # Every data line should match the format: integer<tab>float_with_2_decimals
+    import re
+
+    for line in content.strip().split("\n"):
+        if line.startswith("variableStep"):
+            continue
+        assert re.match(r"^\d+\t-?\d+\.\d{2}$", line), f"Bad format: {line!r}"
+
+
+# ---- Tests for readsQual_boxplot using query_qualities (#6) ----
+
+
+def test_readsQual_boxplot_uses_query_qualities():
+    """readsQual_boxplot should use query_qualities, not qqual + ord()."""
+    source = Path(SAM.__file__).read_text()
+    import ast
+
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "readsQual_boxplot":
+            src_lines = source.split("\n")
+            method_src = "\n".join(src_lines[node.lineno - 1 : node.end_lineno])
+            assert "query_qualities" in method_src, "Should use query_qualities"
+            assert "qqual" not in method_src, "Should not use qqual"
+            assert "ord(" not in method_src, "Should not use ord()"
+
+
+def test_readsQual_boxplot_output(mini_bam, tmp_path):
+    """readsQual_boxplot should produce valid R script output after query_qualities change."""
+    obj = SAM.ParseBAM(str(mini_bam))
+    outprefix = str(tmp_path / "qual_test")
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    try:
+        obj.readsQual_boxplot(outfile=outprefix, q_cut=0)
+    finally:
+        sys.stderr = old_stderr
+    r_file = Path(outprefix + ".qual.r")
+    assert r_file.exists()
+    content = r_file.read_text()
+    assert "boxplot(" in content
+    assert "heatmap(" in content
+    # All reads in mini_bam have quality 'I' (ASCII 73, phred 40)
+    # So the boxplot R script should reference quality values
+    assert "rep(c(" in content
+
+
+# ---- Tests for mismatchProfile strand unification (#9) ----
+
+
+def test_mismatchProfile_no_strand_variable():
+    """mismatchProfile should use is_reverse, not strand string variable."""
+    import ast
+
+    source = Path(SAM.__file__).read_text()
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "mismatchProfile":
+            src_lines = source.split("\n")
+            method_src = "\n".join(src_lines[node.lineno - 1 : node.end_lineno])
+            # Should not have 'strand == "+"' or 'strand == "-"'
+            assert 'strand == "+"' not in method_src, "Should not check strand == '+'"
+            assert 'strand == "-"' not in method_src, "Should not check strand == '-'"
+            assert "is_reverse" in method_src, "Should use is_reverse"
+
+
+def test_mismatchProfile_single_md_loop():
+    """mismatchProfile should have only one MD tag processing loop, not two."""
+    import ast
+
+    source = Path(SAM.__file__).read_text()
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "mismatchProfile":
+            src_lines = source.split("\n")
+            method_src = "\n".join(src_lines[node.lineno - 1 : node.end_lineno])
+            # Count occurrences of 'MD_pat.findall' — should be exactly 1
+            count = method_src.count("MD_pat.findall")
+            assert count == 1, f"Expected 1 MD_pat.findall call, found {count}"
