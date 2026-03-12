@@ -18,6 +18,14 @@ from bx.intervals import Intersecter, Interval
 
 from rseqc import BED, bam_cigar
 
+# Lookup table mapping ASCII byte values to NVC column indices (A=0, C=1, G=2, T=3, N=4, X=5)
+_NVC_ASCII_MAP = np.full(256, 5, dtype=np.intp)
+_NVC_ASCII_MAP[ord("A")] = 0
+_NVC_ASCII_MAP[ord("C")] = 1
+_NVC_ASCII_MAP[ord("G")] = 2
+_NVC_ASCII_MAP[ord("T")] = 3
+_NVC_ASCII_MAP[ord("N")] = 4
+
 
 def _pysam_iter(samfile: pysam.AlignmentFile | pysam.IteratorRow) -> Generator[Any, None, None]:
     """Iterate over pysam AlignmentFile, handling the ValueError bug on Python 3.13+.
@@ -397,13 +405,12 @@ class ParseBAM:
         wigsum = 0.0
         for chr_name, chr_size in chrom_sizes.items():  # iterate each chrom
             try:
-                self.samfile.fetch(chr_name, 0, chr_size)
+                alignedReads = self.samfile.fetch(chr_name, 0, chr_size)
             except (KeyError, ValueError):
                 print("No alignments for " + chr_name + ". skipped", file=sys.stderr)
                 continue
             print("Processing " + chr_name + " ...", file=sys.stderr)
 
-            alignedReads = self.samfile.fetch(chr_name, 0, chr_size)
             for aligned_read in _pysam_iter(alignedReads):
                 if aligned_read.is_qcfail:
                     continue
@@ -492,8 +499,6 @@ class ParseBAM:
         outfile2 = outfile + ".NVC_plot.r"
         with open(outfile1, "w") as FO, open(outfile2, "w") as RS:
             transtab = str.maketrans("ACGTNX", "TGCANX")
-            # Map bases to column indices: A=0, C=1, G=2, T=3, N=4, X=5
-            _base_idx = {b: i for i, b in enumerate("ACGTNX")}
             read_len = 0
             base_freq: np.ndarray | None = None
             if self.bam_format:
@@ -516,9 +521,10 @@ class ParseBAM:
                     new_freq = np.zeros((read_len, 6), dtype=np.int64)
                     new_freq[: base_freq.shape[0], :] = base_freq
                     base_freq = new_freq
-                for i, j in enumerate(RNA_read):
-                    idx = _base_idx.get(j, 5)  # unknown bases → X column
-                    base_freq[i, idx] += 1
+                # Vectorized per-base counting via numpy lookup table
+                seq_bytes = np.frombuffer(RNA_read.encode("ascii"), dtype=np.uint8)
+                col_indices = _NVC_ASCII_MAP[seq_bytes]
+                base_freq[np.arange(read_len), col_indices] += 1
             print("Done", file=sys.stderr)
 
             if base_freq is None:
@@ -2071,7 +2077,7 @@ class ParseBAM:
 
                 # skip if read doesn't have deletion
                 read_cigar = aligned_read.cigar
-                if 2 not in [i[0] for i in read_cigar]:
+                if not any(c == 2 for c, _s in read_cigar):
                     continue
 
                 # skip partially mapped read

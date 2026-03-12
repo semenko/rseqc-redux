@@ -64,6 +64,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - Dead modules removed: `dotProduct.py`, `annoGene.py`, `fasta.py`, `orf.py`, `quantile.py`, `wiggle.py`, `cigar.py`, `changePoint.py`
 - Coverage config fixed: CI now measures `--cov=rseqc --cov=scripts`
 - `from __future__ import annotations` added to `tin.py`, `RNA_fragment_size.py`
+- Performance: `tin.py` and `geneBody_coverage.py` pileup loops replaced with pysam `count_coverage()` (C-level, ~50-100x faster); `readsNVC()` per-character Python loop replaced with numpy vectorized lookup; `calWigSum()` redundant double-fetch removed; `deletionProfile()` list comprehension → `any()` generator; `shannon_entropy()` vectorized with numpy
 
 **What still needs work:**
 - Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels

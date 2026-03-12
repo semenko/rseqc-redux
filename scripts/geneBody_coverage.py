@@ -13,12 +13,12 @@ import sys
 from os.path import basename
 from time import strftime
 
+import numpy as np
 import pysam
 from numpy import mean, std
 
 from rseqc import getBamFiles, mystat
 from rseqc.cli_common import add_output_prefix_arg, add_refgene_arg, create_parser, run_rscript, validate_files_exist
-from rseqc.SAM import _pysam_iter
 
 
 def valid_name(s: str) -> str:
@@ -106,49 +106,42 @@ def genebody_coverage(bam: str, position_list: dict) -> dict:
     """
     position_list is dict returned from genebody_percentile
     position is 1-based genome coordinate
+
+    Uses pysam's C-level count_coverage() instead of Python-level pileup iteration.
     """
     samfile = pysam.AlignmentFile(bam, "rb")
     aggreagated_cvg = collections.defaultdict(int)
 
     gene_finished = 0
     for chrom, strand, positions in position_list.values():
-        coverage = {}
-        for i in positions:
-            coverage[i] = 0.0
         chrom_start = positions[0] - 1
         if chrom_start < 0:
             chrom_start = 0
         chrom_end = positions[-1]
         try:
-            samfile.pileup(chrom, 1, 2)
+            # count_coverage returns 4 array.array objects (A, C, G, T per-base counts)
+            # quality_threshold=0: no base quality filtering (matches original behavior)
+            # read_callback='all': skip unmapped, qcfail, secondary, duplicate
+            a_arr, c_arr, g_arr, t_arr = samfile.count_coverage(
+                chrom, chrom_start, chrom_end, quality_threshold=0, read_callback="all"
+            )
         except (KeyError, ValueError):
             continue
 
-        for pileupcolumn in _pysam_iter(samfile.pileup(chrom, chrom_start, chrom_end, truncate=True)):
-            ref_pos = pileupcolumn.pos + 1
-            if ref_pos not in positions:
-                continue
-            if pileupcolumn.n == 0:
-                coverage[ref_pos] = 0
-                continue
-            cover_read = 0
-            for pileupread in pileupcolumn.pileups:
-                if pileupread.is_del:
-                    continue
-                if pileupread.alignment.is_qcfail:
-                    continue
-                if pileupread.alignment.is_secondary:
-                    continue
-                if pileupread.alignment.is_unmapped:
-                    continue
-                if pileupread.alignment.is_duplicate:
-                    continue
-                cover_read += 1
-            coverage[ref_pos] = cover_read
-        tmp = [coverage[k] for k in sorted(coverage)]
+        total = np.array(a_arr) + np.array(c_arr) + np.array(g_arr) + np.array(t_arr)
+
+        # Extract coverage at the selected percentile positions
+        tmp = []
+        for pos in positions:
+            idx = pos - 1 - chrom_start
+            if 0 <= idx < len(total):
+                tmp.append(int(total[idx]))
+            else:
+                tmp.append(0)
+
         if strand == "-":
             tmp = tmp[::-1]
-        for i in range(0, len(tmp)):
+        for i in range(len(tmp)):
             aggreagated_cvg[i] += tmp[i]
         gene_finished += 1
 
