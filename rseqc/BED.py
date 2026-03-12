@@ -2466,7 +2466,7 @@ class CompareBED:
                 tss_end = int(fields[1]) + 1
             else:
                 print("reference bed file must be at least 3 columns", file=sys.stderr)
-                sys.exit()
+                sys.exit(1)
 
             key = chrom + ":" + str(tss_st) + ":" + str(tss_end)
             if key not in tss_group:
@@ -2497,7 +2497,7 @@ class CompareBED:
                 chain = "+"
             else:
                 print("Input bed file must be at least 3 columns", file=sys.stderr)
-                sys.exit()
+                sys.exit(1)
 
             chrom = fields[0]
             bed_st = int(fields[1]) + int((int(fields[2]) - int(fields[1])) / 2)
@@ -2565,7 +2565,7 @@ class CompareBED:
                 tts_end = int(fields[2])
             else:
                 print("reference bed file must be at least 3 columns", file=sys.stderr)
-                sys.exit()
+                sys.exit(1)
 
             key = chrom + ":" + str(tts_st) + ":" + str(tts_end)
             if key not in tts_group:
@@ -2596,7 +2596,7 @@ class CompareBED:
                 chain = "+"
             else:
                 print("Inut bed file must be at least 3 columns", file=sys.stderr)
-                sys.exit()
+                sys.exit(1)
 
             chrom = fields[0]
             bed_st = int(fields[1]) + int((int(fields[2]) - int(fields[1])) / 2)

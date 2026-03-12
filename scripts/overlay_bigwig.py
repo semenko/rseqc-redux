@@ -1,25 +1,13 @@
 #!/usr/bin/env python
 """Manipulate two bigwig files"""
 
-import sys
-
-if sys.version_info[0] != 3:
-    print(
-        "\nYou are using python"
-        + str(sys.version_info[0])
-        + "."
-        + str(sys.version_info[1])
-        + " This verion of RSeQC needs python3!\n",
-        file=sys.stderr,
-    )
-    sys.exit()
-
 import argparse
+import sys
 
 import numpy
 import pyBigWig
 
-from qcmodule import BED, twoList
+from rseqc import BED, twoList
 
 
 def main():

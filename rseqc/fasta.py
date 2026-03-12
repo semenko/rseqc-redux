@@ -59,7 +59,7 @@ class Fasta:
 
     def printSeqs(self, n=50):
         """print all seqs"""
-        for k, v in list(self.seqs.items()):
+        for k, v in self.seqs.items():
             print(">" + k)
             for i in range(0, len(v), n):
                 print(v[i : i + n])
@@ -67,7 +67,7 @@ class Fasta:
     def getSeqLen(self, seqID=None):
         seqlen = collections.defaultdict(dict)
         if seqID is None:
-            for k, v in list(self.seqs.items()):
+            for k, v in self.seqs.items():
                 seqlen[k] = len(v)
         else:
             try:
@@ -81,7 +81,7 @@ class Fasta:
         NOTE: pattern is counted non-overlappingly"""
         if pattern is None:
             print("ID\tTotal\tA\tC\tG\tT\tN\tX")
-            for k, v in list(self.seqs.items()):
+            for k, v in self.seqs.items():
                 print(k + "\t", end=" ")
                 print(len(v), "\t", end=" ")
                 print(str(v.count("A")) + "\t", end=" ")
@@ -91,14 +91,14 @@ class Fasta:
                 print(str(v.count("N")) + "\t", end=" ")
                 print(v.count("X"))
         else:
-            for k, v in list(self.seqs.items()):
+            for k, v in self.seqs.items():
                 print(k + "\t", end=" ")
                 print(str(len(v)) + "\t", end=" ")
                 print(v.count(pattern))
 
     def cal_entropy(self, length=3):
         """calculate entropy for each sequence"""
-        for id, seq in list(self.seqs.items()):
+        for id, seq in self.seqs.items():
             entropy = 0
             dna_chars_uniq = FrameKmer.all_possible_kmer(length)
             dna_len = len(seq)
@@ -117,7 +117,7 @@ class Fasta:
         """return reverse-complemented sequence for sepcified seqID, otherwise all sequences are
         reverse-complemented"""
         if seqID is None:
-            for k, v in list(self.seqs.items()):
+            for k, v in self.seqs.items():
                 print(">" + k + "_rev")
                 tmp = v.translate(self.transtab)
                 return tmp[::-1]
@@ -130,13 +130,13 @@ class Fasta:
 
         seq2Name = {}
         seq2Count = {}
-        for key, value in list(self.seqs.items()):
+        for key, value in self.seqs.items():
             seq2Name[value] = key
             if value in seq2Count:
                 seq2Count[value] += 1
             else:
                 seq2Count[value] = 1
-        for value in list(seq2Name.keys()):
+        for value in seq2Name:
             print(">" + str(seq2Name[value]) + "_" + str(seq2Count[value]))
             print(value)
 
@@ -150,7 +150,7 @@ class Fasta:
         start = 0
 
         if seqID is None:
-            for k, v in list(self.seqs.items()):
+            for k, v in self.seqs.items():
                 loopSwitch = 0
                 start = 0
                 while loopSwitch != -1:
@@ -175,7 +175,7 @@ class Fasta:
         if rev:
             Pat_rev = Pat.translate(self.transtab)[::-1]
             if seqID is None:
-                for k, v in list(self.seqs.items()):
+                for k, v in self.seqs.items():
                     loopSwitch = 0
                     start = 0
                     while loopSwitch != -1:

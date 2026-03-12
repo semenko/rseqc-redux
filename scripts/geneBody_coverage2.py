@@ -4,29 +4,17 @@ Calculate the RNA-seq reads coverage over gene body.
 This module uses bigwig file as input.
 """
 
-import sys
-from sys import exit
-
-if sys.version_info[0] != 3:
-    print(
-        "\nYou are using python"
-        + str(sys.version_info[0])
-        + "."
-        + str(sys.version_info[1])
-        + " This verion of RSeQC needs python3!\n",
-        file=sys.stderr,
-    )
-    sys.exit()
-
 import argparse
+import sys
 from collections import defaultdict
 from os import path
 from subprocess import call
+from sys import exit
 
 from numpy import nan_to_num
 from pyBigWig import open as openBigWig
 
-from qcmodule import mystat
+from rseqc import mystat
 
 
 def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):

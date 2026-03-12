@@ -2,7 +2,7 @@ from heapq import nlargest
 from random import shuffle
 
 
-def S_diff(lst: list[int | float]) -> list:  # type: ignore[type-arg]
+def S_diff(lst: list[int | float]) -> list[list[int] | float]:
     """Given a list of int or float, calculate S_diff and S_point"""
 
     S_avg = sum(lst) / len(lst)
@@ -19,7 +19,7 @@ def bootstrap(lst: list[int | float], obs: float, rep: int = 1000) -> float:
     """Given a list of int or float (lst) and an observation value(obs). calcualte the chance (pvalue)
     of getting this observation through bootstrapping."""
 
-    shuffled_diff: list[list] = []  # type: ignore[type-arg]
+    shuffled_diff: list[list[list[int] | float]] = []
     count = 0
     tmp = lst
     for i in range(0, rep):

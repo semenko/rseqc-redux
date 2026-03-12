@@ -56,3 +56,60 @@ def test_parsebam_configure_experiment(mini_bam):
         obj.configure_experiment(refbed=bed_file, sample_size=100)
     finally:
         sys.stderr = old_stderr
+
+
+def test_parsebam_readsNVC(mini_bam, tmp_path):
+    """readsNVC() should produce a .NVC.xls file with per-position base counts."""
+    obj = SAM.ParseBAM(str(mini_bam))
+    outprefix = str(tmp_path / "test")
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    try:
+        obj.readsNVC(outfile=outprefix, q_cut=30)
+    finally:
+        sys.stderr = old_stderr
+    xls_file = Path(outprefix + ".NVC.xls")
+    assert xls_file.exists()
+    content = xls_file.read_text()
+    assert "Position" in content
+    # Should have A, C, G, T columns
+    assert "\tA\t" in content
+
+
+def test_parsebam_readGC(mini_bam, tmp_path):
+    """readGC() should produce a .GC.xls file with GC content distribution."""
+    obj = SAM.ParseBAM(str(mini_bam))
+    outprefix = str(tmp_path / "test")
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    try:
+        obj.readGC(outfile=outprefix, q_cut=30)
+    finally:
+        sys.stderr = old_stderr
+    xls_file = Path(outprefix + ".GC.xls")
+    assert xls_file.exists()
+    content = xls_file.read_text()
+    assert "GC%" in content
+    # Should have at least one data row
+    lines = [ln for ln in content.strip().split("\n") if not ln.startswith("GC%")]
+    assert len(lines) >= 1
+
+
+def test_parsebam_readDupRate(mini_bam, tmp_path):
+    """readDupRate() should produce seq and pos DupRate files."""
+    obj = SAM.ParseBAM(str(mini_bam))
+    outprefix = str(tmp_path / "test")
+    old_stderr = sys.stderr
+    sys.stderr = io.StringIO()
+    try:
+        obj.readDupRate(q_cut=30, outfile=outprefix)
+    finally:
+        sys.stderr = old_stderr
+    seq_file = Path(outprefix + ".seq.DupRate.xls")
+    pos_file = Path(outprefix + ".pos.DupRate.xls")
+    assert seq_file.exists()
+    assert pos_file.exists()
+    seq_content = seq_file.read_text()
+    assert "Occurrence" in seq_content
+    pos_content = pos_file.read_text()
+    assert "Occurrence" in pos_content

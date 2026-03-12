@@ -121,7 +121,7 @@ tin = "scripts.tin:main"
 "tin.py" = "scripts.tin:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["rseqc", "qcmodule", "scripts"]
+packages = ["rseqc", "scripts"]
 
 [tool.coverage.run]
 relative_files = true

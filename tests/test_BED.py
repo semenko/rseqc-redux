@@ -162,3 +162,28 @@ class TestParseBED:
     def test_get_splice_junctions(self):
         junctions = list(self.bed.getSpliceJunctions())
         assert len(junctions) >= 2
+
+    def test_get_intergenic_up(self):
+        regions = self.bed.getIntergenic(direction="up", size=500)
+        assert len(regions) == 3
+        # gene1 (+): upstream = [500, 1000]
+        assert regions[0] == ["chr1", 500, 1000]
+        # gene2 (-): upstream = tx_end to tx_end+size = [9000, 9500]
+        assert regions[1] == ["chr1", 9000, 9500]
+        # gene3 (+): upstream = [9500, 10000]
+        assert regions[2] == ["chr1", 9500, 10000]
+
+    def test_get_intergenic_down(self):
+        regions = self.bed.getIntergenic(direction="down", size=500)
+        assert len(regions) == 3
+        # gene1 (+): downstream = [5000, 5500]
+        assert regions[0] == ["chr1", 5000, 5500]
+        # gene2 (-): downstream = [5500, 6000]
+        assert regions[1] == ["chr1", 5500, 6000]
+        # gene3 (+): downstream = [11000, 11500]
+        assert regions[2] == ["chr1", 11000, 11500]
+
+    def test_get_intergenic_both(self):
+        regions = self.bed.getIntergenic(direction="both", size=500)
+        # 3 genes x 2 directions = 6 regions
+        assert len(regions) == 6

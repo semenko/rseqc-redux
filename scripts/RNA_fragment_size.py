@@ -14,17 +14,6 @@ import sys
 import pysam
 from numpy import mean, median, std
 
-if sys.version_info[0] != 3:
-    print(
-        "\nYou are using python"
-        + str(sys.version_info[0])
-        + "."
-        + str(sys.version_info[1])
-        + " This verion of RSeQC needs python3!\n",
-        file=sys.stderr,
-    )
-    sys.exit()
-
 
 def overlap_length2(lst1, lst2):
     overlap_len = 0

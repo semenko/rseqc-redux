@@ -33,7 +33,7 @@ def Product(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
 def Division(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
     """return divide v1 by v2. add 1 to both v1 and v2"""
     check_list(v1, v2)
-    return (v1 + 1).__div__(v2 + 1)  # type: ignore[attr-defined]
+    return (v1 + 1) / (v2 + 1)
 
 
 def Average(v1: NDArray[Any], v2: NDArray[Any]) -> Any:

@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Removed `ParseSAM` and `QCSAM` dead code classes from `rseqc/SAM.py` (~2,970 lines). All scripts use `ParseBAM` via pysam.
 - Removed `import string`, `import os`, and `from bx_extras.fpconst import isNaN` from `rseqc/SAM.py` (only used by dead classes).
+- Removed `qcmodule/` backward-compatibility shim — all scripts now import directly from `rseqc`.
+- Removed Python 3 version checks from all 26 scripts (dead code on Python >=3.10).
+- Removed dead `open(outfile, "w")` call in `annoGene.py` `annotateBed()`.
+- Removed unnecessary `list()` wrappers on dict view iteration in `fasta.py` (10 sites) and `orf.py` (2 sites).
 
 ### Fixed
 
@@ -21,9 +25,13 @@ All notable changes to this project will be documented in this file.
 - Fixed `urllib.urlopen` in `ireader.py` — replaced with `urllib.request.urlopen` (Bug #8).
 - Fixed `subtractBed3` no-op guard in `BED.py` — dead `if chrom not in bitsets1` check removed (Bug #9).
 - Fixed `Hill_number` q=1 in `mystat.py` — now correctly parses comma-separated string before passing to `shannon_entropy()` (Bug #11).
+- Fixed `sys.exit()` → `sys.exit(1)` in 6 library error paths (`SAM.py`, `BED.py`) so errors exit non-zero.
 
 ### Changed
 
 - Migrated all 33 CLI scripts from `optparse` to `argparse`.
 - Renamed ambiguous variable `l` to descriptive names across 12 files (E741).
 - `--help` output formatting now uses argparse style.
+- `class ParseBAM(object):` → `class ParseBAM:` (modern Python 3 style).
+- `(v1 + 1).__div__(v2 + 1)` → `(v1 + 1) / (v2 + 1)` in `twoList.py` (Python 2 artifact).
+- Improved type annotations in `changePoint.py` (removed 2 `type: ignore` suppressions).

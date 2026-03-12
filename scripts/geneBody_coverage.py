@@ -7,31 +7,19 @@ Note:
 2) Genes/transcripts with mRNA length < 100 will be skipped (Number specified to "-l" cannot be < 100).
 """
 
-import os
-import sys
-
-if sys.version_info[0] != 3:
-    print(
-        "\nYou are using python"
-        + str(sys.version_info[0])
-        + "."
-        + str(sys.version_info[1])
-        + " This verion of RSeQC needs python3!\n",
-        file=sys.stderr,
-    )
-    sys.exit()
-
 import argparse
 import collections
 import operator
+import os
 import subprocess
+import sys
 from os.path import basename
 from time import strftime
 
 import pysam
 from numpy import mean, std
 
-from qcmodule import getBamFiles, mystat
+from rseqc import getBamFiles, mystat
 
 
 def valid_name(s):

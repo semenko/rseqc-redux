@@ -10,7 +10,7 @@ import argparse
 import logging
 import sys
 
-from qcmodule import fastq
+from rseqc import fastq
 
 __contributor__ = "Liguo Wang"
 

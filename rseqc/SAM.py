@@ -13,7 +13,7 @@ from bx.intervals import Intersecter, Interval
 from rseqc import BED, bam_cigar, mystat
 
 
-class ParseBAM(object):
+class ParseBAM:
     """This class provides fuctions to parsing/processing/transforming SAM or BAM files. The input
     file could be either SAM or BAM format file"""
 
@@ -1913,7 +1913,7 @@ class ParseBAM(object):
         print("total = " + str(total_junc))
         if total_junc == 0:
             print("No splice junction found.", file=sys.stderr)
-            sys.exit()
+            sys.exit(1)
         # self.f.seek(0)
 
         print('pdf("%s")' % (outfile + ".splice_events.pdf"), file=ROUT)
@@ -2720,7 +2720,7 @@ class ParseBAM(object):
 
         if len(data) == 0:
             print("No mismatches found", file=sys.stderr)
-            sys.exit()
+            sys.exit(1)
         # write data out
         all_genotypes = ["A2C", "A2G", "A2T", "C2A", "C2G", "C2T", "G2A", "G2C", "G2T", "T2A", "T2C", "T2G"]
         print("read_pos\tsum\t" + "\t".join(all_genotypes), file=DOUT)

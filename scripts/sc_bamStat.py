@@ -9,7 +9,7 @@ import argparse
 import logging
 import sys
 
-from qcmodule import scbam
+from rseqc import scbam
 
 __contributor__ = "Liguo Wang"
 

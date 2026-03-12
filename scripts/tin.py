@@ -23,7 +23,7 @@ import pysam
 from bx.intervals import Intersecter, Interval
 from numpy import mean, median, std
 
-from qcmodule import getBamFiles
+from rseqc import getBamFiles
 
 
 def printlog(mesg):
@@ -76,7 +76,7 @@ def union_exons(refbed):
     """
     take the union of all exons defined in refbed file and build bitset
     """
-    from qcmodule import BED
+    from rseqc import BED
 
     tmp = BED.ParseBED(refbed)
     all_exons = tmp.getExon()

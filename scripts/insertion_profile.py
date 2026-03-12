@@ -4,24 +4,12 @@ Calculate the distributions of inserted nucleotides across reads
 Note CIGAR strings within SAM/BAM file should have 'I' operation
 """
 
+import argparse
 import os
+import subprocess
 import sys
 
-if sys.version_info[0] != 3:
-    print(
-        "\nYou are using python"
-        + str(sys.version_info[0])
-        + "."
-        + str(sys.version_info[1])
-        + " This verion of RSeQC needs python3!\n",
-        file=sys.stderr,
-    )
-    sys.exit()
-
-import argparse
-import subprocess
-
-from qcmodule import SAM
+from rseqc import SAM
 
 
 def main():

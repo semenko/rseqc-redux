@@ -7,7 +7,7 @@ import argparse
 import os
 import sys
 
-from qcmodule import FrameKmer
+from rseqc import FrameKmer
 
 
 def file_exist(file):

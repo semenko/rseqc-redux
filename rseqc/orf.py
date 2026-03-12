@@ -70,7 +70,7 @@ def longest_orf(seq: str, strandness: str, sc: str | None = None, tc: str | None
     for k in sorted(orf_ranges):
         possible_orf[str(k) + "\t" + str(min(orf_ranges[k])) + "\t" + strand] = min(orf_ranges[k]) - k
 
-    for orf_key, orf_size in list(possible_orf.items()):
+    for orf_key, orf_size in possible_orf.items():
         if orf_size == max(possible_orf.values()):
             fields = orf_key.split()
             largest_orf = dna_seq[int(fields[0]) : int(fields[1])]
@@ -145,7 +145,7 @@ def longest_orf_bed(  # noqa: C901
     for k in sorted(orf_ranges):
         possible_orf[str(k) + "\t" + str(min(orf_ranges[k])) + "\t" + strand] = min(orf_ranges[k]) - k
 
-    for orf_key, orf_size in list(possible_orf.items()):
+    for orf_key, orf_size in possible_orf.items():
         if orf_size == max(possible_orf.values()):
             col = orf_key.split()
             cds_st = int(col[0])

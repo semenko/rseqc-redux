@@ -11,7 +11,7 @@ import argparse
 import logging
 import sys
 
-from qcmodule import heatmap, scbam
+from rseqc import heatmap, scbam
 
 __contributor__ = "Liguo Wang"
 

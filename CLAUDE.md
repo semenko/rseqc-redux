@@ -23,7 +23,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 
 **Infrastructure:** Done — pyproject.toml, CI (3.10–3.13), PyPI publishing.
 
-**Tests:** 291 passing. Coverage: utility modules 78–97%, BED.py 13%, SAM.py has integration tests with BAM fixture.
+**Tests:** 301 passing. Coverage: utility modules 78–97%, BED.py 13%, SAM.py has integration tests with BAM fixture.
 
 **Lint/Type:** CI green — ruff (0 errors, E741/E712 enabled), mypy (0 errors), ruff format clean. Only E501 (line length) still suppressed.
 
@@ -32,19 +32,23 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - Bare `except:` → `except Exception:` across entire codebase (97 instances)
 - Unused variables removed (147 instances via ruff F841)
 - Type hints added to `cigar.py`, `ireader.py`, `bam_cigar.py`, `mystat.py`, `quantile.py`, `dotProduct.py`, `changePoint.py`, `twoList.py`, `FrameKmer.py`, `orf.py`
-- Legacy boilerplate removed: Python 3 version checks (32 scripts), `__author__`/`__version__` metadata (44 files), UTF-8 encoding declarations, shebangs from library modules, "converted from python2.7" docstrings, dead code and commented-out prints
+- Legacy boilerplate removed: Python 3 version checks (all scripts), `__author__`/`__version__` metadata (44 files), UTF-8 encoding declarations, shebangs from library modules, "converted from python2.7" docstrings, dead code and commented-out prints
 - CLI smoke tests for all 33 scripts (`--help` flag)
 - All 33 CLI scripts migrated from `optparse` to `argparse`
 - Ambiguous variable `l` renamed across 12 files (E741)
 - `ParseSAM` and `QCSAM` dead code classes removed from SAM.py (~2,970 lines)
 - All 11 known bugs fixed with regression tests (see CHANGES.md)
 - Session-scoped pysam-built BAM fixture for integration tests
-- CLI integration tests (bam_stat, infer_experiment with real BAM+BED)
+- CLI integration tests (bam_stat, infer_experiment, read_distribution, read_GC, read_quality with real BAM+BED)
+- `qcmodule` backward-compat shim removed; all scripts import directly from `rseqc`
+- Syntax modernizations: `class Foo(object)` → `class Foo:`, unnecessary `list()` wrappers removed, Python 2 `__div__` replaced with `/` operator
+- `sys.exit()` → `sys.exit(1)` in library error paths (SAM.py, BED.py)
+- Dead `open()` call removed in annoGene.py
+- `type: ignore` comments cleaned up in changePoint.py
 
 **What still needs work:**
 - E501 (line length) — 930 violations, needs incremental reformatting
 - More SAM.py/BED.py method-level integration tests
-- Python 3 version checks still present in scripts (legacy, harmless)
 
 ## Commands
 

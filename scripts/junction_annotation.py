@@ -6,25 +6,13 @@ Note:
 2) Multiple splicing reads spanning the same intron can be consolidated into one splicing junction.
 """
 
-import os
-import sys
-
-if sys.version_info[0] != 3:
-    print(
-        "\nYou are using python"
-        + str(sys.version_info[0])
-        + "."
-        + str(sys.version_info[1])
-        + " This verion of RSeQC needs python3!\n",
-        file=sys.stderr,
-    )
-    sys.exit()
-
 import argparse
+import os
 import subprocess
+import sys
 from time import strftime
 
-from qcmodule import SAM
+from rseqc import SAM
 
 
 def printlog(mesg):

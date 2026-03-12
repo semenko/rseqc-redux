@@ -1,29 +1,16 @@
 #!/usr/bin/env python
 """Normalize bigwig signal to fixed wigsum (equivelent to total reads). Output wiggle file"""
 
+import argparse
 import collections
 import sys
 from itertools import groupby
 from operator import itemgetter
 
-if sys.version_info[0] != 3:
-    print(
-        "\nYou are using python"
-        + str(sys.version_info[0])
-        + "."
-        + str(sys.version_info[1])
-        + " This verion of RSeQC needs python3!\n",
-        file=sys.stderr,
-    )
-    sys.exit()
-
-
-import argparse
-
 import numpy
 import pyBigWig
 
-from qcmodule import BED
+from rseqc import BED
 
 
 def main():

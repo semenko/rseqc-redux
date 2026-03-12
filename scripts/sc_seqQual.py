@@ -8,7 +8,7 @@ import argparse
 import logging
 import sys
 
-from qcmodule import fastq, heatmap
+from rseqc import fastq, heatmap
 
 __contributor__ = "Liguo Wang"
 
