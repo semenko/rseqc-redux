@@ -55,7 +55,7 @@ def main():
 
     if not (args.BigWig_File1 and args.BigWig_File2 and args.output_wig):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     with open(args.output_wig, "w") as OUT:
         bw1 = pyBigWig.open(args.BigWig_File1)
         bw2 = pyBigWig.open(args.BigWig_File2)

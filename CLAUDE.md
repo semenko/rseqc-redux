@@ -31,7 +31,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - Star imports replaced with explicit imports in all `rseqc/` and `scripts/` files
 - Bare `except:` → `except Exception:` across entire codebase (97 instances)
 - Unused variables removed (147 instances via ruff F841)
-- Type hints added to `cigar.py`, `ireader.py`, `bam_cigar.py`, `mystat.py`, `quantile.py`, `dotProduct.py`, `changePoint.py`, `twoList.py`, `FrameKmer.py`, `orf.py`
+- Type hints added to all 20 `rseqc/` library modules
 - Legacy boilerplate removed: Python 3 version checks (all scripts), `__author__`/`__version__` metadata (44 files), UTF-8 encoding declarations, shebangs from library modules, "converted from python2.7" docstrings, dead code and commented-out prints
 - CLI smoke tests for all 33 scripts (`--help` flag)
 - All 33 CLI scripts migrated from `optparse` to `argparse`
@@ -42,7 +42,9 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - CLI integration tests (bam_stat, infer_experiment, read_distribution, read_GC, read_quality, junction_annotation, junction_saturation, inner_distance, mismatch_profile, deletion_profile)
 - `qcmodule` backward-compat shim removed; all scripts import directly from `rseqc`
 - Syntax modernizations: `class Foo(object)` → `class Foo:`, unnecessary `list()` wrappers removed, Python 2 `__div__` replaced with `/` operator
-- `sys.exit()` → `sys.exit(1)` in library error paths (SAM.py, BED.py)
+- `exit(0)`/`sys.exit(0)` → `sys.exit(1)` in ~90 error paths across all scripts and library code
+- Dead bare field expressions removed (~70 sites across BED.py, SAM.py, annoGene.py, wiggle.py, scripts)
+- `list(map((lambda ...), ...))` → list comprehensions (~80 sites across all BED-parsing code)
 - Dead `open()` call removed in annoGene.py
 - `type: ignore` comments cleaned up in changePoint.py; dead `bootstrap()` function removed
 - Python 3.13 compatibility: `_pysam_iter()` helper wraps all pysam BAM iteration (handles ValueError bug)
@@ -56,6 +58,8 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 **What still needs work:**
 - Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels
 - More SAM.py method-level tests (many methods mix computation with file I/O)
+- `subprocess.call(..., shell=True)` for Rscript calls (~20 sites) — should use `subprocess.run([...])`
+- Standardize logging vs `print(file=sys.stderr)` (430+ print-to-stderr calls)
 
 ## Commands
 

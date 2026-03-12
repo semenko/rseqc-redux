@@ -47,7 +47,7 @@ def main():
 
     if not args.input_read:
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
 
     read_table = {}
     read_file_names = []  # base name

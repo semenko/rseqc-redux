@@ -56,7 +56,7 @@ def main():
 
     if not (args.BigWig_File and args.output_wig):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
 
     with open(args.output_wig, "w") as OUT:
         bw = pyBigWig.open(args.BigWig_File)
@@ -65,7 +65,7 @@ def main():
             pass
         else:
             print("%s is not a bigwig file!" % args.BigWig_File, file=sys.stderr)
-            sys.exit(0)
+            sys.exit(1)
 
         print("Get chromosome sizes from BigWig header ...", file=sys.stderr)
         chrom_sizes = {}

@@ -115,9 +115,9 @@ def longest_orf_bed(  # noqa: C901
     txStart = int(fields[1])
     exon_sizes = [int(i) for i in fields[10].rstrip(",\n").split(",")]
     exon_starts = list(map(int, fields[11].rstrip(",").split(",")))
-    exon_starts = list(map((lambda x: x + txStart), exon_starts))
+    exon_starts = [x + txStart for x in exon_starts]
     exon_ends = list(map(int, fields[10].rstrip(",").split(",")))
-    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+    exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
     strand = fields[5]
 
     start_pos = []

@@ -1,6 +1,8 @@
 # Liguo Wang
 # 04/13/2011
 
+from __future__ import annotations
+
 import re
 import sys
 
@@ -13,9 +15,9 @@ class ParseWig:
     """provie methods to manipulate wiggle format file. For wiggle format see:
     http://genome.ucsc.edu/goldenPath/help/wiggle.html"""
 
-    def __init__(self, wigFile):
+    def __init__(self, wigFile: str):
         """read wig file, creat wig obj"""
-        self.scores = {}
+        self.scores: dict[str, BinnedArray] = {}
         self.num_re = re.compile(r"[\d\.\-\+]+")
         with open(wigFile) as fh:
             for i, (chrom, pos, val) in enumerate(bx.wiggle.Reader(fh)):
@@ -27,7 +29,7 @@ class ParseWig:
                     print("%i datapoints loaded \r" % i)
             print("total " + str(i) + " points loaded")
 
-    def fetch_all_scores(self, chr, st, end):
+    def fetch_all_scores(self, chr: str, st: int, end: int) -> list[float]:
         """fetch all wiggle scores defined by st and end.  NOTE:
         1)st and end are 0-based, half-open. (st,end]
         2)points without score are indicated as "nan"
@@ -35,23 +37,23 @@ class ParseWig:
         chr = chr.upper()
         return [self.scores[chr][i] for i in range(st, end)]
 
-    def fetch_max_scores(self, chr, st, end):
+    def fetch_max_scores(self, chr: str, st: int, end: int) -> float:
         """fetch maximum score defined by chr, st, end
         1)st and end are 0-based, half-open. (st,end]
         """
 
         chr = chr.upper()
-        return max([self.scores[chr][i] for i in range(st, end)])
+        return float(max([self.scores[chr][i] for i in range(st, end)]))
 
-    def fetch_min_scores(self, chr, st, end):
+    def fetch_min_scores(self, chr: str, st: int, end: int) -> float:
         """fetch minimum score defined by chr, st, end
         1)st and end are 0-based, half-open. (st,end]
         """
 
         chr = chr.upper()
-        return min([self.scores[chr][i] for i in range(st, end)])
+        return float(min([self.scores[chr][i] for i in range(st, end)]))
 
-    def fetch_avg_scores(self, chr, st, end):
+    def fetch_avg_scores(self, chr: str, st: int, end: int) -> float:
         """fetch average score defined by chr, st, end
         1)st and end are 0-based, half-open. (st,end]
         """
@@ -60,7 +62,7 @@ class ParseWig:
         lst = [float(self.scores[chr][i]) for i in range(st, end) if self.num_re.match(str(self.scores[chr][i]))]
         return sum(lst) / len(list(range(st, end)))
 
-    def fetch_sum_scores(self, chr, st, end):
+    def fetch_sum_scores(self, chr: str, st: int, end: int) -> float:
         """fetch sum score defined by chr, st, end
         1)st and end are 0-based, half-open. (st,end]
         """
@@ -75,9 +77,9 @@ class ParseWig2:
     http://genome.ucsc.edu/goldenPath/help/wiggle.html. The same coordinate could occur more than
     one time in wig file, and the scores will be sumed up. Slower than ParseWig"""
 
-    def __init__(self, wigFile):
+    def __init__(self, wigFile: str):
         """read wig file, creat wig obj"""
-        self.scores = {}
+        self.scores: dict[str, BinnedArray] = {}
         self.num_re = re.compile(r"[\d\.\-\+]+")
         with open(wigFile) as fh:
             for i, (chrom, pos, val) in enumerate(bx.wiggle.Reader(fh)):
@@ -93,45 +95,45 @@ class ParseWig2:
                     print("%i datapoints loaded \r" % i)
             print("total " + str(i) + " points loaded")
 
-    def fetch_all_scores_by_range(self, chr, st, end):
+    def fetch_all_scores_by_range(self, chr: str, st: int, end: int) -> list[float]:
         '''fetch all wiggle scores defined by st and end.  NOTE:
         1)st and end are 0-based, half-open. (st,end]
         2)points without score are indicated as "nan"'''
         chr = chr.upper()
         return [self.scores[chr][i] for i in range(st, end)]
 
-    def fetch_all_scores_by_positions(self, chr, lst):
+    def fetch_all_scores_by_positions(self, chr: str, lst: list[int]) -> list[float]:
         '''fetch all wiggle scores defined by st and end.  NOTE:
         2)points without score are indicated as "nan"'''
         chr = chr.upper()
         return [self.scores[chr][i] for i in lst]
 
-    def fetch_max_scores_by_range(self, chr, st, end):
+    def fetch_max_scores_by_range(self, chr: str, st: int, end: int) -> float:
         """fetch maximum score defined by chr, st, end
         1)st and end are 0-based, half-open. (st,end]
         """
         chr = chr.upper()
-        return max([self.scores[chr][i] for i in range(st, end)])
+        return float(max([self.scores[chr][i] for i in range(st, end)]))
 
-    def fetch_max_scores_by_positions(self, chr, lst):
+    def fetch_max_scores_by_positions(self, chr: str, lst: list[int]) -> float:
         """fetch maximum score defined by chr, st, end"""
 
         chr = chr.upper()
-        return max([self.scores[chr][i] for i in lst])
+        return float(max([self.scores[chr][i] for i in lst]))
 
-    def fetch_min_scores_by_range(self, chr, st, end):
+    def fetch_min_scores_by_range(self, chr: str, st: int, end: int) -> float:
         """fetch minimum score defined by chr, st, end
         1)st and end are 0-based, half-open. (st,end]
         """
         chr = chr.upper()
-        return min([self.scores[chr][i] for i in range(st, end)])
+        return float(min([self.scores[chr][i] for i in range(st, end)]))
 
-    def fetch_min_scores_by_positions(self, chr, lst):
+    def fetch_min_scores_by_positions(self, chr: str, lst: list[int]) -> float:
         """fetch minimum score defined by chr, st, end"""
         chr = chr.upper()
-        return min([self.scores[chr][i] for i in lst])
+        return float(min([self.scores[chr][i] for i in lst]))
 
-    def fetch_avg_scores_by_range(self, chr, st, end):
+    def fetch_avg_scores_by_range(self, chr: str, st: int, end: int) -> float:
         """fetch average score defined by chr, st, end
         1)st and end are 0-based, half-open. (st,end]
         """
@@ -139,25 +141,25 @@ class ParseWig2:
         lst = [float(self.scores[chr][i]) for i in range(st, end) if self.num_re.match(str(self.scores[chr][i]))]
         return sum(lst) / len(list(range(st, end)))
 
-    def fetch_avg_scores_by_positions(self, chr, lst):
+    def fetch_avg_scores_by_positions(self, chr: str, lst: list[int]) -> float:
         """fetch average score defined by chr, st, end"""
         chr = chr.upper()
         lst_score = [float(self.scores[chr][i]) for i in lst if self.num_re.match(str(self.scores[chr][i]))]
         return sum(lst_score) / len(lst_score)
 
-    def fetch_sum_scores_by_range(self, chr, st, end):
+    def fetch_sum_scores_by_range(self, chr: str, st: int, end: int) -> float:
         """fetch sum score defined by chr, st, end"""
         chr = chr.upper()
         lst = [float(self.scores[chr][i]) for i in range(st, end) if self.num_re.match(str(self.scores[chr][i]))]
         return sum(lst)
 
-    def fetch_sum_scores_by_positions(self, chr, lst):
+    def fetch_sum_scores_by_positions(self, chr: str, lst: list[int]) -> float:
         """fetch sum score defined by chr, st, end"""
         chr = chr.upper()
         lst_score = [float(self.scores[chr][i]) for i in lst if self.num_re.match(str(self.scores[chr][i]))]
         return sum(lst_score)
 
-    def distriub_wig(self, bed, till_count=100):
+    def distriub_wig(self, bed: str, till_count: int = 100) -> None:
         """calculate coverage over bed file (only consider exon regions). The mRNA sequences in input
         bed file will be cut into 100 tills of equal size"""
 
@@ -169,14 +171,10 @@ class ParseWig2:
                         continue
                     fields = line.rstrip("\r\n").split()
                     txStart = int(fields[1])
-                    fields[0]
-                    fields[5]
-                    fields[3]
-                    fields[4]
                     exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-                    exon_start = list(map((lambda x: x + txStart), exon_start))
+                    exon_start = [x + txStart for x in exon_start]
                     exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-                    exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+                    exon_end = [x + y for x, y in zip(exon_start, exon_end)]
                 except Exception:
                     print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                     continue

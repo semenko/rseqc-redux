@@ -213,10 +213,10 @@ def main():
 
     if not (args.output_prefix and args.input_file and args.ref_gene_model):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if not os.path.exists(args.ref_gene_model):
         print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     if os.path.exists(args.input_file):
         obj = SAM.ParseBAM(args.input_file)
         obj.annotate_junction(
@@ -232,7 +232,7 @@ def main():
             pass
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     try:
         print("Create BED file ...", file=sys.stderr)
         generate_bed12(args.output_prefix + ".junction.xls")

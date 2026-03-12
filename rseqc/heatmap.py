@@ -9,17 +9,17 @@ import subprocess
 
 
 def make_heatmap(
-    infile,
-    outfile,
-    filetype,
-    cell_width,
-    cell_height,
-    col_angle,
-    font_size,
-    text_color,
-    no_numbers=False,
-    log2_scale=False,
-):
+    infile: str,
+    outfile: str,
+    filetype: str,
+    cell_width: int,
+    cell_height: int,
+    col_angle: int,
+    font_size: int,
+    text_color: str,
+    no_numbers: bool = False,
+    log2_scale: bool = False,
+) -> None:
     """
     Use pheatmap to generate heatmap.
 

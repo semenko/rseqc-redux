@@ -177,14 +177,14 @@ def main():
 
     if not (args.input_file and args.ref_gene_model):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if not os.path.exists(args.ref_gene_model):
         print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
         # parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if not os.path.exists(args.input_file):
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     # build bitset
     (

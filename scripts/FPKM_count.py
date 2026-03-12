@@ -49,14 +49,11 @@ def build_range(refgene):
                 fields = line.split()
                 chrom = fields[0].upper()
                 tx_start = int(fields[1])
-                int(fields[2])
-                fields[3]
-                fields[5].replace(" ", "_")
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
             except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
@@ -152,15 +149,15 @@ def main():
 
     if not (args.output_prefix and args.input_file and args.refgene_bed):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if not os.path.exists(args.input_file + ".bai"):
         print("cannot find index file of input BAM file", file=sys.stderr)
         print(args.input_file + ".bai" + " does not exists", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     for file in (args.input_file, args.refgene_bed):
         if not os.path.exists(file):
             print(file + " does NOT exists" + "\n", file=sys.stderr)
-            sys.exit(0)
+            sys.exit(1)
 
     obj = SAM.ParseBAM(args.input_file)
     with open(args.output_prefix + ".FPKM.xls", "w") as OUT:
@@ -275,9 +272,9 @@ def main():
                 gstrand = fields[5].replace(" ", "_")
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 for st, end in zip(exon_starts, exon_ends):
                     mRNA_size += end - st
                     exon_ranges.add_interval(Interval(st, end))

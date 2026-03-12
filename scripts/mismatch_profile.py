@@ -60,22 +60,22 @@ def main():
 
     if not (args.input_bam):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     for f in [args.input_bam]:
         if not os.path.exists(f):
             print("\n\n" + f + " does NOT exists" + "\n", file=sys.stderr)
             parser.print_help()
-            sys.exit(0)
+            sys.exit(1)
 
     if not (args.output_prefix):
         print("\n\n You must specify the output prefix", file=sys.stderr)
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
 
     if not (args.read_alignment_length):
         print("\n\n You must specify read alignment length. It is usually the read length.", file=sys.stderr)
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
 
     obj = SAM.ParseBAM(args.input_bam)
     obj.mismatchProfile(

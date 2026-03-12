@@ -9,7 +9,6 @@ import sys
 from collections import defaultdict
 from os import path
 from subprocess import call
-from sys import exit
 
 from numpy import nan_to_num
 from pyBigWig import open as openBigWig
@@ -23,7 +22,7 @@ def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
 
     if refbed is None:
         print("You must specify a bed file representing gene model", file=sys.stderr)
-        exit(0)
+        sys.exit(1)
 
     bw = openBigWig(bigFile, "r")
     # Get chromosomes present in the bigwig file
@@ -44,8 +43,6 @@ def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
                 fields = line.split()
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                int(fields[2])
-                fields[3]
                 strand = fields[5]
 
                 # Skip chromosomes present in the bed file but not present in the bigwig file.
@@ -54,9 +51,9 @@ def coverageGeneBody_bigwig(bigFile, refbed, outfile, gtype="png"):
                     continue
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
             except Exception:
                 print("[NOTE: input bed must be 12-column] skipped this line: " + line, end="\n", file=sys.stderr)
                 continue
@@ -149,16 +146,16 @@ def main():
     if gt not in ("pdf", "png", "bmp", "jpeg", "tiff"):
         print("graphic file type must be 'pdf' or 'png'", end="\n", file=sys.stderr)
         parser.print_help()
-        exit(0)
+        sys.exit(1)
 
     if not (args.output_prefix and args.input_file and args.ref_gene_model):
         parser.print_help()
-        exit(0)
+        sys.exit(1)
 
     if not path.exists(args.ref_gene_model):
         print("\n\n" + args.ref_gene_model + " does NOT exists", end="\n", file=sys.stderr)
         # parser.print_help()
-        exit(0)
+        sys.exit(1)
 
     if path.exists(args.input_file):
         coverageGeneBody_bigwig(args.input_file, args.ref_gene_model, args.output_prefix, gtype=args.graph_type)
@@ -174,7 +171,7 @@ def main():
     else:
         print("\n\n" + args.input_file + " does NOT exists", end="\n", file=sys.stderr)
         # parser.print_help()
-        exit(0)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Removed unnecessary `list()` wrappers on dict view iteration in `fasta.py` (10 sites), `orf.py` (2 sites), `SAM.py` (5 sites), `BED.py` (2 sites), `geneBody_coverage.py` (1 site).
 - Removed dead `bootstrap()` function from `changePoint.py` (contained a list-to-float comparison bug, never called).
 - Removed dead `outfile` parameter from `annoGene.py` `annotateBed()` (never used).
+- Removed ~70 dead bare field expressions (`fields[N]`, `int(fields[N])`) across `BED.py`, `SAM.py`, `annoGene.py`, `wiggle.py`, and 4 scripts.
 
 ### Fixed
 
@@ -29,6 +30,8 @@ All notable changes to this project will be documented in this file.
 - Fixed `subtractBed3` no-op guard in `BED.py` — dead `if chrom not in bitsets1` check removed (Bug #9).
 - Fixed `Hill_number` q=1 in `mystat.py` — now correctly parses comma-separated string before passing to `shannon_entropy()` (Bug #11).
 - Fixed `sys.exit()` → `sys.exit(1)` in 6 library error paths (`SAM.py`, `BED.py`) so errors exit non-zero.
+- Fixed `exit(0)`/`sys.exit(0)` → `sys.exit(1)` in ~90 error/validation paths across all scripts and library code.
+- Fixed bare `exit()` → `sys.exit()` in `BED.py`, `SAM.py`, `geneBody_coverage.py`, `geneBody_coverage2.py`, `tin.py`.
 - Fixed Python 3.13 compatibility: `_pysam_iter()` helper wraps all pysam BAM iteration to handle `ValueError` bug (PEP 745 / coverage instrumentation).
 
 ### Changed
@@ -42,3 +45,5 @@ All notable changes to this project will be documented in this file.
 - Improved type annotations in `changePoint.py` (removed 2 `type: ignore` suppressions).
 - E501 (line length > 120) fully resolved and enabled in ruff config — 0 violations remaining.
 - Converted 95 bare `open()` calls to `with` statements across `rseqc/` and `scripts/` to prevent resource leaks.
+- Replaced ~80 `list(map((lambda ...), ...))` with list comprehensions across all BED-parsing code.
+- Added type hints to all 20 `rseqc/` library modules (SAM.py, BED.py, annoGene.py, fasta.py, fastq.py, scbam.py, wiggle.py, getBamFiles.py, heatmap.py + previously done modules).

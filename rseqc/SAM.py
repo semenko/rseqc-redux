@@ -1,9 +1,13 @@
 """manipulate BAM/SAM file."""
 
+from __future__ import annotations
+
 import collections
 import random
 import re
 import sys
+from collections.abc import Generator
+from typing import Any
 
 import pysam
 from bx.bitset import BinnedBitSet
@@ -13,7 +17,7 @@ from bx.intervals import Intersecter, Interval
 from rseqc import BED, bam_cigar, mystat
 
 
-def _pysam_iter(samfile):
+def _pysam_iter(samfile: pysam.AlignmentFile | pysam.IteratorRow) -> Generator[Any, None, None]:
     """Iterate over pysam AlignmentFile, handling the ValueError bug on Python 3.13+.
 
     pysam raises ValueError ("Firing event 10 with no exception set") instead of
@@ -31,22 +35,22 @@ class ParseBAM:
 
     multi_hit_tags = ["H0", "H1", "H2", "IH", "NH"]
 
-    def __init__(self, inputFile):
+    def __init__(self, inputFile: str):
         """constructor. input could be bam or sam"""
         try:
             self.samfile = pysam.Samfile(inputFile, "rb")
-            if len(self.samfile.header) == 0:
+            if len(self.samfile.header) == 0:  # type: ignore[arg-type]
                 print("BAM/SAM file has no header section. Exit!", file=sys.stderr)
                 sys.exit(1)
             self.bam_format = True
         except Exception:
             self.samfile = pysam.Samfile(inputFile, "r")
-            if len(self.samfile.header) == 0:
+            if len(self.samfile.header) == 0:  # type: ignore[arg-type]
                 print("BAM/SAM file has no header section. Exit!", file=sys.stderr)
                 sys.exit(1)
             self.bam_format = False
 
-    def stat(self, q_cut=30):
+    def stat(self, q_cut: int = 30) -> None:
         """Calculate mapping statistics"""
         R_total = 0
         R_qc_fail = 0
@@ -107,8 +111,8 @@ class ParseBAM:
                     R_splice += 1
                 if aligned_read.is_proper_pair:
                     R_properPair += 1
-                    R_read1_ref = self.samfile.getrname(aligned_read.tid)
-                    R_read2_ref = self.samfile.getrname(aligned_read.rnext)
+                    R_read1_ref = self.samfile.getrname(aligned_read.tid)  # type: ignore[attr-defined]
+                    R_read2_ref = self.samfile.getrname(aligned_read.rnext)  # type: ignore[attr-defined]
                     if R_read1_ref != R_read2_ref:
                         R_pair_diff_chrom += 1
         print("Done", file=sys.stderr)
@@ -134,7 +138,7 @@ class ParseBAM:
         print("%-40s%d" % ("Reads mapped in proper pairs:", R_properPair), file=sys.stdout)
         print("%-40s%d" % ("Proper-paired reads map to different chrom:", R_pair_diff_chrom), file=sys.stdout)
 
-    def configure_experiment(self, refbed, sample_size, q_cut=30):
+    def configure_experiment(self, refbed: str, sample_size: int, q_cut: int = 30) -> list[str | float]:
         """Given a BAM/SAM file, this function will try to guess the RNA-seq experiment:
         1) single-end or pair-end
         2) strand_specific or not
@@ -143,8 +147,8 @@ class ParseBAM:
 
         # how many reads you want to sample
         count = 0
-        p_strandness = collections.defaultdict(int)
-        s_strandness = collections.defaultdict(int)
+        p_strandness: dict[str, int] = collections.defaultdict(int)
+        s_strandness: dict[str, int] = collections.defaultdict(int)
         # load reference gene model
         gene_ranges = {}
         print("Reading reference gene model " + refbed + " ...", end=" ", file=sys.stderr)
@@ -158,7 +162,6 @@ class ParseBAM:
                     chrom = fields[0]
                     txStart = int(fields[1])
                     txEnd = int(fields[2])
-                    fields[3]
                     strand = fields[5]
                 except Exception:
                     print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
@@ -185,7 +188,7 @@ class ParseBAM:
             if aligned_read.mapq < q_cut:
                 continue
 
-            chrom = self.samfile.getrname(aligned_read.tid)
+            chrom = self.samfile.getrname(aligned_read.tid)  # type: ignore[attr-defined]
             if aligned_read.is_paired:
                 if aligned_read.is_read1:
                     read_id = "1"
@@ -250,8 +253,15 @@ class ParseBAM:
         return [protocol, spec1, spec2, other]
 
     def bamTowig(
-        self, outfile, chrom_sizes, chrom_file, skip_multi=True, strand_rule=None, WigSumFactor=None, q_cut=30
-    ):
+        self,
+        outfile: str,
+        chrom_sizes: dict[str, int],
+        chrom_file: str,
+        skip_multi: bool = True,
+        strand_rule: str | None = None,
+        WigSumFactor: float | None = None,
+        q_cut: int = 30,
+    ) -> None:
         """Convert BAM/SAM file to wig file. chrom_size is dict with chrom as key and chrom_size as value
         strandRule should be determined from \"infer_experiment\". such as \"1++,1--,2+-,2-+\". When
         WigSumFactor is provided, output wig file will be normalized to this number"""
@@ -292,9 +302,9 @@ class ParseBAM:
                     FWO.write("variableStep chrom=" + chr_name + "\n")
                 else:
                     FWO.write("variableStep chrom=" + chr_name + "\n")
-                    RVO.write("variableStep chrom=" + chr_name + "\n")
-                Fwig = collections.defaultdict(int)
-                Rwig = collections.defaultdict(int)
+                    RVO.write("variableStep chrom=" + chr_name + "\n")  # type: ignore[union-attr]
+                Fwig: dict[int, float] = collections.defaultdict(int)
+                Rwig: dict[int, float] = collections.defaultdict(int)
                 alignedReads = self.samfile.fetch(chr_name, 0, chr_size)
                 for aligned_read in _pysam_iter(alignedReads):
                     if aligned_read.is_qcfail:
@@ -381,7 +391,7 @@ class ParseBAM:
                 print('Failed to call "wigToBigWig".', file=sys.stderr)
                 pass
 
-    def calWigSum(self, chrom_sizes, skip_multi=True):
+    def calWigSum(self, chrom_sizes: dict[str, int], skip_multi: bool = True) -> float:
         """Calculate wigsum from BAM file"""
 
         print("Calcualte wigsum ... ", file=sys.stderr)
@@ -434,7 +444,7 @@ class ParseBAM:
                     wigsum += block[2] - block[1]
         return wigsum
 
-    def bam2fq(self, prefix, paired=True):
+    def bam2fq(self, prefix: str, paired: bool = True) -> None:
         """Convert BAM/SAM into fastq files"""
 
         transtab = str.maketrans("ACGTNX", "TGCANX")
@@ -499,7 +509,7 @@ class ParseBAM:
                 print("Done", file=sys.stderr)
             print("read count: %d" % read_count, file=sys.stderr)
 
-    def calculate_rpkm(self, geneFile, outfile, strand_rule=None):
+    def calculate_rpkm(self, geneFile: str, outfile: str, strand_rule: str | None = None) -> None:
         """calculate RPKM vaues. For single end RNA-seq, if it is strand specific, we assume that
         read plus mapped indicates a gene on plus strand.(similar to minus).
         Advantages: works for both SAM and BAM
@@ -577,7 +587,7 @@ class ParseBAM:
 
                 strand_key = read_id + map_strand
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
+                chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
                 hit_st = aligned_read.pos
                 exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
                 total_tags += len(exon_blocks)
@@ -624,9 +634,9 @@ class ParseBAM:
                         strand = fields[5].replace(" ", "_")
 
                         exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                        exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                        exon_starts = [x + tx_start for x in exon_starts]
                         exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                        exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                        exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                         exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                         intron_starts = exon_ends[:-1]
                         intron_ends = exon_starts[1:]
@@ -895,18 +905,17 @@ class ParseBAM:
                             )
             print("Done", file=sys.stderr)
 
-    def readsNVC(self, outfile=None, nx=True, q_cut=30):
+    def readsNVC(self, outfile: str | None = None, nx: bool = True, q_cut: int = 30) -> None:
         """for each read, calculate nucleotide frequency vs position"""
         if outfile is None:
-            outfile1 = self.fileName + ".NVC.xls"
-            outfile2 = self.fileName + ".NVC_plot.r"
+            outfile1 = self.fileName + ".NVC.xls"  # type: ignore[attr-defined]
+            outfile2 = self.fileName + ".NVC_plot.r"  # type: ignore[attr-defined]
         else:
             outfile1 = outfile + ".NVC.xls"
             outfile2 = outfile + ".NVC_plot.r"
         with open(outfile1, "w") as FO, open(outfile2, "w") as RS:
-
             transtab = str.maketrans("ACGTNX", "TGCANX")
-            base_freq = collections.defaultdict(int)
+            base_freq: dict[str, int] = collections.defaultdict(int)
             a_count = []
             c_count = []
             g_count = []
@@ -966,10 +975,11 @@ class ParseBAM:
                     file=RS,
                 )
                 print(
-                    "yn=min(A_count/total,C_count/total,G_count/total,T_count/total,N_count/total,X_count/total)", file=RS
+                    "yn=min(A_count/total,C_count/total,G_count/total,T_count/total,N_count/total,X_count/total)",
+                    file=RS,
                 )
 
-                print('pdf("%s")' % (outfile + ".NVC_plot.pdf"), file=RS)
+                print('pdf("%s")' % (outfile + ".NVC_plot.pdf"), file=RS)  # type: ignore[operator]
                 print(
                     'plot(position,A_count/total,type="o",pch=20,'
                     'ylim=c(yn,ym),col="dark green",'
@@ -997,7 +1007,7 @@ class ParseBAM:
                 print("ym=max(A_count/total,C_count/total,G_count/total,T_count/total) + 0.05", file=RS)
                 print("yn=min(A_count/total,C_count/total,G_count/total,T_count/total)", file=RS)
 
-                print('pdf("%s")' % (outfile + ".NVC_plot.pdf"), file=RS)
+                print('pdf("%s")' % (outfile + ".NVC_plot.pdf"), file=RS)  # type: ignore[operator]
                 print(
                     'plot(position,A_count/total,type="o",pch=20,'
                     'ylim=c(yn,ym),col="dark green",'
@@ -1021,18 +1031,17 @@ class ParseBAM:
 
             # self.f.seek(0)
 
-    def readsQual_boxplot(self, outfile, shrink=1000, q_cut=30):
+    def readsQual_boxplot(self, outfile: str, shrink: int = 1000, q_cut: int = 30) -> None:
         """calculate phred quality score for each base in read (5->3)"""
 
         output = outfile + ".qual.r"
         with open(output, "w") as FO:
-
             if self.bam_format:
                 print("Read BAM file ... ", end=" ", file=sys.stderr)
             else:
                 print("Read SAM file ... ", end=" ", file=sys.stderr)
 
-            quality = collections.defaultdict(dict)  # read_pos=>quality score=>count
+            quality: dict[int, dict[int, int]] = collections.defaultdict(dict)  # read_pos=>quality score=>count
             q_max = -1
             q_min = 10000
             q_list = []
@@ -1106,17 +1115,16 @@ class ParseBAM:
             )
             print("dev.off()", file=FO)
 
-    def readGC(self, outfile=None, q_cut=30):
+    def readGC(self, outfile: str | None = None, q_cut: int = 30) -> None:
         """GC content distribution of reads"""
         if outfile is None:
-            outfile1 = self.fileName + ".GC.xls"
-            outfile2 = self.fileName + ".GC_plot.r"
+            outfile1 = self.fileName + ".GC.xls"  # type: ignore[attr-defined]
+            outfile2 = self.fileName + ".GC_plot.r"  # type: ignore[attr-defined]
         else:
             outfile1 = outfile + ".GC.xls"
             outfile2 = outfile + ".GC_plot.r"
         with open(outfile1, "w") as FO, open(outfile2, "w") as RS:
-
-            gc_hist = collections.defaultdict(int)  # key is GC percent, value is count of reads
+            gc_hist: dict[str, int] = collections.defaultdict(int)  # key is GC percent, value is count of reads
 
             if self.bam_format:
                 print("Read BAM file ... ", end=" ", file=sys.stderr)
@@ -1141,14 +1149,9 @@ class ParseBAM:
                 print(i + "\t" + str(gc_hist[i]), file=FO)
 
             print("writing R script ...", file=sys.stderr)
-            print('pdf("%s")' % (outfile + ".GC_plot.pdf"), file=RS)
+            print('pdf("%s")' % (outfile + ".GC_plot.pdf"), file=RS)  # type: ignore[operator]
             print(
-                "gc=rep(c("
-                + ",".join(gc_hist)
-                + "),"
-                + "times=c("
-                + ",".join(str(i) for i in gc_hist.values())
-                + "))",
+                "gc=rep(c(" + ",".join(gc_hist) + ")," + "times=c(" + ",".join(str(i) for i in gc_hist.values()) + "))",
                 file=RS,
             )
             print(
@@ -1158,23 +1161,22 @@ class ParseBAM:
             )
             print("dev.off()", file=RS)
 
-    def readDupRate(self, q_cut, outfile=None, up_bound=500):
+    def readDupRate(self, q_cut: int, outfile: str | None = None, up_bound: int = 500) -> None:
         """Calculate reads's duplicate rates"""
         if outfile is None:
-            outfile1 = self.fileName + ".seq.DupRate.xls"
-            outfile2 = self.fileName + ".pos.DupRate.xls"
-            outfile3 = self.fileName + ".DupRate_plot.r"
+            outfile1 = self.fileName + ".seq.DupRate.xls"  # type: ignore[attr-defined]
+            outfile2 = self.fileName + ".pos.DupRate.xls"  # type: ignore[attr-defined]
+            outfile3 = self.fileName + ".DupRate_plot.r"  # type: ignore[attr-defined]
         else:
             outfile1 = outfile + ".seq.DupRate.xls"
             outfile2 = outfile + ".pos.DupRate.xls"
             outfile3 = outfile + ".DupRate_plot.r"
         with open(outfile1, "w") as SEQ, open(outfile2, "w") as POS, open(outfile3, "w") as RS:
+            seqDup: dict[str, int] = collections.defaultdict(int)
+            posDup: dict[str, int] = collections.defaultdict(int)
 
-            seqDup = collections.defaultdict(int)
-            posDup = collections.defaultdict(int)
-
-            seqDup_count = collections.defaultdict(int)
-            posDup_count = collections.defaultdict(int)
+            seqDup_count: dict[int, int] = collections.defaultdict(int)
+            posDup_count: dict[int, int] = collections.defaultdict(int)
 
             if self.bam_format:
                 print("Load BAM file ... ", end=" ", file=sys.stderr)
@@ -1192,7 +1194,7 @@ class ParseBAM:
                 RNA_read = aligned_read.seq.upper()
                 seqDup[RNA_read] += 1  # key is read sequence
 
-                chrom = self.samfile.getrname(aligned_read.tid)
+                chrom = self.samfile.getrname(aligned_read.tid)  # type: ignore[attr-defined]
                 hit_st = aligned_read.pos
                 exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
                 for ex in exon_blocks:
@@ -1216,12 +1218,16 @@ class ParseBAM:
                 print(str(k) + "\t" + str(posDup_count[k]), file=POS)
 
             print("generate R script ...", file=sys.stderr)
-            print("pdf('%s')" % (outfile + ".DupRate_plot.pdf"), file=RS)
+            print("pdf('%s')" % (outfile + ".DupRate_plot.pdf"), file=RS)  # type: ignore[operator]
             print("par(mar=c(5,4,4,5),las=0)", file=RS)
             print("seq_occ=c(" + ",".join([str(i) for i in sorted(seqDup_count.keys())]) + ")", file=RS)
-            print("seq_uniqRead=c(" + ",".join([str(seqDup_count[i]) for i in sorted(seqDup_count.keys())]) + ")", file=RS)
+            print(
+                "seq_uniqRead=c(" + ",".join([str(seqDup_count[i]) for i in sorted(seqDup_count.keys())]) + ")", file=RS
+            )
             print("pos_occ=c(" + ",".join([str(i) for i in sorted(posDup_count.keys())]) + ")", file=RS)
-            print("pos_uniqRead=c(" + ",".join([str(posDup_count[i]) for i in sorted(posDup_count.keys())]) + ")", file=RS)
+            print(
+                "pos_uniqRead=c(" + ",".join([str(posDup_count[i]) for i in sorted(posDup_count.keys())]) + ")", file=RS
+            )
             print(
                 "plot(pos_occ,log10(pos_uniqRead),"
                 "ylab='Number of Reads (log10)',"
@@ -1252,13 +1258,12 @@ class ParseBAM:
             print("dev.off()", file=RS)
             # self.f.seek(0)
 
-    def clipping_profile(self, outfile, q_cut, PE, type="S"):
+    def clipping_profile(self, outfile: str, q_cut: int, PE: bool, type: str = "S") -> None:
         """calculate profile of soft clipping or insertion"""
 
         out_file1 = outfile + ".clipping_profile.xls"
         out_file2 = outfile + ".clipping_profile.r"
         with open(out_file1, "w") as OUT, open(out_file2, "w") as ROUT:
-
             print("Position\tClipped_nt\tNon_clipped_nt", file=OUT)
 
             if self.bam_format:
@@ -1271,7 +1276,7 @@ class ParseBAM:
             # single end sequencing
             if PE is False:
                 total_read = 0.0
-                soft_clip_profile = collections.defaultdict(int)
+                soft_clip_profile: dict[int, float] = collections.defaultdict(int)
                 for aligned_read in _pysam_iter(self.samfile):
                     if aligned_read.mapq < q_cut:
                         continue
@@ -1298,7 +1303,8 @@ class ParseBAM:
                 clip_count = []
                 for i in read_pos:
                     print(
-                        str(i) + "\t" + str(soft_clip_profile[i]) + "\t" + str(total_read - soft_clip_profile[i]), file=OUT
+                        str(i) + "\t" + str(soft_clip_profile[i]) + "\t" + str(total_read - soft_clip_profile[i]),
+                        file=OUT,
                     )
                     clip_count.append(soft_clip_profile[i])
 
@@ -1319,8 +1325,8 @@ class ParseBAM:
             if PE is True:
                 total_read1 = 0.0
                 total_read2 = 0.0
-                r1_soft_clip_profile = collections.defaultdict(int)
-                r2_soft_clip_profile = collections.defaultdict(int)
+                r1_soft_clip_profile: dict[int, float] = collections.defaultdict(int)
+                r2_soft_clip_profile: dict[int, float] = collections.defaultdict(int)
                 for aligned_read in _pysam_iter(self.samfile):
                     if aligned_read.mapq < q_cut:
                         continue
@@ -1360,7 +1366,11 @@ class ParseBAM:
                 print("Read-1:", file=OUT)
                 for i in read_pos:
                     print(
-                        str(i) + "\t" + str(r1_soft_clip_profile[i]) + "\t" + str(total_read1 - r1_soft_clip_profile[i]),
+                        str(i)
+                        + "\t"
+                        + str(r1_soft_clip_profile[i])
+                        + "\t"
+                        + str(total_read1 - r1_soft_clip_profile[i]),
                         file=OUT,
                     )
                     r1_clip_count.append(r1_soft_clip_profile[i])
@@ -1368,7 +1378,11 @@ class ParseBAM:
                 print("Read-2:", file=OUT)
                 for i in read_pos:
                     print(
-                        str(i) + "\t" + str(r2_soft_clip_profile[i]) + "\t" + str(total_read2 - r2_soft_clip_profile[i]),
+                        str(i)
+                        + "\t"
+                        + str(r2_soft_clip_profile[i])
+                        + "\t"
+                        + str(total_read2 - r2_soft_clip_profile[i]),
                         file=OUT,
                     )
                     r2_clip_count.append(r2_soft_clip_profile[i])
@@ -1401,13 +1415,12 @@ class ParseBAM:
                 )
                 print("dev.off()", file=ROUT)
 
-    def insertion_profile(self, outfile, q_cut, PE, type="I"):
+    def insertion_profile(self, outfile: str, q_cut: int, PE: bool, type: str = "I") -> None:
         """calculate profile of insertion"""
 
         out_file1 = outfile + ".insertion_profile.xls"
         out_file2 = outfile + ".insertion_profile.r"
         with open(out_file1, "w") as OUT, open(out_file2, "w") as ROUT:
-
             print("Position\tInsert_nt\tNon_insert_nt", file=OUT)
 
             if self.bam_format:
@@ -1420,7 +1433,7 @@ class ParseBAM:
             # single end sequencing
             if PE is False:
                 total_read = 0.0
-                soft_clip_profile = collections.defaultdict(int)
+                soft_clip_profile: dict[int, float] = collections.defaultdict(int)
                 for aligned_read in _pysam_iter(self.samfile):
                     if aligned_read.mapq < q_cut:
                         continue
@@ -1447,7 +1460,8 @@ class ParseBAM:
                 clip_count = []
                 for i in read_pos:
                     print(
-                        str(i) + "\t" + str(soft_clip_profile[i]) + "\t" + str(total_read - soft_clip_profile[i]), file=OUT
+                        str(i) + "\t" + str(soft_clip_profile[i]) + "\t" + str(total_read - soft_clip_profile[i]),
+                        file=OUT,
                     )
                     clip_count.append(soft_clip_profile[i])
 
@@ -1468,8 +1482,8 @@ class ParseBAM:
             if PE is True:
                 total_read1 = 0.0
                 total_read2 = 0.0
-                r1_soft_clip_profile = collections.defaultdict(int)
-                r2_soft_clip_profile = collections.defaultdict(int)
+                r1_soft_clip_profile: dict[int, float] = collections.defaultdict(int)
+                r2_soft_clip_profile: dict[int, float] = collections.defaultdict(int)
                 for aligned_read in _pysam_iter(self.samfile):
                     if aligned_read.mapq < q_cut:
                         continue
@@ -1509,7 +1523,11 @@ class ParseBAM:
                 print("Read-1:", file=OUT)
                 for i in read_pos:
                     print(
-                        str(i) + "\t" + str(r1_soft_clip_profile[i]) + "\t" + str(total_read1 - r1_soft_clip_profile[i]),
+                        str(i)
+                        + "\t"
+                        + str(r1_soft_clip_profile[i])
+                        + "\t"
+                        + str(total_read1 - r1_soft_clip_profile[i]),
                         file=OUT,
                     )
                     r1_clip_count.append(r1_soft_clip_profile[i])
@@ -1517,7 +1535,11 @@ class ParseBAM:
                 print("Read-2:", file=OUT)
                 for i in read_pos:
                     print(
-                        str(i) + "\t" + str(r2_soft_clip_profile[i]) + "\t" + str(total_read2 - r2_soft_clip_profile[i]),
+                        str(i)
+                        + "\t"
+                        + str(r2_soft_clip_profile[i])
+                        + "\t"
+                        + str(total_read2 - r2_soft_clip_profile[i]),
                         file=OUT,
                     )
                     r2_clip_count.append(r2_soft_clip_profile[i])
@@ -1552,14 +1574,16 @@ class ParseBAM:
                 )
                 print("dev.off()", file=ROUT)
 
-    def coverageGeneBody(self, refbed, outfile):
+    def coverageGeneBody(self, refbed: str | None, outfile: str) -> None:
         """Calculate reads coverage over gene body, from 5'to 3'. each gene will be equally divided
         into 100 regsions"""
         if refbed is None:
             print("You must specify a bed file representing gene model\n", file=sys.stderr)
-            exit(0)
-        with open(outfile + ".geneBodyCoverage_plot.r", "w") as OUT1, open(outfile + ".geneBodyCoverage.txt", "w") as OUT2:
-
+            sys.exit(1)
+        with (
+            open(outfile + ".geneBodyCoverage_plot.r", "w") as OUT1,
+            open(outfile + ".geneBodyCoverage.txt", "w") as OUT2,
+        ):
             ranges = {}
             totalReads = 0
             fragment_num = 0  # splice reads will counted twice
@@ -1581,7 +1605,7 @@ class ParseBAM:
                     continue  # skip unmap read
                 totalReads += 1
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
+                chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
                 hit_st = aligned_read.pos
                 exon_blocks = bam_cigar.fetch_exon(chrom, hit_st, aligned_read.cigar)
                 fragment_num += len(exon_blocks)
@@ -1593,7 +1617,7 @@ class ParseBAM:
             print("Done", file=sys.stderr)
 
             print("calculating coverage over gene body ...", file=sys.stderr)
-            coverage = collections.defaultdict(int)
+            coverage: dict[int, int] = collections.defaultdict(int)
             with open(refbed, "r") as _fh:
                 for line in _fh:
                     try:
@@ -1603,19 +1627,17 @@ class ParseBAM:
                         fields = line.split()
                         chrom = fields[0].upper()
                         tx_start = int(fields[1])
-                        int(fields[2])
-                        fields[3]
                         strand = fields[5]
 
                         exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                        exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                        exon_starts = [x + tx_start for x in exon_starts]
                         exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                        exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                        exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                     except Exception:
                         print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                         continue
-                    gene_all_base = []
-                    percentile_base = []
+                    gene_all_base: list[int] = []
+                    percentile_base: list[Any] = []
                     mRNA_len = 0
                     for st, end in zip(exon_starts, exon_ends):
                         gene_all_base.extend(list(range(st + 1, end + 1)))  # 0-based coordinates on genome
@@ -1626,7 +1648,7 @@ class ParseBAM:
                         gene_all_base.sort(reverse=True)  # deal with gene on minus stand
                     else:
                         gene_all_base.sort(reverse=False)
-                    percentile_base = mystat.percentile_list(gene_all_base)  # get 101 points from each gene's coordinates
+                    percentile_base = mystat.percentile_list(gene_all_base)  # type: ignore[assignment,arg-type]  # get 101 points from each gene's coordinates
 
                     for i in range(0, len(percentile_base)):
                         if chrom in ranges:
@@ -1646,7 +1668,16 @@ class ParseBAM:
             print("plot(x,y,xlab=\"percentile of gene body (5'->3')\",ylab='read number',type='s')", file=OUT1)
             print("dev.off()", file=OUT1)
 
-    def mRNA_inner_distance(self, outfile, refbed, low_bound=0, up_bound=1000, step=10, sample_size=1000000, q_cut=30):
+    def mRNA_inner_distance(
+        self,
+        outfile: str,
+        refbed: str,
+        low_bound: int = 0,
+        up_bound: int = 1000,
+        step: int = 10,
+        sample_size: int = 1000000,
+        q_cut: int = 30,
+    ) -> None:
         """estimate the inner distance of mRNA pair end fragment. fragment size = insert_size + 2 x read_length"""
 
         out_file1 = outfile + ".inner_distance.txt"
@@ -1654,7 +1685,6 @@ class ParseBAM:
         out_file3 = outfile + ".inner_distance_plot.r"
 
         with open(out_file1, "w") as FO, open(out_file2, "w") as FQ, open(out_file3, "w") as RS:
-
             fchrom = "chr100"  # this is the fake chromosome
             ranges = {}
             ranges[fchrom] = Intersecter()
@@ -1679,7 +1709,7 @@ class ParseBAM:
 
             transcript_ranges = {}
             for i_chr, i_st, i_end, i_strand, i_name in bed_obj.getTranscriptRanges():
-                i_chr = i_chr.upper()
+                i_chr = i_chr.upper()  # type: ignore[union-attr]
                 if i_chr not in transcript_ranges:
                     transcript_ranges[i_chr] = Intersecter()
                 else:
@@ -1721,13 +1751,15 @@ class ParseBAM:
                 pair_num += 1
 
                 # check if reads were mapped to diff chromsomes
-                R_read1_ref = self.samfile.getrname(aligned_read.tid)
-                R_read2_ref = self.samfile.getrname(aligned_read.rnext)
+                R_read1_ref = self.samfile.getrname(aligned_read.tid)  # type: ignore[attr-defined]
+                R_read2_ref = self.samfile.getrname(aligned_read.rnext)  # type: ignore[attr-defined]
                 if R_read1_ref != R_read2_ref:
-                    FO.write(aligned_read.qname + "\t" + "NA" + "\tsameChrom=No\n")  # reads mapped to different chromosomes
+                    FO.write(
+                        aligned_read.qname + "\t" + "NA" + "\tsameChrom=No\n"
+                    )  # reads mapped to different chromosomes
                     continue
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
+                chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
                 intron_blocks = bam_cigar.fetch_intron(chrom, read1_start, aligned_read.cigar)
                 for intron in intron_blocks:
                     splice_intron_size += intron[2] - intron[1]
@@ -1745,7 +1777,9 @@ class ParseBAM:
 
                 read1_gene_names = set()  # read1_end
                 try:
-                    for gene in transcript_ranges[chrom].find(read1_end - 1, read1_end):  # gene: Interval(0, 10, value=a)
+                    for gene in transcript_ranges[chrom].find(
+                        read1_end - 1, read1_end
+                    ):  # gene: Interval(0, 10, value=a)
                         read1_gene_names.add(gene.value)
                 except Exception:
                     pass
@@ -1786,7 +1820,9 @@ class ParseBAM:
                             )
                             ranges[fchrom].add_interval(Interval(size - 1, size))
                         elif size > 0 and size < inner_distance:
-                            FO.write(aligned_read.qname + "\t" + str(size) + "\tsameTranscript=Yes,sameExon=No,dist=mRNA\n")
+                            FO.write(
+                                aligned_read.qname + "\t" + str(size) + "\tsameTranscript=Yes,sameExon=No,dist=mRNA\n"
+                            )
                             ranges[fchrom].add_interval(Interval(size - 1, size))
                         elif size <= 0:
                             FO.write(
@@ -1807,16 +1843,16 @@ class ParseBAM:
             print("Total read pairs  used " + str(pair_num), file=sys.stderr)
             if pair_num == 0:
                 print("Cannot find paired reads", file=sys.stderr)
-                sys.exit(0)
+                sys.exit(1)
 
             for st in window_left_bound:
                 sizes.append(str(st + step / 2))
-                count = str(len(ranges[fchrom].find(st, st + step)))
+                count = str(len(ranges[fchrom].find(st, st + step)))  # type: ignore[assignment]
                 counts.append(count)
-                print(str(st) + "\t" + str(st + step) + "\t" + count, file=FQ)
+                print(str(st) + "\t" + str(st + step) + "\t" + count, file=FQ)  # type: ignore[operator]
             print("out_file = '%s'" % outfile, file=RS)
             print("pdf('%s')" % (outfile + ".inner_distance_plot.pdf"), file=RS)
-            print("fragsize=rep(c(" + ",".join(sizes) + ")," + "times=c(" + ",".join(counts) + "))", file=RS)
+            print("fragsize=rep(c(" + ",".join(sizes) + ")," + "times=c(" + ",".join(counts) + "))", file=RS)  # type: ignore[arg-type]
             print("frag_sd = sd(fragsize)", file=RS)
             print("frag_mean = mean(fragsize)", file=RS)
             print("frag_median = median(fragsize)", file=RS)
@@ -1834,7 +1870,7 @@ class ParseBAM:
             print("dev.off()", file=RS)
             # self.f.seek(0)
 
-    def annotate_junction(self, refgene, outfile, min_intron=50, q_cut=30):
+    def annotate_junction(self, refgene: str | None, outfile: str, min_intron: int = 50, q_cut: int = 30) -> None:
         """Annotate splicing junctions in BAM or SAM file. Note that a (long) read might have multiple splicing
         events  (splice multiple times), and the same splicing events can be consolidated into a single
         junction"""
@@ -1845,16 +1881,15 @@ class ParseBAM:
             print("You must provide reference gene model in bed format.", file=sys.stderr)
             sys.exit(1)
         with open(out_file, "w") as OUT, open(out_file2, "w") as ROUT:
-
             # reading reference gene model
-            refIntronStarts = collections.defaultdict(dict)
-            refIntronEnds = collections.defaultdict(dict)
+            refIntronStarts: dict[str, dict[int, int]] = collections.defaultdict(dict)
+            refIntronEnds: dict[str, dict[int, int]] = collections.defaultdict(dict)
             total_junc = 0
             novel35_junc = 0
             novel3or5_junc = 0
             known_junc = 0
             filtered_junc = 0
-            splicing_events = collections.defaultdict(int)
+            splicing_events: dict[str, int] = collections.defaultdict(int)
 
             print("Reading reference bed file: ", refgene, " ... ", end=" ", file=sys.stderr)
             with open(refgene, "r") as _fh:
@@ -1868,14 +1903,13 @@ class ParseBAM:
                         continue
                     chrom = fields[0].upper()
                     tx_start = int(fields[1])
-                    int(fields[2])
                     if int(fields[9] == 1):
                         continue
 
                     exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                    exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                    exon_starts = [x + tx_start for x in exon_starts]
                     exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                    exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                     intron_start = exon_ends[:-1]
                     intron_end = exon_starts[1:]
                     for i_st, i_end in zip(intron_start, intron_end):
@@ -1901,7 +1935,7 @@ class ParseBAM:
                 if aligned_read.mapq < q_cut:
                     continue
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
+                chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
                 hit_st = aligned_read.pos
                 intron_blocks = bam_cigar.fetch_intron(chrom, hit_st, aligned_read.cigar)
                 if len(intron_blocks) == 0:
@@ -1964,9 +1998,9 @@ class ParseBAM:
             print("chrom\tintron_st(0-based)\tintron_end(1-based)\tread_count\tannotation", file=OUT)
             for i in splicing_events:
                 total_junc += 1
-                (chrom, i_st, i_end) = i.split(":")
+                (chrom, i_st, i_end) = i.split(":")  # type: ignore[assignment]
                 print(
-                    "\t".join([chrom.replace("CHR", "chr"), i_st, i_end]) + "\t" + str(splicing_events[i]) + "\t",
+                    "\t".join([chrom.replace("CHR", "chr"), i_st, i_end]) + "\t" + str(splicing_events[i]) + "\t",  # type: ignore[list-item]
                     end=" ",
                     file=OUT,
                 )
@@ -2022,12 +2056,19 @@ class ParseBAM:
             )
             print("dev.off()", file=ROUT)
 
-    def junction_freq(self, chrom, st, end, known_junctions, q_cut=30):
+    def junction_freq(
+        self,
+        chrom: str,
+        st: int,
+        end: int,
+        known_junctions: set[str] | dict[str, Any],
+        q_cut: int = 30,
+    ) -> dict[str, int]:
         """
         return number of splicing reads for each known junction
         """
 
-        junc_freq = collections.defaultdict(int)
+        junc_freq: dict[str, int] = collections.defaultdict(int)
         try:
             alignedReads = self.samfile.fetch(chrom, st, end)
         except Exception:
@@ -2041,10 +2082,10 @@ class ParseBAM:
                 continue  # skip non primary hit
             if aligned_read.is_unmapped:
                 continue  # skip unmap read
-            if aligned_read.mapq < q_cut:
+            if aligned_read.mapq < q_cut:  # type: ignore[attr-defined]
                 continue
 
-            intron_blocks = bam_cigar.fetch_intron(chrom, aligned_read.pos, aligned_read.cigar)
+            intron_blocks = bam_cigar.fetch_intron(chrom, aligned_read.pos, aligned_read.cigar)  # type: ignore[attr-defined]
             if len(intron_blocks) == 0:
                 continue
             for intrn in intron_blocks:
@@ -2061,17 +2102,24 @@ class ParseBAM:
         return junc_freq
 
     def saturation_junction(
-        self, refgene, outfile=None, sample_start=5, sample_step=5, sample_end=100, min_intron=50, recur=1, q_cut=30
-    ):
+        self,
+        refgene: str | None,
+        outfile: str | None = None,
+        sample_start: int = 5,
+        sample_step: int = 5,
+        sample_end: int = 100,
+        min_intron: int = 50,
+        recur: int = 1,
+        q_cut: int = 30,
+    ) -> None:
         """check if an RNA-seq experiment is saturated in terms of detecting known splicing junction"""
 
-        out_file = outfile + ".junctionSaturation_plot.r"
+        out_file = outfile + ".junctionSaturation_plot.r"  # type: ignore[operator]
         if refgene is None:
             print("You must provide reference gene model in bed format.", file=sys.stderr)
             sys.exit(1)
 
         with open(out_file, "w") as OUT:
-
             # reading reference gene
             knownSpliceSites = set()
             chrom_list = set()
@@ -2087,14 +2135,13 @@ class ParseBAM:
                     chrom = fields[0].upper()
                     chrom_list.add(chrom)
                     tx_start = int(fields[1])
-                    int(fields[2])
                     if int(fields[9] == 1):
                         continue
 
                     exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                    exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                    exon_starts = [x + tx_start for x in exon_starts]
                     exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                    exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                     intron_start = exon_ends[:-1]
                     intron_end = exon_starts[1:]
                     for st, end in zip(intron_start, intron_end):
@@ -2105,7 +2152,7 @@ class ParseBAM:
             samSpliceSites = []
             intron_start = []
             intron_end = []
-            uniqSpliceSites = collections.defaultdict(int)
+            uniqSpliceSites: dict[str, int] = collections.defaultdict(int)
 
             if self.bam_format:
                 print("Load BAM file ... ", end=" ", file=sys.stderr)
@@ -2113,7 +2160,7 @@ class ParseBAM:
                 print("Load SAM file ... ", end=" ", file=sys.stderr)
             for aligned_read in _pysam_iter(self.samfile):
                 try:
-                    chrom = self.samfile.getrname(aligned_read.tid).upper()
+                    chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
                 except Exception:
                     continue
                 if chrom not in chrom_list:
@@ -2160,7 +2207,9 @@ class ParseBAM:
                     index_st = 0
                 sample_size += index_end - index_st
 
-                print("sampling " + str(pertl) + "% (" + str(sample_size) + ") splicing reads.", end=" ", file=sys.stderr)
+                print(
+                    "sampling " + str(pertl) + "% (" + str(sample_size) + ") splicing reads.", end=" ", file=sys.stderr
+                )
 
                 # all splice juntion
                 for i in range(index_st, index_end):
@@ -2185,7 +2234,7 @@ class ParseBAM:
                 unknown_junc.append(str(unknown_junctionNum))
                 print(str(unknown_junctionNum) + " novel splicing junctions.", file=sys.stderr)
 
-            print("pdf('%s')" % (outfile + ".junctionSaturation_plot.pdf"), file=OUT)
+            print("pdf('%s')" % (outfile + ".junctionSaturation_plot.pdf"), file=OUT)  # type: ignore[operator]
             print("x=c(" + ",".join([str(i) for i in tmp]) + ")", file=OUT)
             print("y=c(" + ",".join(known_junc) + ")", file=OUT)
             print("z=c(" + ",".join(all_junc) + ")", file=OUT)
@@ -2220,33 +2269,32 @@ class ParseBAM:
 
     def saturation_RPKM(
         self,
-        refbed,
-        outfile,
-        sample_start=5,
-        sample_step=5,
-        sample_end=100,
-        skip_multi=True,
-        strand_rule=None,
-        q_cut=30,
-    ):
+        refbed: str | None,
+        outfile: str,
+        sample_start: int = 5,
+        sample_step: int = 5,
+        sample_end: int = 100,
+        skip_multi: bool = True,
+        strand_rule: str | None = None,
+        q_cut: int = 30,
+    ) -> None:
         """for each gene, check if its RPKM (epxresion level) has already been saturated or not"""
 
         if refbed is None:
             print("You must specify a bed file representing gene model\n", file=sys.stderr)
-            exit(0)
+            sys.exit(1)
         rpkm_file = outfile + ".eRPKM.xls"
         raw_file = outfile + ".rawCount.xls"
 
         with open(rpkm_file, "w") as RPKM_OUT, open(raw_file, "w") as RAW_OUT:
-
-            ranges = {}
+            ranges: dict[str, Intersecter] = {}
             cUR_num = 0  # number of fragements
             cUR_plus = 0
             cUR_minus = 0
-            block_list_plus = []  # non-spliced read AS IS, splicing reads were counted multiple times
-            block_list_minus = []
-            block_list = []
-            strandRule = {}
+            block_list_plus: list[str] = []  # non-spliced read AS IS, splicing reads were counted multiple times
+            block_list_minus: list[str] = []
+            block_list: list[str] = []
+            strandRule: dict[str, str] = {}
 
             if strand_rule is None:  # Not strand-specific
                 pass
@@ -2278,7 +2326,7 @@ class ParseBAM:
                 if skip_multi:
                     if aligned_read.mapq < q_cut:
                         continue
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
+                chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
 
                 # determine read_id and read_strand
                 if aligned_read.is_paired:  # pair end
@@ -2322,10 +2370,10 @@ class ParseBAM:
             random.shuffle(block_list)
             print("Done", file=sys.stderr)
 
-            ranges_plus = {}
-            ranges_minus = {}
+            ranges_plus: dict[str, Intersecter] = {}
+            ranges_minus: dict[str, Intersecter] = {}
             ranges = {}
-            sample_size = 0
+            sample_size: float = 0
             RPKM_table = collections.defaultdict(list)
             rawCount_table = collections.defaultdict(list)
             RPKM_head = ["#chr", "start", "end", "name", "score", "strand"]
@@ -2393,9 +2441,9 @@ class ParseBAM:
                             geneName = fields[3]
                             strand = fields[5]
                             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                            exon_starts = [x + tx_start for x in exon_starts]
                             exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                            exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                             exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                             key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
                         except Exception:
@@ -2433,25 +2481,32 @@ class ParseBAM:
                 print(key + "\t", end=" ", file=RAW_OUT)
                 print("\t".join(rawCount_table[key]), file=RAW_OUT)
 
-    def shuffle_RPKM(self, refbed, outfile, sample_percentage=0.5, shuffle_times=50, skip_multi=True, strand_rule=None):
+    def shuffle_RPKM(
+        self,
+        refbed: str | None,
+        outfile: str,
+        sample_percentage: float = 0.5,
+        shuffle_times: int = 50,
+        skip_multi: bool = True,
+        strand_rule: str | None = None,
+    ) -> None:
         """for each gene, check if its RPKM (epxresion level) has already been saturated or not"""
 
         if refbed is None:
             print("You must specify a bed file representing gene model\n", file=sys.stderr)
-            exit(0)
+            sys.exit(1)
         rpkm_file = outfile + ".eRPKM.xls"
         raw_file = outfile + ".rawCount.xls"
 
         with open(rpkm_file, "w") as RPKM_OUT, open(raw_file, "w") as RAW_OUT:
-
-            ranges = {}
+            ranges: dict[str, Intersecter] = {}
             cUR_num = 0  # number of fragements
             cUR_plus = 0
             cUR_minus = 0
-            block_list_plus = []  # non-spliced read AS IS, splicing reads were counted multiple times
-            block_list_minus = []
-            block_list = []
-            strandRule = {}
+            block_list_plus: list[str] = []  # non-spliced read AS IS, splicing reads were counted multiple times
+            block_list_minus: list[str] = []
+            block_list: list[str] = []
+            strandRule: dict[str, str] = {}
 
             if strand_rule is None:  # Not strand-specific
                 pass
@@ -2490,7 +2545,7 @@ class ParseBAM:
                 if flag == 1:
                     continue  # skip multiple map read
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()
+                chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
 
                 # determine read_id and read_strand
                 if aligned_read.is_paired:  # pair end
@@ -2537,6 +2592,7 @@ class ParseBAM:
             for x in range(0, shuffle_times + 1):
                 print("Shuffle " + str(iter_times) + " times", file=sys.stderr)
                 iter_times += 1
+                sample_percent: float
                 if iter_times == shuffle_times:
                     sample_percent = 1
                 else:
@@ -2579,9 +2635,9 @@ class ParseBAM:
                             geneName = fields[3]
                             strand = fields[5]
                             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                            exon_starts = [x + tx_start for x in exon_starts]
                             exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                            exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                             exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                             key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
                         except Exception:
@@ -2619,7 +2675,7 @@ class ParseBAM:
                 print(key + "\t", end=" ", file=RAW_OUT)
                 print("\t".join(rawCount_table[key]), file=RAW_OUT)
 
-    def fetchAlignments(self, chr, st, end):
+    def fetchAlignments(self, chr: str, st: int, end: int) -> Generator[Any, None, None] | None:
         """fetch alignment from sorted BAM file based on chr, st, end
         Note: BAM file must be indexed"""
         try:
@@ -2627,13 +2683,12 @@ class ParseBAM:
         except Exception:
             return None
 
-    def mismatchProfile(self, read_length, read_num, outfile, q_cut=30):
+    def mismatchProfile(self, read_length: int, read_num: int, outfile: str, q_cut: int = 30) -> None:
         """
         Calculate mismatch profile. Note that the "MD" tag must exist.
         """
 
         with open(outfile + ".mismatch_profile.xls", "w") as DOUT, open(outfile + ".mismatch_profile.r", "w") as ROUT:
-
             # reading input SAM file
             if self.bam_format:
                 print("Process BAM file ... ", end=" ", file=sys.stderr)
@@ -2644,7 +2699,8 @@ class ParseBAM:
             re.compile(r"([0-9]+)([A-Z]+)", re.I)
 
             count = 0
-            data = collections.defaultdict(dict)  # data[read_coord][genotype] = geno_type_number
+            # data[read_coord][genotype] = geno_type_number
+            data: dict[int, dict[str, int]] = collections.defaultdict(dict)
             for aligned_read in _pysam_iter(self.samfile):
                 if count >= read_num:
                     print("Total reads used: " + str(count), file=sys.stderr)
@@ -2743,7 +2799,6 @@ class ParseBAM:
                         tmp.append(0)
                 print("\t".join([str(i) for i in tmp]), file=DOUT)
 
-
             # write Rscript
             r_data = collections.defaultdict(list)
             for gt in all_genotypes:
@@ -2764,7 +2819,9 @@ class ParseBAM:
             )
 
             print("y_up_bound = max(c(%s))" % (",".join(["log10(" + str(i) + "+1)" for i in all_genotypes])), file=ROUT)
-            print("y_low_bound = min(c(%s))" % (",".join(["log10(" + str(i) + "+1)" for i in all_genotypes])), file=ROUT)
+            print(
+                "y_low_bound = min(c(%s))" % (",".join(["log10(" + str(i) + "+1)" for i in all_genotypes])), file=ROUT
+            )
 
             print('pdf("%s")' % (outfile + ".mismatch_profile.pdf"), file=ROUT)
             count = 1
@@ -2788,14 +2845,13 @@ class ParseBAM:
             )
             print("dev.off()", file=ROUT)
 
-    def deletionProfile(self, read_length, read_num, outfile, q_cut=30):
+    def deletionProfile(self, read_length: int, read_num: int, outfile: str, q_cut: int = 30) -> None:
         """
         Calculate deletion profile.
         Deletion: Deletion from the read (relative to the reference), CIGAR operator 'D'
         """
 
         with open(outfile + ".deletion_profile.txt", "w") as DOUT, open(outfile + ".deletion_profile.r", "w") as ROUT:
-
             # reading input SAM file
             if self.bam_format:
                 print("Process BAM file ... ", end=" ", file=sys.stderr)
@@ -2803,7 +2859,7 @@ class ParseBAM:
                 print("Process SAM file ... ", end=" ", file=sys.stderr)
 
             count = 0
-            del_postns = collections.defaultdict(int)  # key: position of read. value: deletion times
+            del_postns: dict[int, int] = collections.defaultdict(int)  # key: position of read. value: deletion times
             # del_sizes = collections.defaultdict(int)   #key: deletion size. value: deletion frequency of this size
             for aligned_read in _pysam_iter(self.samfile):
                 if count >= read_num:
@@ -2868,11 +2924,13 @@ class ParseBAM:
             print('pdf("%s")' % (outfile + ".deletion_profile.pdf"), file=ROUT)
             print("pos=c(%s)" % ",".join([str(i) for i in range(0, read_length)]), file=ROUT)
             print("value=c(%s)" % ",".join([i for i in del_count]), file=ROUT)
-            print("plot(pos,value,type='b', col='blue',xlab=\"Read position (5'->3')\", ylab='Deletion count')", file=ROUT)
+            print(
+                "plot(pos,value,type='b', col='blue',xlab=\"Read position (5'->3')\", ylab='Deletion count')", file=ROUT
+            )
             print("dev.off()", file=ROUT)
 
 
-def print_bits_as_bed(bits):
+def print_bits_as_bed(bits: BinnedBitSet) -> None:
     end = 0
     while 1:
         start = bits.next_set(end)

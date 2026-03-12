@@ -120,7 +120,7 @@ def main():
     for file in [args.in_file, args.out_file]:
         if not (file):
             parser.print_help()
-            sys.exit(0)
+            sys.exit(1)
 
     scbam.barcode_edits(
         infile=args.in_file,

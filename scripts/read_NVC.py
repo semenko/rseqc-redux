@@ -58,7 +58,7 @@ def main():
 
     if not (args.output_prefix and args.input_file):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if os.path.exists(args.input_file):
         obj = SAM.ParseBAM(args.input_file)
         obj.readsNVC(outfile=args.output_prefix, nx=args.unknown_nucleotide, q_cut=args.map_qual)
@@ -69,7 +69,7 @@ def main():
     else:
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
         # parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

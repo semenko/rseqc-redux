@@ -44,11 +44,11 @@ def main():
 
     if not (args.input_file and args.output_prefix and args.layout):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     for input_file in [args.input_file]:
         if not os.path.exists(input_file):
             print("\n\n" + input_file + " does NOT exists" + "\n", file=sys.stderr)
-            sys.exit(0)
+            sys.exit(1)
 
     obj = SAM.ParseBAM(args.input_file)
     if args.layout == "SE":

@@ -135,17 +135,17 @@ default=%(default)s (no highlight)",
     for file in [args.in_file, args.out_file]:
         if not (file):
             parser.print_help()
-            sys.exit(0)
+            sys.exit(1)
     if args.in_format not in ["fa", "fq"]:
         logging.error("--format takes 'fq' or 'fa' as argument.")
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if args.shade_below < 0 or args.shade_below > 1:
         logging.error("The shade_below value must be between 0 and 1")
-        sys.exit(0)
+        sys.exit(1)
     if args.fade_below < 0 or args.fade_below > 1:
         logging.error("The fade_below value must be between 0 and 1")
-        sys.exit(0)
+        sys.exit(1)
 
     if args.in_format.lower() == "fq":
         file_iter = fastq.fastq_iter(args.in_file, mode="seq")

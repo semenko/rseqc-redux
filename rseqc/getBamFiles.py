@@ -15,7 +15,7 @@ import sys
 from os.path import abspath, getsize, join
 
 
-def isbamfile(infile):
+def isbamfile(infile: str) -> bool:
     """check if it is bam file, if it is empty and if the .bai file exists"""
     if os.path.isfile(infile) and infile[-4:].lower() == ".bam":
         if getsize(infile) != 0:
@@ -31,7 +31,7 @@ def isbamfile(infile):
         return False
 
 
-def get_bam_files(input, printit=False):
+def get_bam_files(input: str, printit: bool = False) -> list[str]:
     bam_files = []
 
     # dir

@@ -98,10 +98,10 @@ def main():
     for file in [args.bam_file]:
         if not (file):
             parser.print_help()
-            sys.exit(0)
+            sys.exit(1)
         if not (file + ".bai"):
             logging.error("Cannot find the BAM index file.")
-            sys.exit(0)
+            sys.exit(1)
 
     scbam.mapping_stat(
         infile=args.bam_file,

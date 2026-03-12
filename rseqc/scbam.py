@@ -2,17 +2,21 @@
 Analzye 10X genomics single cell BAM files.
 """
 
+from __future__ import annotations
+
 import collections
 import logging
 import re
 import subprocess
 import sys
+from collections.abc import Generator
+from typing import Any
 
 import pandas as pd
 import pysam
 
 
-def _pysam_iter(samfile):
+def _pysam_iter(samfile: pysam.AlignmentFile) -> Generator[pysam.AlignedSegment, None, None]:
     """Iterate over pysam AlignmentFile, handling ValueError on Python 3.13+."""
     try:
         yield from samfile
@@ -20,7 +24,7 @@ def _pysam_iter(samfile):
         return
 
 
-def diff_str(s1, s2):
+def diff_str(s1: str, s2: str) -> list[list[Any]]:
     """
     Comparing orignal barcode to the corrected barcode
     find the index and the nucleotide that has been corrected.
@@ -34,7 +38,7 @@ def diff_str(s1, s2):
             the corrrected barcode
 
     """
-    results = []
+    results: list[list[Any]] = []
     if len(s1) != len(s2):
         return results
     diff_positions = [i for i in range(len(s1)) if s1[i] != s2[i]]
@@ -43,7 +47,7 @@ def diff_str(s1, s2):
     return results
 
 
-def read_match_type(cigar_str):
+def read_match_type(cigar_str: str) -> str:
     """return the matching type between read and ref"""
     match_type = ""
     if bool(re.search(r"\A\d+M\Z", cigar_str)):
@@ -63,7 +67,7 @@ def read_match_type(cigar_str):
     return match_type
 
 
-def list2str(lst):
+def list2str(lst: list[tuple[int, int]]) -> str:
     """
     translate samtools returned cigar_list into cigar_string
     """
@@ -74,7 +78,7 @@ def list2str(lst):
     return cigar_str
 
 
-def barcode_edits(infile, outfile, step_size=10000, limit=2000000, CR_tag="CR", CB_tag="CB", UR_tag="UR", UB_tag="UB"):
+def barcode_edits(infile: str, outfile: str, step_size: int = 10000, limit: int = 2000000, CR_tag: str = "CR", CB_tag: str = "CB", UR_tag: str = "UR", UB_tag: str = "UB") -> None:
     """
     Analzye barcode in BAM file.
 
@@ -95,19 +99,19 @@ def barcode_edits(infile, outfile, step_size=10000, limit=2000000, CR_tag="CR", 
     CB_miss = 0  # number of reads without cell barcode
     CB_same = 0  # number of reads whose original cell barcode same as edited barcode
     CB_diff = 0  # number of reads whose cell barcode has been edited
-    CB_freq = collections.defaultdict(int)  # cell barcode: raw reads
-    CB_corrected_bases = collections.defaultdict(dict)
+    CB_freq: dict[str, int] = collections.defaultdict(int)  # cell barcode: raw reads
+    CB_corrected_bases: dict[int, dict[str, int]] = collections.defaultdict(dict)
 
     UMI_miss = 0
     UMI_same = 0
     UMI_diff = 0
-    UMI_freq = collections.defaultdict(int)  # UMI : raw reads
-    UMI_corrected_bases = collections.defaultdict(dict)
+    UMI_freq: dict[str, int] = collections.defaultdict(int)  # UMI : raw reads
+    UMI_corrected_bases: dict[int, dict[str, int]] = collections.defaultdict(dict)
 
     total_alignments = 0
     for aligned_read in _pysam_iter(samfile):
         total_alignments += 1
-        tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
+        tag_dict = dict(aligned_read.tags)  # type: ignore[attr-defined]  # {'NM': 1, 'RG': 'L1'}
 
         original_CB = ""
         corrected_CB = ""
@@ -193,17 +197,17 @@ def barcode_edits(infile, outfile, step_size=10000, limit=2000000, CR_tag="CR", 
 
 
 def mapping_stat(
-    infile,
-    step_size=50000,
-    CB_tag="CB",
-    UMI_tag="UB",
-    RE_tag="RE",
-    TX_tag="TX",
-    AN_tag="AN",
-    xf_tag="xf",
-    chrM_id="chrM",
-    n_thread=1,
-):
+    infile: str,
+    step_size: int = 50000,
+    CB_tag: str = "CB",
+    UMI_tag: str = "UB",
+    RE_tag: str = "RE",
+    TX_tag: str = "TX",
+    AN_tag: str = "AN",
+    xf_tag: str = "xf",
+    chrM_id: str = "chrM",
+    n_thread: int = 1,
+) -> None:
     """
     Reads mapping statistics
 
@@ -221,7 +225,7 @@ def mapping_stat(
     logging.info('Reading BAM file "%s" ...' % infile)
     try:
         # older versions of pysam
-        samfile = pysam.AlignmentFile(infile, mode="rb", require_index=True, thread=n_thread)
+        samfile = pysam.AlignmentFile(infile, mode="rb", require_index=True, thread=n_thread)  # type: ignore[call-arg]
     except Exception:
         # latest verion of pysam (v0.19.1)
         samfile = pysam.AlignmentFile(infile, mode="rb", require_index=True, threads=n_thread)
@@ -229,7 +233,7 @@ def mapping_stat(
         pass
     else:
         logging.error("Cannot find the index file")
-        sys.exit(0)
+        sys.exit(1)
     chrom_info = zip(samfile.references, samfile.lengths)  # [('chr1', 195471971), ('chr10', 130694993),...]
 
     total_alignments = 0
@@ -263,7 +267,7 @@ def mapping_stat(
 
     chrM_reads = 0
     # read match type
-    read_type = collections.defaultdict(int)
+    read_type: dict[str, int] = collections.defaultdict(int)
 
     for chr_id, chr_len in chrom_info:
         logging.info('Processing "%s" ...' % chr_id)
@@ -276,8 +280,8 @@ def mapping_stat(
                 total_alignments += 1
                 chrom_count += 1
                 read_id = aligned_read.query_name
-                tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
-                cigar_str = list2str(aligned_read.cigar)
+                tag_dict = dict(aligned_read.tags)  # type: ignore[attr-defined]  # {'NM': 1, 'RG': 'L1'}
+                cigar_str = list2str(aligned_read.cigar)  # type: ignore[attr-defined]
                 chrom_total_reads.add(read_id)
 
                 # confident alignments
@@ -323,7 +327,7 @@ def mapping_stat(
                         other_reads2 += 1
 
                     # map type
-                    cigar_str = list2str(aligned_read.cigar)
+                    cigar_str = list2str(aligned_read.cigar)  # type: ignore[attr-defined]
                     tmp = read_match_type(cigar_str)
                     read_type[tmp] += 1
 
@@ -420,7 +424,7 @@ def mapping_stat(
     print("")
 
 
-def readCount(infile, outfile, step_size=10000, limit=1000000, csv_out=False):
+def readCount(infile: str, outfile: str, step_size: int = 10000, limit: int = 1000000, csv_out: bool = False) -> None:
     """
     Save reads that confidenlty mapped to transcriptome to a BAM file.
 
@@ -440,11 +444,11 @@ def readCount(infile, outfile, step_size=10000, limit=1000000, csv_out=False):
 
     # OUT = open(outfile,'w')
     total_alignments = 0
-    CB_GN_READ = collections.defaultdict(dict)
+    CB_GN_READ: dict[str, dict[str, int]] = collections.defaultdict(dict)
     # CB_GN_UMI = collections.defaultdict(list)
     for aligned_read in _pysam_iter(samfile):
         read_id = aligned_read.query_name
-        tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
+        tag_dict = dict(aligned_read.tags)  # type: ignore[attr-defined]  # {'NM': 1, 'RG': 'L1'}
         if "xf" in tag_dict and tag_dict["xf"] & 0x1 == 0:
             continue
         if "CB" in tag_dict:
@@ -496,17 +500,17 @@ def readCount(infile, outfile, step_size=10000, limit=1000000, csv_out=False):
 
 
 def CBC_UMIcount(
-    infile,
-    outfile,
-    step_size=50000,
-    CB_tag="CB",
-    UMI_tag="UB",
-    gene_tag="GN",
-    CB_num=100000,
-    read_num=200,
-    UMI_num=200,
-    gene_num=200,
-):
+    infile: str,
+    outfile: str,
+    step_size: int = 50000,
+    CB_tag: str = "CB",
+    UMI_tag: str = "UB",
+    gene_tag: str = "GN",
+    CB_num: int = 100000,
+    read_num: int = 200,
+    UMI_num: int = 200,
+    gene_num: int = 200,
+) -> None:
     """
     Calculate UMI count for each cell barcode.
 
@@ -529,9 +533,9 @@ def CBC_UMIcount(
             Cell barcode with reads less than this value will be skipped.
     """
 
-    CB_read_freq = collections.defaultdict(int)  # cell_barcode:read_frequency
-    CB_UMI_freq = {}  # cell_barcode:UMI
-    CB_gene_freq = {}  # cell_barcode:gene
+    CB_read_freq: dict[str, int] = collections.defaultdict(int)  # cell_barcode:read_frequency
+    CB_UMI_freq: dict[str, int] = {}  # cell_barcode:UMI
+    CB_gene_freq: dict[str, int] = {}  # cell_barcode:gene
     CB_cutoff = CB_num
     logging.info("Top %d cell barcodes (ranked by associated UMI frequency) will be analyzed." % CB_cutoff)
     read_cutoff = read_num
@@ -542,7 +546,7 @@ def CBC_UMIcount(
     samfile = pysam.AlignmentFile(infile, "rb")
     total_alignments = 0
     for aligned_read in _pysam_iter(samfile):
-        tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
+        tag_dict = dict(aligned_read.tags)  # type: ignore[attr-defined]  # {'NM': 1, 'RG': 'L1'}
         if "xf" in tag_dict and tag_dict["xf"] & 0x1 == 0:
             continue
 
@@ -568,14 +572,14 @@ def CBC_UMIcount(
     # count UMI for each cell barcode
     logging.info('Reading BAM file "%s". Count UMIs for each cell barcode ...' % infile)
     samfile = pysam.AlignmentFile(infile, "rb")
-    CB_freq_list = {}  # UMI count for each barcode
-    gene_freq = {}  # gene count for each barcode
+    CB_freq_list: dict[str, Any] = {}  # UMI count for each barcode
+    gene_freq: dict[str, Any] = {}  # gene count for each barcode
     total_alignments = 0
     for aligned_read in _pysam_iter(samfile):
         read_id = aligned_read.query_name
         # chrom = samfile.get_reference_name(aligned_read.reference_id)
         # if aligned_read.is_duplicate:continue
-        tag_dict = dict(aligned_read.tags)  # {'NM': 1, 'RG': 'L1'}
+        tag_dict = dict(aligned_read.tags)  # type: ignore[attr-defined]  # {'NM': 1, 'RG': 'L1'}
         if "xf" in tag_dict and tag_dict["xf"] & 0x1 == 0:
             continue
 
@@ -628,7 +632,7 @@ def CBC_UMIcount(
             "\t".join(["Serial", "Cell_barcode", "Read_count", "UMI_count", "Gene_count"]), file=OUT
         )  # do NOT change the header
         count = 0
-        for k in sorted(CB_UMI_freq, key=CB_UMI_freq.get, reverse=True):
+        for k in sorted(CB_UMI_freq, key=CB_UMI_freq.get, reverse=True):  # type: ignore[arg-type]
             count += 1
             if CB_UMI_freq[k] < UMI_num:
                 continue

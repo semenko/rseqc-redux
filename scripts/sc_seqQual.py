@@ -99,7 +99,7 @@ def main():
     for file in [args.in_file, args.out_file]:
         if not (file):
             parser.print_help()
-            sys.exit(0)
+            sys.exit(1)
 
     file_iter = fastq.fastq_iter(args.in_file, mode="qual")
     qual_mat = fastq.qual2countMat(file_iter, limit=args.max_seq)

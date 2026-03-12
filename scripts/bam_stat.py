@@ -31,10 +31,10 @@ def main():
 
     if not (args.input_file):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if not os.path.exists(args.input_file):
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     obj = SAM.ParseBAM(args.input_file)
     obj.stat(q_cut=args.map_qual)

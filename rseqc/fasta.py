@@ -2,9 +2,13 @@
 manipulate fasta for fastq format files.
 """
 
+from __future__ import annotations
+
 import argparse
 import collections
 import sys
+from collections.abc import Generator
+from typing import Any
 
 import numpy
 
@@ -14,7 +18,7 @@ from rseqc import FrameKmer
 class Fasta:
     """manipulate fasta or fastq format file"""
 
-    def __init__(self, fastafile=None):
+    def __init__(self, fastafile: str | None = None):
         """initialize object, lowercase in sequence is automatically converted into uppercase"""
         self.seqs = {}
         self.IDs = []
@@ -38,7 +42,7 @@ class Fasta:
             if name is not None:
                 self.seqs[name] = tmpseq
 
-    def addSeq(self, id, seq):
+    def addSeq(self, id: str, seq: str) -> None:
         """add sequence to current data"""
         if id in self.seqs:
             print(id + " already exists!", file=sys.stderr)
@@ -47,26 +51,26 @@ class Fasta:
             self.seqs[id] = seq.upper()
             self.IDs.append(id)
 
-    def getNames(self, file=None):
+    def getNames(self, file: str | None = None) -> list[str]:
         """return all sequence IDs"""
         return self.IDs
 
-    def getSeq(self, seqID=None):
+    def getSeq(self, seqID: str | None = None) -> str | list[str]:
         """return sequence for sepcified seqID, otherwise all sequences are returned"""
         if seqID is None:
             return list(self.seqs.values())
         else:
             return self.seqs[seqID]
 
-    def printSeqs(self, n=50):
+    def printSeqs(self, n: int = 50) -> None:
         """print all seqs"""
         for k, v in self.seqs.items():
             print(">" + k)
             for i in range(0, len(v), n):
                 print(v[i : i + n])
 
-    def getSeqLen(self, seqID=None):
-        seqlen = collections.defaultdict(dict)
+    def getSeqLen(self, seqID: str | None = None) -> dict[str, Any]:
+        seqlen: dict[str, Any] = collections.defaultdict(dict)
         if seqID is None:
             for k, v in self.seqs.items():
                 seqlen[k] = len(v)
@@ -77,7 +81,7 @@ class Fasta:
                 print("Not found", file=sys.stderr)
         return seqlen
 
-    def countBase(self, pattern=None):
+    def countBase(self, pattern: str | None = None) -> None:
         """count occurence of substring (defined by pattern), otherwise count A,C,G,T,N,X
         NOTE: pattern is counted non-overlappingly"""
         if pattern is None:
@@ -97,7 +101,7 @@ class Fasta:
                 print(str(len(v)) + "\t", end=" ")
                 print(v.count(pattern))
 
-    def cal_entropy(self, length=3):
+    def cal_entropy(self, length: int = 3) -> Generator[tuple[str, float], None, None]:
         """calculate entropy for each sequence"""
         for id, seq in self.seqs.items():
             entropy = 0
@@ -114,7 +118,7 @@ class Fasta:
                 entropy += prop * information
             yield (id, entropy)
 
-    def revComp(self, seqID=None):
+    def revComp(self, seqID: str | None = None) -> str | None:
         """return reverse-complemented sequence for sepcified seqID, otherwise all sequences are
         reverse-complemented"""
         if seqID is None:
@@ -122,15 +126,16 @@ class Fasta:
                 print(">" + k + "_rev")
                 tmp = v.translate(self.transtab)
                 return tmp[::-1]
+            return None
         else:
             return self.seqs[seqID].translate(self.transtab)[::-1]
 
-    def getUniqSeqs(self):
+    def getUniqSeqs(self) -> None:
         """remove redundancy from original fasta files.
         duplicated sequences will be only report once"""
 
-        seq2Name = {}
-        seq2Count = {}
+        seq2Name: dict[str, str] = {}
+        seq2Count: dict[str, int] = {}
         for key, value in self.seqs.items():
             seq2Name[value] = key
             if value in seq2Count:
@@ -141,7 +146,7 @@ class Fasta:
             print(">" + str(seq2Name[value]) + "_" + str(seq2Count[value]))
             print(value)
 
-    def findPattern(self, pat, outfile, seqID=None, rev=True):
+    def findPattern(self, pat: str, outfile: str, seqID: str | None = None, rev: bool = True) -> None:
         """find pattern in all sequence unless seqID is specified, coordinates will be returned as bed format file"""
 
         with open(outfile, "w") as fout:
@@ -199,7 +204,7 @@ class Fasta:
                         )
                         start = loopSwitch + 1
 
-    def fetchSeq(self, chr=None, st=None, end=None, infile=None, outfile=None):
+    def fetchSeq(self, chr: str | None = None, st: int | None = None, end: int | None = None, infile: str | None = None, outfile: str | None = None) -> str | None:
         """Fetching sequence based on chrName (should be exactly the same as fasta file), St, End.
         NOTE: the coordinate is 0-based,half-open. use infile to specify multiple coordinates. infile
         should be bed3, bed6 or bed12"""
@@ -224,18 +229,19 @@ class Fasta:
                             else:
                                 print(fields[0] + ":" + fields[1] + "-" + fields[2] + "\t" + "strand=+", file=fout)
                                 print(self.seqs[fields[0]][int(fields[1]) : int(fields[2])].upper(), file=fout)
+            return None
         else:
             try:
-                return self.seqs[chr][st:end].upper()
+                return self.seqs[chr][st:end].upper()  # type: ignore[index]
             except Exception:
                 print(
-                    "cannot fetch sequence from " + self.filename + " for " + chr + ":" + str(st) + "-" + str(end),
+                    "cannot fetch sequence from " + str(self.filename) + " for " + str(chr) + ":" + str(st) + "-" + str(end),
                     file=sys.stderr,
                 )
                 return ""
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input_file", dest="in_file", help="input file name")
     args = parser.parse_args()

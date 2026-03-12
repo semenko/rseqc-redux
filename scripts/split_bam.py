@@ -73,14 +73,14 @@ def main():
 
     if not (args.input_file and args.gene_list):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if not os.path.exists(args.gene_list):
         print("\n\n" + args.gene_list + " does NOT exists" + "\n", file=sys.stderr)
         # parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if not os.path.exists(args.input_file):
         print("\n\n" + args.input_file + " does NOT exists" + "\n", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     # build bitset for gene list
     print("reading " + args.gene_list + " ... ", end=" ", file=sys.stderr)

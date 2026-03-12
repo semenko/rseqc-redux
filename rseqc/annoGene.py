@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import collections
 import sys
+from typing import Any
 
 from bx.intervals import Intersecter, Interval
 
@@ -8,12 +11,12 @@ Compare given bed entry to reference gene model
 """
 
 
-def getCDSExonFromFile(bedfile):
+def getCDSExonFromFile(bedfile: str) -> list[list[Any]]:
     """Only Extract CDS exon regions from input bed file (must be 12-column)."""
     ret_lst = []
     with open(bedfile, "r") as _fh:
         for f in _fh:
-            f = f.strip().split()
+            f = f.strip().split()  # type: ignore[assignment]
             chrom = f[0]
             chrom_start = int(f[1])
             f[4]
@@ -38,7 +41,7 @@ def getCDSExonFromFile(bedfile):
     return ret_lst
 
 
-def getUTRExonFromFile(bedfile, utr=35):
+def getUTRExonFromFile(bedfile: str, utr: int = 35) -> list[list[Any]]:
     """Only Extract UTR regions from input bed file (must be 12-column). output is 6-column bed format.
     When utr=35 [default], extract both 5' and 3' UTR. When utr=3, only extract 3' UTR. When utr=5,
     only extract 5' UTR"""
@@ -56,14 +59,13 @@ def getUTRExonFromFile(bedfile, utr=35):
             chrom = fields[0]
             strand = fields[5]
             txStart = int(fields[1])
-            int(fields[2])
             cdsStart = int(fields[6])
             cdsEnd = int(fields[7])
             exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-            exon_start = list(map((lambda x: x + txStart), exon_start))
+            exon_start = [x + txStart for x in exon_start]
 
             exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-            exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+            exon_end = [x + y for x, y in zip(exon_start, exon_end)]
 
             chrom = chrom + ":" + strand
             if utr == 35 or utr == 5:
@@ -81,7 +83,7 @@ def getUTRExonFromFile(bedfile, utr=35):
     return ret_lst
 
 
-def getExonFromFile(bedfile):
+def getExonFromFile(bedfile: str) -> list[list[Any]]:
     """Extract ALL exon regions from input bed file (must be 12-column). return list of [chrom:+ st end]"""
 
     ret_lst = []
@@ -98,12 +100,10 @@ def getExonFromFile(bedfile):
                 txStart = int(fields[1])
                 chrom = fields[0]
                 strand = fields[5]
-                fields[3]
-                fields[4]
                 exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-                exon_start = list(map((lambda x: x + txStart), exon_start))
+                exon_start = [x + txStart for x in exon_start]
                 exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-                exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+                exon_end = [x + y for x, y in zip(exon_start, exon_end)]
             except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
@@ -113,7 +113,7 @@ def getExonFromFile(bedfile):
     return ret_lst
 
 
-def getExonFromFile2(bedfile):
+def getExonFromFile2(bedfile: str) -> dict[str, set[Any]]:
     """Extract ALL exon regions from input bed file (must be 12-column). return dict"""
 
     ret_dict_full = collections.defaultdict(set)
@@ -133,11 +133,10 @@ def getExonFromFile2(bedfile):
                 chrom = fields[0]
                 strand = fields[5]
                 geneName = fields[3]
-                fields[4]
                 exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-                exon_start = list(map((lambda x: x + txStart), exon_start))
+                exon_start = [x + txStart for x in exon_start]
                 exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-                exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+                exon_end = [x + y for x, y in zip(exon_start, exon_end)]
                 txEnd = int(fields[2])
                 key = chrom + ":" + str(txStart) + "-" + str(txEnd) + ":" + strand + ":" + geneName
             except Exception:
@@ -150,7 +149,7 @@ def getExonFromFile2(bedfile):
     return ret_dict_full
 
 
-def getUTRExonFromLine(bedline, utr=35):
+def getUTRExonFromLine(bedline: str, utr: int = 35) -> list[list[Any]] | None:
     """Extract UTR regions from input bed line. When utr=35 [default], extract both
     5' and 3' UTR. When utr=3, only extract 3' UTR. When utr=5,only extract 5' UTR"""
 
@@ -168,14 +167,13 @@ def getUTRExonFromLine(bedline, utr=35):
     chrom = fields[0]
     strand = fields[5]
     txStart = int(fields[1])
-    int(fields[2])
     cdsStart = int(fields[6])
     cdsEnd = int(fields[7])
     exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-    exon_start = list(map((lambda x: x + txStart), exon_start))
+    exon_start = [x + txStart for x in exon_start]
 
     exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-    exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+    exon_end = [x + y for x, y in zip(exon_start, exon_end)]
 
     chrom = chrom + ":" + strand
     if utr == 35 or utr == 5:
@@ -193,7 +191,7 @@ def getUTRExonFromLine(bedline, utr=35):
     return ret_lst
 
 
-def getCDSExonFromLine(bedline):
+def getCDSExonFromLine(bedline: str) -> list[list[Any]] | None:
     """Extract CDS exon regions from input bed line (must be 12-column)."""
     ret_lst = []
     line = bedline
@@ -229,7 +227,7 @@ def getCDSExonFromLine(bedline):
     return ret_lst
 
 
-def getExonFromLine(bedline):
+def getExonFromLine(bedline: str) -> dict[str, set[Any]]:
     """Extract ALL exon regions from input bed line (must be 12-column). return list of [chrom:+ st end]"""
 
     ret_lst = collections.defaultdict(set)
@@ -241,12 +239,10 @@ def getExonFromLine(bedline):
     txStart = int(fields[1])
     chrom = fields[0]
     strand = fields[5]
-    fields[3]
-    fields[4]
     exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-    exon_start = list(map((lambda x: x + txStart), exon_start))
+    exon_start = [x + txStart for x in exon_start]
     exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-    exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+    exon_end = [x + y for x, y in zip(exon_start, exon_end)]
     chrom = chrom + ":" + strand
     for st, end in zip(exon_start, exon_end):
         ret_lst[chrom].add(st)
@@ -254,7 +250,7 @@ def getExonFromLine(bedline):
     return ret_lst
 
 
-def annotateBed(inputbed, refbed):
+def annotateBed(inputbed: str, refbed: str) -> None:
     """compare inputbed to refbed"""
     ref_exon_ranges = {}
     ref_exon_starts = collections.defaultdict(set)  # key='chrom:+', value=set()

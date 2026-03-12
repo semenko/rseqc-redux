@@ -88,15 +88,15 @@ def main():
 
     if not (args.output_prefix and args.input_file and args.ref_gene):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     for input_file in [args.input_file, args.ref_gene]:
         if not os.path.exists(input_file):
             print("\n\n" + input_file + " does NOT exists" + "\n", file=sys.stderr)
             parser.print_help()
-            sys.exit(0)
+            sys.exit(1)
     if args.step_size <= 0:
         print("step size is a positive interger", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     obj = SAM.ParseBAM(args.input_file)
     obj.mRNA_inner_distance(
         outfile=args.output_prefix,

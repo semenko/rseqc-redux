@@ -115,14 +115,14 @@ def main():
 
     if not (args.output_prefix and args.input_file and args.chromSize and args.output_prefix):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     for file in (args.input_file, args.chromSize):
         if not os.path.exists(file):
             print("\n\n" + file + " does NOT exists" + "\n", file=sys.stderr)
-            sys.exit(0)
+            sys.exit(1)
     if not os.path.exists(args.input_file + ".bai"):
         print("index file " + args.input_file + ".bai" + " does not exists", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     if args.skip_multi:
         print("Skip multi-hits:True")

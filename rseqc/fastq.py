@@ -4,9 +4,12 @@ Created on Sun Aug  2 15:43:45 2020
 @author: m102324
 """
 
+from __future__ import annotations
+
 import collections
 import logging
 import sys
+from collections.abc import Generator, Iterable
 
 import logomaker
 import matplotlib.pyplot as plt
@@ -15,7 +18,7 @@ import pandas as pd
 from rseqc import ireader
 
 
-def fasta_iter(infile):
+def fasta_iter(infile: str) -> Generator[str, None, None]:
     """
     Generate seq or qual string.
 
@@ -39,7 +42,7 @@ def fasta_iter(infile):
         yield line
 
 
-def fastq_iter(infile, mode="seq"):
+def fastq_iter(infile: str, mode: str = "seq") -> Generator[str, None, None]:
     """
     Generate seq or qual string.
 
@@ -75,7 +78,7 @@ def fastq_iter(infile, mode="seq"):
             count = 0
 
 
-def qual2countMat(q_obj, limit, step_size=100000):
+def qual2countMat(q_obj: Iterable[str], limit: int | None, step_size: int = 100000) -> pd.DataFrame:
     """
     Generate count data frame.
 
@@ -92,7 +95,7 @@ def qual2countMat(q_obj, limit, step_size=100000):
     ------
     Data frame
     """
-    dat = collections.defaultdict(dict)
+    dat: dict[int, dict[int, int]] = collections.defaultdict(dict)
     count = 0
     for qstr in q_obj:
         count += 1
@@ -119,7 +122,7 @@ def qual2countMat(q_obj, limit, step_size=100000):
     return qual_mat.T
 
 
-def seq2countMat(s_obj, limit, step_size=100000, exclude_N=False):
+def seq2countMat(s_obj: Iterable[str], limit: int | None, step_size: int = 100000, exclude_N: bool = False) -> pd.DataFrame:
     """
     Generate count data frame.
 
@@ -137,7 +140,7 @@ def seq2countMat(s_obj, limit, step_size=100000, exclude_N=False):
     ------
     Data frame
     """
-    mat = collections.defaultdict(dict)
+    mat: dict[int, dict[str, int]] = collections.defaultdict(dict)
     count = 0
     for s in s_obj:
         count += 1
@@ -165,18 +168,18 @@ def seq2countMat(s_obj, limit, step_size=100000, exclude_N=False):
 
 
 def make_logo(
-    mat,
-    outfile,
-    exclude_N=False,
-    font_name="sans",
-    stack_order="big_on_top",
-    flip_below=True,
-    shade_below=0.0,
-    fade_below=0.0,
-    highlight_start=0,
-    highlight_end=15,
-    oformat="pdf",
-):
+    mat: pd.DataFrame,
+    outfile: str,
+    exclude_N: bool = False,
+    font_name: str = "sans",
+    stack_order: str = "big_on_top",
+    flip_below: bool = True,
+    shade_below: float = 0.0,
+    fade_below: float = 0.0,
+    highlight_start: int = 0,
+    highlight_end: int = 15,
+    oformat: str = "pdf",
+) -> None:
     """
     Call logomaker (https://github.com/jbkinney/logomaker) to make nucleotide logo.
 
@@ -224,7 +227,7 @@ def make_logo(
     if (highlight_start is not None) and (highlight_end is not None):
         if highlight_start < 0 or highlight_end < 0 or highlight_start > highlight_end:
             logging.error("Incorrect highlight positions")
-            sys.exit(0)
+            sys.exit(1)
     logging.info('Mean-centered logo saved to "%s".' % (outfile + ".logo_mean_centered." + oformat))
     logo = logomaker.Logo(
         mat,

@@ -35,11 +35,10 @@ def fragment_size(bedfile, samfile, qcut=30, ncut=5):
             tx_start = int(fields[1])
             tx_end = int(fields[2])
             geneName = fields[3]
-            fields[5].replace(" ", "_")
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+            exon_starts = [x + tx_start for x in exon_starts]
             exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+            exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
             geneID = "\t".join([str(i) for i in (chrom, tx_start, tx_end, geneName)])
 
             for st, end in zip(exon_starts, exon_ends):
@@ -122,16 +121,16 @@ def main():
 
     if not (args.input_file and args.refgene_bed):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if not os.path.exists(args.input_file + ".bai"):
         print("cannot find index file of input BAM file", file=sys.stderr)
         print(args.input_file + ".bai" + " does not exists", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     for file in (args.input_file, args.refgene_bed):
         if not os.path.exists(file):
             print(file + " does NOT exists" + "\n", file=sys.stderr)
-            sys.exit(0)
+            sys.exit(1)
 
     print(
         "\t".join(

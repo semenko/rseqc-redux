@@ -81,11 +81,11 @@ def main():
     if not (args.input_file and args.refgene_bed):
         parser.print_help()
         print("\n\n" + __doc__, file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     for f in (args.input_file, args.refgene_bed):
         if not os.path.exists(f):
             print("\n\n" + f + " does NOT exists." + "\n", file=sys.stderr)
-            sys.exit(0)
+            sys.exit(1)
     if args.sample_size < 1000:
         print("Warn: Sample Size too small to give a accurate estimation", file=sys.stderr)
     obj = SAM.ParseBAM(args.input_file)

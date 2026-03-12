@@ -63,7 +63,7 @@ def genebody_percentile(refbed, mRNA_len_cut=100):
     """
     if refbed is None:
         print("You must specify a bed file representing gene model\n", file=sys.stderr)
-        exit(0)
+        sys.exit(1)
 
     g_percentiles = {}
     transcript_count = 0
@@ -82,9 +82,9 @@ def genebody_percentile(refbed, mRNA_len_cut=100):
                 geneID = "_".join([str(j) for j in (chrom, tx_start, tx_end, geneName, strand)])
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 transcript_count += 1
             except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
@@ -295,15 +295,15 @@ def main():
 
     if not (args.output_prefix and args.input_files and args.ref_gene_model):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
 
     if not os.path.exists(args.ref_gene_model):
         print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
         # parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
     if args.min_mRNA_length < 100:
         print('The number specified to "-l" cannot be smaller than 100.' + "\n", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
 
     with open(args.output_prefix + ".geneBodyCoverage.txt", "w") as OUT1:
         print("Percentile\t" + "\t".join([str(i) for i in range(1, 101)]), file=OUT1)

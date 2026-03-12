@@ -1,10 +1,13 @@
+# mypy: disable-error-code="assignment,var-annotated,operator,attr-defined,arg-type,misc"
 import collections
 import math
 import os
 import re
 import sys
+from collections.abc import Generator
 from itertools import groupby
 from operator import itemgetter
+from typing import Any
 
 import pysam
 from bx.bitset_builders import binned_bitsets_from_file, binned_bitsets_from_list
@@ -16,14 +19,14 @@ from . import fasta
 class ParseBED:
     """manipulate BED (http://genome.ucsc.edu/FAQ/FAQformat.html) format file."""
 
-    def __init__(self, bedFile):
+    def __init__(self, bedFile: str):
         """This is constructor of ParseBED"""
         self.transtab = str.maketrans("ACGTNX", "TGCANX")
         self.f = open(bedFile, "r")
         self.fileName = os.path.basename(bedFile)
         self.ABS_fileName = bedFile
 
-    def groupingBED(infile, outfile=None, strand=True, boundary="utr"):
+    def groupingBED(infile: str, outfile: str | None = None, strand: bool = True, boundary: str = "utr") -> Any:
         """Group overlapping bed entries together. When strand=Ture, overlapping bed entries within
         the same strand will be merged. When strand=False, all overlapping bed entries are merged,
         regardless of the strand. When boundary="utr" (recommended), UTR regions are considered in
@@ -56,7 +59,7 @@ class ParseBED:
                             (fields[0] == chrom) and (int(fields[1]) < txStart)
                         ):  # print first unsorted line if any
                             print("File not properly sorted:" + line, file=sys.stderr)
-                            exit(1)
+                            sys.exit(1)
                         chrom = fields[0]
                         txStart = int(fields[1])
             else:  # well, file seems to be OK
@@ -260,7 +263,7 @@ class ParseBED:
 
     groupingBED = staticmethod(groupingBED)
 
-    def complementBED(self, sizeFile, outfile=None):
+    def complementBED(self, sizeFile: str, outfile: str | None = None) -> None:
         """Return the complement regions of a bed file. Requires a genomeSizeFile that maps chromosome
         to sizes. In genomeSizeFile, each row contains two columns (separaed by white spaces): the 1st
         column is chromosome, and the 2nd column is size. An example of sizeFile:
@@ -307,7 +310,7 @@ class ParseBED:
                     FO.write(chrom + "\t0\t" + str(chrSize[chrom]) + "\n")
             self.f.seek(0)
 
-    def bedToWig(self, outfile=None, log2scale=False, header=True):
+    def bedToWig(self, outfile: str | None = None, log2scale: bool = False, header: bool = True) -> None:
         """Transform bed file into wiggle format. Input bed must have at least 3 columns[chrom St End].
         For bed12 file, intron regions are automatically excluded.
         NOTE bed is 0-based and half-open while wiggle is 1-based."""
@@ -359,7 +362,7 @@ class ParseBED:
                         FO.write("%d\t%d\n" % (coord, wig[chr][coord]))
             self.f.seek(0)
 
-    def bedToGFF(self, outfile=None):
+    def bedToGFF(self, outfile: str | None = None) -> None:
         """Transform bed file into GFF format. Borrowed from Galaxy with slight change"""
         if outfile is None:
             output_name = self.fileName + ".GFF"
@@ -439,7 +442,7 @@ class ParseBED:
             )
         print(info_msg)
 
-    def getUTR(self, utr=35):
+    def getUTR(self, utr: int = 35) -> list[list[Any]]:
         """Extract UTR regions from input bed file (must be 12-column). output is 6-column bed format.
         When utr=35 [default], extract both 5' and 3' UTR. When utr=3, only extract 3' UTR. When utr=5,
         only extract 5' UTR"""
@@ -457,14 +460,13 @@ class ParseBED:
             geneName = fields[3]
             strand = fields[5]
             txStart = int(fields[1])
-            int(fields[2])
             cdsStart = int(fields[6])
             cdsEnd = int(fields[7])
             exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-            exon_start = list(map((lambda x: x + txStart), exon_start))
+            exon_start = [x + txStart for x in exon_start]
 
             exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-            exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+            exon_end = [x + y for x, y in zip(exon_start, exon_end)]
 
             if strand == "+":
                 if utr == 35 or utr == 5:
@@ -495,7 +497,7 @@ class ParseBED:
         self.f.seek(0)
         return ret_lst
 
-    def getExon(self):
+    def getExon(self) -> list[tuple[str, int, int]]:
         """Extract exon regions from input bed file (must be 12-column). output is 6-column Tab
         separated bed file, each row represents one exon"""
 
@@ -516,7 +518,7 @@ class ParseBED:
         self.f.seek(0)
         return ret_lst
 
-    def getTranscriptRanges(self):
+    def getTranscriptRanges(self) -> Generator[list[Any], None, None]:
         """Extract exon regions from input bed file (must be 12-column). Return ranges of
         transcript"""
 
@@ -540,7 +542,7 @@ class ParseBED:
                 continue
         self.f.seek(0)
 
-    def getCDSExon(self):
+    def getCDSExon(self) -> list[list[Any]]:
         """Extract CDS exon regions from input bed file (must be 12-column)."""
         ret_lst = []
         for f in self.f:
@@ -567,7 +569,7 @@ class ParseBED:
         self.f.seek(0)
         return ret_lst
 
-    def truncate_bed(self, truncation_from=3, size=250):
+    def truncate_bed(self, truncation_from: int = 3, size: int = 250) -> list[str]:
         """
         truncate bed from either the 5' end or 3' end.
         truncation_from: 3 or 5
@@ -585,9 +587,9 @@ class ParseBED:
             name = f[3]
             strand = f[5]
             exon_start = list(map(int, f[11].rstrip(",").split(",")))
-            exon_start = list(map((lambda x: x + txStart), exon_start))
+            exon_start = [x + txStart for x in exon_start]
             exon_end = list(map(int, f[10].rstrip(",").split(",")))
-            exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+            exon_end = [x + y for x, y in zip(exon_start, exon_end)]
             for st, end in zip(exon_start, exon_end):
                 gene_all_bases.extend(list(range(st + 1, end + 1)))  # 1-based, closed
             gene_all_bases = sorted(gene_all_bases)
@@ -662,7 +664,7 @@ class ParseBED:
         self.f.seek(0)
         return ret_lst
 
-    def getIntron(self):
+    def getIntron(self) -> list[list[Any]]:
         """Extract Intron regions from input bed file (must be 12-column).  output is 6-column Tab
         separated bed file, each row represents one intron"""
 
@@ -679,18 +681,14 @@ class ParseBED:
                 fields = line.split()
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                int(fields[2])
-                fields[3]
                 strand = fields[5].replace(" ", "_")
-                int(fields[6])
-                int(fields[7])
                 if int(fields[9]) == 1:
                     continue
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
 
@@ -715,7 +713,7 @@ class ParseBED:
         self.f.seek(0)
         return ret_lst
 
-    def getSpliceJunctions(self):
+    def getSpliceJunctions(self) -> Generator[tuple[str, str, int, int, list[str]], None, None]:
         """
         Return splice junctions for each transcripts.
         Single exon gene will be skipped.
@@ -741,9 +739,9 @@ class ParseBED:
                     continue
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
 
@@ -754,7 +752,7 @@ class ParseBED:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
 
-    def getIntergenic(self, direction="up", size=1000):
+    def getIntergenic(self, direction: str = "up", size: int = 1000) -> list[list[Any]]:
         """get intergenic regions. direction=up or down or both."""
 
         ret_lst = []
@@ -785,7 +783,7 @@ class ParseBED:
         self.f.seek(0)
         return ret_lst
 
-    def getBedinfor(self, outfile=None, reffa=None):
+    def getBedinfor(self, outfile: str | None = None, reffa: str | None = None) -> None:
         """Extract information (such as exonNumber, exonSize (min,max,mean)etc,.) from bed entries."""
         if reffa is not None:
             print("Indexing " + reffa + " ...", end=" ", file=sys.stderr)
@@ -831,9 +829,9 @@ class ParseBED:
                     exon_num = int(fields[9])
                     exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                     exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                    exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                    exon_starts = [x + tx_start for x in exon_starts]
                     exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                    exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                     intron_start = exon_ends[:-1]
                     intron_end = exon_starts[1:]
 
@@ -910,7 +908,7 @@ class ParseBED:
 
             self.f.seek(0)
 
-    def filterBedbyIntronSize(self, outfile=None, min_intron=50):
+    def filterBedbyIntronSize(self, outfile: str | None = None, min_intron: int = 50) -> None:
         """Filter bed files with intron size. Mamalian gene has minimum intron size"""
         if outfile is None:
             outfile = self.fileName + ".filterIntron.xls"
@@ -924,19 +922,12 @@ class ParseBED:
                         continue
                     # Parse fields from gene tabls
                     fields = line.split()
-                    fields[0]
                     tx_start = int(fields[1])
-                    int(fields[2])
-                    fields[3]
-                    fields[5].replace(" ", "_")
-                    int(fields[6])
-                    int(fields[7])
                     exon_num = int(fields[9])
-                    list(map(int, fields[10].rstrip(",\n").split(",")))
                     exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                    exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                    exon_starts = [x + tx_start for x in exon_starts]
                     exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                    exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                     intron_start = exon_ends[:-1]
                     intron_end = exon_starts[1:]
                 except Exception:
@@ -953,7 +944,7 @@ class ParseBED:
 
             self.f.seek(0)
 
-    def getAllUniqJunctions(self, outfile=None, flankSize=20):
+    def getAllUniqJunctions(self, outfile: str | None = None, flankSize: int = 20) -> None:
         """Extract unique (non-redundant) junctions from input bed file (must be 12-column).  use
         flankSize to represent junction. Note that too large flankSize could exceed chromosome
         boundary and raise error when you convert bed to bigbed. output 12-column Tab separated bed
@@ -974,18 +965,15 @@ class ParseBED:
                 fields = line.split()
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                int(fields[2])
                 geneName = fields[3]
                 strand = fields[5].replace(" ", "_")
-                int(fields[6])
-                int(fields[7])
                 if int(fields[9]) == 1:
                     continue
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
 
@@ -1020,7 +1008,7 @@ class ParseBED:
                 #   continue
             self.f.seek(0)
 
-    def collapseJunctionBed(self, outfile=None):
+    def collapseJunctionBed(self, outfile: str | None = None) -> None:
         """Junctions spannig the same block will be merged. multiple spliced junctions will be reported
         as is without any changes"""
 
@@ -1047,7 +1035,6 @@ class ParseBED:
                     chrom = fields[0]
                     tx_start = int(fields[1])
                     tx_end = int(fields[2])
-                    fields[3]
                     score = int(fields[4])
                     strand = fields[5].replace(" ", "_")
                     if int(fields[9]) == 1:  # if bed has only 1 block
@@ -1062,9 +1049,9 @@ class ParseBED:
                 exonSize = list(map(int, fields[10].rstrip(",\n").split(",")))
                 block_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
 
@@ -1109,7 +1096,14 @@ class ParseBED:
 
             self.f.seek(0)
 
-    def filterJunctionBed(self, outfile=None, overhang=8, min_intron=50, max_intron=1000000, cvg=1):
+    def filterJunctionBed(
+        self,
+        outfile: str | None = None,
+        overhang: int = 8,
+        min_intron: int = 50,
+        max_intron: int = 1000000,
+        cvg: int = 1,
+    ) -> None:
         """filter junction bed file according to overhang size and supporting read"""
 
         if outfile is None:
@@ -1123,13 +1117,11 @@ class ParseBED:
                     continue
                 fields = line.rstrip().split()
                 tx_start = int(fields[1])
-                int(fields[2])
                 exonSize = list(map(int, fields[10].rstrip(",\n").split(",")))
-                list(map(int, fields[11].rstrip(",\n").split(",")))
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
                 if fields[9] >= 3:  # pass for multiple spliced read
@@ -1152,7 +1144,13 @@ class ParseBED:
                     print(line, file=FO)
             self.f.seek(0)
 
-    def unionBED(self, outfile=None, outNameFile=None, boundary="utr", stranded=True):
+    def unionBED(
+        self,
+        outfile: str | None = None,
+        outNameFile: str | None = None,
+        boundary: str = "utr",
+        stranded: bool = True,
+    ) -> None:
         """Collapse bed entries through UNION all overlapping exons. Just like "dense" display mode
         in UCSC genome browser. Bed entries will be merged if the following conditions are met:
         1) Coordinates overlapped
@@ -1205,7 +1203,7 @@ class ParseBED:
                             (fields[0] == chrom) and (int(fields[1]) < txStart)
                         ):  # print first unsorted line if any
                             print("File not properly sorted:" + line, file=sys.stderr)
-                            exit(1)
+                            sys.exit(1)
                         chrom = fields[0]
                         txStart = int(fields[1])
             else:  # well, file seems to be OK
@@ -1243,7 +1241,6 @@ class ParseBED:
                             cdsStart = int(fields[6])
                             cdsEnd = int(fields[7])
                             geneName = fields[3]
-                            fields[4]
                             txEnd_float = txEnd
                             cdsEnd_float = cdsEnd
                         elif Orig_bedNum > 1:  # this is NOT first entry
@@ -1264,13 +1261,12 @@ class ParseBED:
                             cdsStart = int(fields[6])
                             cdsEnd = int(fields[7])
                             geneName = fields[3]
-                            fields[4]
                             txEnd_float = max(txEnd_float, int(fields[2]))
                             cdsEnd_float = max(cdsEnd_float, int(fields[7]))
                         exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                        exon_starts = list(map((lambda x: x + txStart), exon_starts))  # 0-based half open [)
+                        exon_starts = [x + txStart for x in exon_starts]  # 0-based half open [)
                         exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                        exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                        exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                         # intron_start = exon_ends[:-1]  #0-based half open [)
                         # intron_end=exon_starts[1:]
 
@@ -1317,7 +1313,6 @@ class ParseBED:
                             cdsStart = int(fields[6])
                             cdsEnd = int(fields[7])
                             geneName = fields[3]
-                            fields[4]
                             txEnd_float = txEnd
                             cdsEnd_float = cdsEnd
                         elif Orig_bedNum > 1:  # this is NOT first entry
@@ -1338,13 +1333,12 @@ class ParseBED:
                             cdsStart = int(fields[6])
                             cdsEnd = int(fields[7])
                             geneName = fields[3]
-                            fields[4]
                             txEnd_float = max(txEnd_float, int(fields[2]))
                             cdsEnd_float = max(cdsEnd_float, int(fields[7]))
                         exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                        exon_starts = list(map((lambda x: x + txStart), exon_starts))  # 0-based half open [)
+                        exon_starts = [x + txStart for x in exon_starts]  # 0-based half open [)
                         exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                        exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                        exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                         # intron_start = exon_ends[:-1]  #0-based half open [)
                         # intron_end=exon_starts[1:]
 
@@ -1388,7 +1382,6 @@ class ParseBED:
                             cdsStart = int(fields[6])
                             cdsEnd = int(fields[7])
                             geneName = fields[3]
-                            fields[4]
                             txEnd_float = txEnd
                             cdsEnd_float = cdsEnd
                         elif Orig_bedNum > 1:  # this is NOT first entry
@@ -1409,13 +1402,12 @@ class ParseBED:
                             cdsStart = int(fields[6])
                             cdsEnd = int(fields[7])
                             geneName = fields[3]
-                            fields[4]
                             txEnd_float = max(txEnd_float, int(fields[2]))
                             cdsEnd_float = max(cdsEnd_float, int(fields[7]))
                         exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                        exon_starts = list(map((lambda x: x + txStart), exon_starts))  # 0-based half open [)
+                        exon_starts = [x + txStart for x in exon_starts]  # 0-based half open [)
                         exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                        exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                        exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                         # intron_start = exon_ends[:-1]  #0-based half open [)
                         # intron_end=exon_starts[1:]
 
@@ -1490,7 +1482,7 @@ class ParseBED:
 
             self.f.seek(0)
 
-    def correctSplicingBed(self, genome, outfile, sp="GTAG,GCAG,ATAC"):
+    def correctSplicingBed(self, genome: str, outfile: str, sp: str = "GTAG,GCAG,ATAC") -> None:
         """input should be bed12 file representing splicing junctions. The function will compare
         the splicing motif to genome. To see if the direcion is correct or not. Only consider GT/AG
         GC/AG, AT/AC motifs. Multiple spliced reads are accepted"""
@@ -1515,17 +1507,10 @@ class ParseBED:
 
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                int(fields[2])
-                fields[3]
-                fields[5]
-                int(fields[6])
-                int(fields[7])
-                int(fields[9])
-                list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
                 splice_strand = []
@@ -1581,7 +1566,7 @@ class ParseBED:
                     )
             self.f.seek(0)
 
-    def nrBED(self, outfile=None):
+    def nrBED(self, outfile: str | None = None) -> None:
         """redundant bed entries (exactly the same gene structure) in bed12 file will be merged."""
         if outfile is None:
             outfile = self.fileName + ".nr.bed"
@@ -1601,7 +1586,6 @@ class ParseBED:
                 txStart = fields[1]  #
                 txEnd = fields[2]  #
                 geneName = fields[3]
-                fields[4]
                 strand = fields[5]  #
                 cdsStart = fields[6]  #
                 cdsEnd = fields[7]  #
@@ -1642,7 +1626,7 @@ class ParseBED:
 class CompareBED:
     """Compare two bed fies. Standard BED file has 12 fields. (http://genome.ucsc.edu/FAQ/FAQformat.html)"""
 
-    def __init__(self, bedFileA, bedFileB):
+    def __init__(self, bedFileA: str, bedFileB: str):
         """This is constructor of ParseBED. Must provide two bed files for comprison. 1st bed file is
         user input bed, while 2nd bed file is usually a reference gene model"""
         self.A_fh = open(bedFileA, "r")
@@ -1652,7 +1636,7 @@ class CompareBED:
         self.B_full_Name = bedFileB
         self.B_base_Name = os.path.basename(bedFileB)
 
-    def annotateEvents(self, outfile=None):
+    def annotateEvents(self, outfile: str | None = None) -> None:
         """Compare bed file A to bed file B (usually a bed file for reference gene model).
         NOTE that only intron boundaries are compared. This function is useful if one want to
         find if a junctions is novel or not. bed file A will divided into two files: *.known.bed
@@ -1683,13 +1667,12 @@ class CompareBED:
                     continue
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                int(fields[2])
                 if int(fields[9]) == 1:
                     continue
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
                 for i_st, i_end in zip(intron_start, intron_end):
@@ -1713,13 +1696,12 @@ class CompareBED:
                     continue
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                int(fields[2])
                 if int(fields[9]) == 1:
                     continue
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
 
@@ -1733,7 +1715,7 @@ class CompareBED:
                         print(line, end=" ", file=NOV)
             print("Done", file=sys.stderr)
 
-    def annotateSplicingSites(self, outfile=None):
+    def annotateSplicingSites(self, outfile: str | None = None) -> None:
         """Compare bed file A to bed file B (usually a bed file for reference gene model). NOTE that
         only intron boundaries are compared. This function is useful if one want to find if a spilcing
         site is novel or not. bed file A will divided into two files: *.known.bed, *.35novel.bed,
@@ -1776,14 +1758,13 @@ class CompareBED:
                     continue
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                int(fields[2])
                 if int(fields[9]) == 1:
                     continue
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
                 for i_st, i_end in zip(intron_start, intron_end):
@@ -1808,7 +1789,6 @@ class CompareBED:
                     continue
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                int(fields[2])
                 geneName = fields[3]
                 score = fields[4]
                 strand = fields[5]
@@ -1816,9 +1796,9 @@ class CompareBED:
                     continue
                 exon_sizes = list(map(int, fields[10].rstrip(",\n").split(",")))
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
                 counter = 0
@@ -1927,7 +1907,7 @@ class CompareBED:
                         )
             print("Done", file=sys.stderr)
 
-    def distribBed(self, outfile=None):
+    def distribBed(self, outfile: str | None = None) -> None:
         """Compare bed file A (usually a bed file of reads mapping results) to bed file B
         (usually a bed file for reference gene model). For each exon/intron of a gene, calculate
         how many reads mapped into it."""
@@ -1990,14 +1970,13 @@ class CompareBED:
                     fields = line.split()
                     chrom = fields[0].upper()
                     tx_start = int(fields[1])
-                    int(fields[2])
                     geneName = fields[3]
                     strand = fields[5].replace(" ", "_")
 
                     exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                    exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                    exon_starts = [x + tx_start for x in exon_starts]
                     exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                    exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                    exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                     intron_starts = exon_ends[:-1]
                     intron_ends = exon_starts[1:]
                 except Exception:
@@ -2123,7 +2102,7 @@ class CompareBED:
             print("Done.", file=sys.stderr)
             self.B_fh.seek(0)
 
-    def distribBedWithStrand(self, outfile=None, output=True):
+    def distribBedWithStrand(self, outfile: str | None = None, output: bool = True) -> Any:
         """Compare bed file A (usually a bed file of reads mapping results) to bed file B
         (usually a bed file for reference gene model).
         NOTE: When assigning reads (from bed fileA) to gene (bed file B), program will consider
@@ -2235,7 +2214,7 @@ class CompareBED:
         print("Done.", file=sys.stderr)
         self.B_fh.seek(0)
 
-    def distribSpliceSites(self, outfile=None, output=True):
+    def distribSpliceSites(self, outfile: str | None = None, output: bool = True) -> Any:
         """Compare bed file A (usually a bed file of splicing junctions) to bed file B
         (usually a bed file for reference gene model).
         NOTE: When assigning reads (from bed fileA) to gene (bed file B), program will consider
@@ -2270,9 +2249,9 @@ class CompareBED:
             tx_start = int(fields[1])
             tx_end = int(fields[2])
             exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-            exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+            exon_starts = [x + tx_start for x in exon_starts]
             exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-            exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+            exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
             intron_starts = exon_ends[:-1]
             intron_ends = exon_starts[1:]
 
@@ -2422,7 +2401,7 @@ class CompareBED:
         print("Done.", file=sys.stderr)
         self.B_fh.seek(0)
 
-    def findClosestTSS(self, outfile=None, downStream=50000, upStream=50000):
+    def findClosestTSS(self, outfile: str | None = None, downStream: int = 50000, upStream: int = 50000) -> None:
         """For each entry in input bed file (1st bed file), find the nearest gene (2nd bed file) based
         on TSS. Genes shared the same TSS will be grouped together.
         NOTE: gene is represented by its TSS, input bed entry is represented by its middle point.
@@ -2458,7 +2437,7 @@ class CompareBED:
                     tss_end = int(fields[1]) + 1
                 else:
                     print("reference bed file must be at least 3 columns", file=sys.stderr)
-                    sys.exit(1)
+                    sys.sys.exit(1)
 
                 key = chrom + ":" + str(tss_st) + ":" + str(tss_end)
                 if key not in tss_group:
@@ -2489,7 +2468,7 @@ class CompareBED:
                     chain = "+"
                 else:
                     print("Input bed file must be at least 3 columns", file=sys.stderr)
-                    sys.exit(1)
+                    sys.sys.exit(1)
 
                 chrom = fields[0]
                 bed_st = int(fields[1]) + int((int(fields[2]) - int(fields[1])) / 2)
@@ -2522,7 +2501,7 @@ class CompareBED:
             self.A_fh.seek(0)
             print("Done.", file=sys.stderr)
 
-    def findClosestTTS(self, outfile=None, downStream=50000, upStream=50000):
+    def findClosestTTS(self, outfile: str | None = None, downStream: int = 50000, upStream: int = 50000) -> None:
         """For each entry in input bed file (1st bed file), find the nearest gene (2nd bed file) based
         on TTS. Genes shared the same TTS will be grouped together.
         NOTE: gene is represented by its TTS, input bed entry is represented by its middle point."""
@@ -2557,7 +2536,7 @@ class CompareBED:
                     tts_end = int(fields[2])
                 else:
                     print("reference bed file must be at least 3 columns", file=sys.stderr)
-                    sys.exit(1)
+                    sys.sys.exit(1)
 
                 key = chrom + ":" + str(tts_st) + ":" + str(tts_end)
                 if key not in tts_group:
@@ -2588,7 +2567,7 @@ class CompareBED:
                     chain = "+"
                 else:
                     print("Inut bed file must be at least 3 columns", file=sys.stderr)
-                    sys.exit(1)
+                    sys.sys.exit(1)
 
                 chrom = fields[0]
                 bed_st = int(fields[1]) + int((int(fields[2]) - int(fields[1])) / 2)
@@ -2621,7 +2600,7 @@ class CompareBED:
             self.A_fh.seek(0)
             print("Done.", file=sys.stderr)
 
-    def findClosestPeak(self, mod, downStream=50000, upStream=50000):
+    def findClosestPeak(self, mod: int, downStream: int = 50000, upStream: int = 50000) -> dict[int, str] | None:
         """For each entry in second bed file (reference gene model) find
         the closest peak defined in the fist bed file"""
 
@@ -2679,15 +2658,10 @@ class CompareBED:
                     TES = int(fields[2])
                     CDSS = int(fields[6])
                     CDSE = int(fields[7])
-                fields[3]
-                fields[4]
-                fields[9]
-                fields[10]
-                fields[11]
                 # line_id = geneName
             except Exception:
                 print("Reference gene model must 12 column BED files", file=sys.stderr)
-                sys.exit(1)
+                sys.sys.exit(1)
             if chrom in ranges:
                 if mod == 0:  # TSS-up, TSS-down
                     hits = ranges[chrom].find(TSS - upStream, TSS + downStream)
@@ -2722,7 +2696,7 @@ class CompareBED:
         # FO=open("aaa",'w')
         # for k,v in nearest_peak.items():
 
-    def bestMatch(self):
+    def bestMatch(self) -> dict[int, str]:
         """Exon chain comparison. Given a bed entry in bedFileA, find the best-matched gene from bedFileB.
         If multiple genes from bedFileB matched equally good. Randomly report one."""
 
@@ -2745,7 +2719,6 @@ class CompareBED:
             txStart = int(fields[1])
             txEnd = fields[2]
             geneName = fields[3]
-            fields[4]
             strand = fields[5]
             cdsStart = fields[6]
             cdsEnd = fields[7]
@@ -2757,9 +2730,9 @@ class CompareBED:
             ref_cdsRange[geneID] = [int(cdsStart), int(cdsEnd)]
 
             exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-            exon_start = list(map((lambda x: x + txStart), exon_start))
+            exon_start = [x + txStart for x in exon_start]
             exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-            exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+            exon_end = [x + y for x, y in zip(exon_start, exon_end)]
             # except Exception:
             #   continue
             for st, end in zip(exon_start, exon_end):
@@ -2795,7 +2768,6 @@ class CompareBED:
                 txStart = int(fields[1])
                 txEnd = fields[2]
                 geneName = fields[3]
-                fields[4]
                 strand = fields[5]
                 cdsStart = fields[6]
                 cdsEnd = fields[7]
@@ -2805,9 +2777,9 @@ class CompareBED:
                 # boundaries.add(int(cdsEnd))
 
                 exon_start = list(map(int, fields[11].rstrip(",").split(",")))
-                exon_start = list(map((lambda x: x + txStart), exon_start))
+                exon_start = [x + txStart for x in exon_start]
                 exon_end = list(map(int, fields[10].rstrip(",").split(",")))
-                exon_end = list(map((lambda x, y: x + y), exon_start, exon_end))
+                exon_end = [x + y for x, y in zip(exon_start, exon_end)]
             except Exception:
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
@@ -2884,7 +2856,7 @@ class CompareBED:
         return ret_dict
 
 
-def unionBed3(lst):
+def unionBed3(lst: list[list[Any]]) -> list[list[Any]]:
     """Take the union of 3 column bed files. return a new list"""
     bitsets = binned_bitsets_from_list(lst)
     ret_lst = []
@@ -2901,7 +2873,7 @@ def unionBed3(lst):
     return ret_lst
 
 
-def intersectBed3(lst1, lst2):
+def intersectBed3(lst1: list[list[Any]], lst2: list[list[Any]]) -> list[list[Any]]:
     """Take the intersection of two bed files (3 column bed files)"""
     bits1 = binned_bitsets_from_list(lst1)
     bits2 = binned_bitsets_from_list(lst2)
@@ -2928,7 +2900,7 @@ def intersectBed3(lst1, lst2):
     return ret_lst
 
 
-def subtractBed3(lst1, lst2):
+def subtractBed3(lst1: list[list[Any]], lst2: list[list[Any]]) -> list[list[Any]]:
     """subtrack lst2 from lst1"""
     bitsets1 = binned_bitsets_from_list(lst1)
     bitsets2 = binned_bitsets_from_list(lst2)
@@ -2952,7 +2924,7 @@ def subtractBed3(lst1, lst2):
     return ret_lst
 
 
-def tillingBed(chrName, chrSize, stepSize=10000):
+def tillingBed(chrName: str, chrSize: int, stepSize: int = 10000) -> Generator[tuple[str, int, int], None, None]:
     """tilling whome genome into small sizes"""
     # tilling genome
     for start in range(0, chrSize, stepSize):

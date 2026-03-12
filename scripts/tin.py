@@ -117,7 +117,7 @@ def genomic_positions(refbed, sample_size):
     """
     if refbed is None:
         print("You must specify a bed file representing gene model\n", file=sys.stderr)
-        exit(0)
+        sys.exit(1)
 
     with open(refbed, "r") as _fh:
         for line in _fh:
@@ -131,16 +131,12 @@ def genomic_positions(refbed, sample_size):
                 tx_end = int(fields[2])
                 geneName = fields[3]
                 strand = fields[5]
-                int(fields[6]) + 1  # convert to 1-based
-                int(fields[7])
-                int(fields[9])
                 mRNA_size = sum([int(i) for i in fields[10].strip(",").split(",")])
-                "_".join([str(j) for j in (chrom, tx_start, tx_end, geneName, strand)])
 
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
-                exon_starts = list(map((lambda x: x + tx_start), exon_starts))
+                exon_starts = [x + tx_start for x in exon_starts]
                 exon_ends = list(map(int, fields[10].rstrip(",\n").split(",")))
-                exon_ends = list(map((lambda x, y: x + y), exon_starts, exon_ends))
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
                 intron_size = tx_end - tx_start - mRNA_size
                 if intron_size < 0:
                     intron_size = 0
@@ -321,25 +317,25 @@ def main():
 
     if args.sample_size < 0:
         print("Number of nucleotide can't be negative", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     elif args.sample_size > 1000:
         print("Warning: '-n' is too large! Please try smaller '-n' valeu if program is running slow.", file=sys.stderr)
 
     if not (args.input_files and args.ref_gene_model):
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
 
     if not os.path.exists(args.ref_gene_model):
         print("\n\n" + args.ref_gene_model + " does NOT exists" + "\n", file=sys.stderr)
         parser.print_help()
-        sys.exit(0)
+        sys.exit(1)
 
     printlog("Get BAM file(s) ...")
     bamfiles = sorted(getBamFiles.get_bam_files(args.input_files))
 
     if len(bamfiles) <= 0:
         print("No BAM file found, exit.", file=sys.stderr)
-        sys.exit(0)
+        sys.exit(1)
     else:
         print("Total %d BAM file(s):" % len(bamfiles), file=sys.stderr)
         for f in bamfiles:
