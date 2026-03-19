@@ -4,7 +4,9 @@ import importlib
 import os
 import tempfile
 
-from rseqc.cli_common import build_bitsets, iter_bed12, load_chromsize, printlog
+import pytest
+
+from rseqc.cli_common import build_bitsets, iter_bed12, load_chromsize, printlog, validate_bam_index
 
 
 def test_import():
@@ -60,6 +62,26 @@ def test_load_chromsize():
         assert result == {"chr1": 248956422, "chr2": 242193529}
     finally:
         os.unlink(f.name)
+
+
+# --- validate_bam_index ---
+
+
+def test_validate_bam_index_exists(tmp_path):
+    """validate_bam_index passes when .bai file exists."""
+    bam = tmp_path / "test.bam"
+    bai = tmp_path / "test.bam.bai"
+    bam.write_text("")
+    bai.write_text("")
+    validate_bam_index(str(bam))  # should not raise
+
+
+def test_validate_bam_index_missing(tmp_path):
+    """validate_bam_index exits when .bai file is missing."""
+    bam = tmp_path / "test.bam"
+    bam.write_text("")
+    with pytest.raises(SystemExit):
+        validate_bam_index(str(bam))
 
 
 # --- iter_bed12 ---

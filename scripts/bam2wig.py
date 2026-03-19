@@ -4,11 +4,10 @@ Convert BAM file into wig file. BAM file must be sorted and indexed using SAMtoo
 Note: SAM format file is not supported.
 """
 
-import os
 import sys
 
 from rseqc import SAM
-from rseqc.cli_common import add_mapq_arg, create_parser, load_chromsize, validate_files_exist
+from rseqc.cli_common import add_mapq_arg, create_parser, load_chromsize, validate_bam_index, validate_files_exist
 
 
 def main() -> None:
@@ -86,9 +85,7 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
     validate_files_exist(args.input_file, args.chromSize)
-    if not os.path.exists(args.input_file + ".bai"):
-        print("index file " + args.input_file + ".bai" + " does not exists", file=sys.stderr)
-        sys.exit(1)
+    validate_bam_index(args.input_file)
 
     if args.skip_multi:
         print("Skip multi-hits:True")

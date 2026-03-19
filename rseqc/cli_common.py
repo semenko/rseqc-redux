@@ -71,6 +71,14 @@ def validate_files_exist(*paths: str) -> None:
             sys.exit(1)
 
 
+def validate_bam_index(bam_path: str) -> None:
+    """Exit with error if BAM index (.bai) does not exist."""
+    if not os.path.exists(bam_path + ".bai"):
+        print("cannot find index file of input BAM file", file=sys.stderr)
+        print(bam_path + ".bai" + " does not exists", file=sys.stderr)
+        sys.exit(1)
+
+
 def printlog(mesg: str) -> None:
     """Print progress message to stderr with timestamp."""
     mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg

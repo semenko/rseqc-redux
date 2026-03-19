@@ -5,7 +5,6 @@ calculate raw read count, FPM (fragment per million) and FPKM (fragment per mill
 reads per kilobase exon) for each gene in BED file.
 """
 
-import os
 import sys
 
 from bx.intervals import Intersecter, Interval
@@ -18,6 +17,8 @@ from rseqc.cli_common import (
     add_refgene_arg,
     create_parser,
     iter_bed12,
+    validate_bam_index,
+    validate_files_exist,
 )
 from rseqc.SAM import _pysam_iter
 
@@ -93,14 +94,8 @@ def main() -> None:
     if not (args.output_prefix and args.input_file and args.refgene_bed):
         parser.print_help()
         sys.exit(1)
-    if not os.path.exists(args.input_file + ".bai"):
-        print("cannot find index file of input BAM file", file=sys.stderr)
-        print(args.input_file + ".bai" + " does not exists", file=sys.stderr)
-        sys.exit(1)
-    for file in (args.input_file, args.refgene_bed):
-        if not os.path.exists(file):
-            print(file + " does NOT exists" + "\n", file=sys.stderr)
-            sys.exit(1)
+    validate_files_exist(args.input_file, args.refgene_bed)
+    validate_bam_index(args.input_file)
 
     obj = SAM.ParseBAM(args.input_file)
     with open(args.output_prefix + ".FPKM.xls", "w") as OUT:
