@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [6.2.0] — 2026-03-19
+
 ### Fixed
 
 - **bam_cigar.py**: Fix `fetch_exon()` soft clipping bug — soft clip CIGAR ops (S/4) incorrectly advanced the reference coordinate, shifting exon boundaries rightward for reads with leading soft clips. The sibling function `fetch_intron()` already handled this correctly (the equivalent line was commented out). This is a **breaking change** in output for any script that calls `fetch_exon()` — see details below.
