@@ -4,8 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [6.1.0] - 2026-03-19
+
+### Fixed
+
+- **geneBody_coverage.py**: Guard `Rcode_write()` against empty dataset — `names[0]` crashed with `IndexError` when no BAM files produced coverage signal.
+
 ### Changed
 
+- Delete 3 utility modules, reducing `rseqc/` from 12 to 9 modules:
+  - **getBamFiles.py**: `isbamfile()` and `get_bam_files()` moved into `cli_common.py`
+  - **ireader.py**: Replaced with private `_open_file()` generator in `fastq.py` (handles plain/gz/bz2; drops unused URL, pipe, and stdin support)
+  - **twoList.py**: Array operation functions inlined into `overlay_bigwig.py` with `_ACTIONS` dispatch dict
+- **tin.py**: Inline `uniqify()` as `list(dict.fromkeys(...))` (canonical Python 3.7+ order-preserving dedup)
+- **overlay_bigwig.py**: `Max`/`Min` now use `numpy.maximum`/`numpy.minimum` instead of `map(max, zip(...))`; `--action` argument uses `choices=` for better error messages
 - Convert `%`-formatting (~92 sites) and string concatenation (~77 sites) to f-strings across all `rseqc/` and `scripts/` files; enable ruff rules `UP031`/`UP032` to prevent regression
 - **FPKM_count.py**: Replace inline strand rule parsing with shared `_parse_strand_rule()`, deduplicate triple print block, use truthiness checks, simplify `elif`→`else`
 - **read_hexamer.py**: Remove custom `file_exist()` function, use `os.path.exists()` directly
@@ -17,6 +29,12 @@ All notable changes to this project will be documented in this file.
 - **read_distribution.py**: Remove dead `foundone()` function, 10 unused `build_bitsets()` calls, and replace 21-element return tuple with `GeneModelResult` NamedTuple
 - **read_distribution.py**: Replace 24 repetitive `subtractBed3()` calls with a loop over intergenic regions
 - Convert pysam try/finally to context managers in 5 scripts (`split_paired_bam.py`, `RNA_fragment_size.py`, `geneBody_coverage.py`, `divide_bam.py`, `tin.py`)
+
+### Removed
+
+- **getBamFiles.py**, **ireader.py**, **twoList.py**: Deleted (functionality moved to `cli_common.py`, `fastq.py`, and `overlay_bigwig.py` respectively)
+- 7 tests for dead `ireader` features (URL, pipe, stdin, stdout, passthrough)
+- 5 `uniqify` tests (function inlined)
 
 ## [6.0.1] - 2026-03-19
 
