@@ -25,15 +25,32 @@ All notable changes to this project will be documented in this file.
 
   **Bottom line:** The bug produced incorrect coordinates, but the practical impact on any single analysis was very small to undetectable. Shifts of 1–10 bp for ~5% of reads do not meaningfully change gene-level counts, coverage profiles, or quality metrics. No biological conclusions from prior RNA-seq experiments should need revisiting.
 
+- **tests/fixtures/mini.fq**: Fix sequence/quality length mismatch in reads 1 and 2 — was silently accepted by the hand-rolled line-counting parser, now caught by pysam's htslib-backed FASTQ validation.
+
 ### Changed
 
-- **scbam.py**: Pre-compile 6 regex patterns in `read_match_type()` at module level instead of calling `re.search()` with literal patterns per read; simplify `list2str()` from O(n²) string concatenation to `"".join()` with int-indexed `_CIGAR_CHAR` tuple
+- **scbam.py**: Pre-compile 6 regex patterns in `read_match_type()` at module level instead of calling `re.search()` with literal patterns per read.
 - **FrameKmer.py**: Move `DNA_pat` regex to module-level `_DNA_PAT` (was re-compiled every call to `seq_generator()`)
 - **SAM.py**: Move MD-tag regex to module-level `_MD_PAT` (was re-compiled every call to `mismatchProfile()`)
 - Consolidate `_pysam_iter()` into `cli_common.py` — was duplicated identically in `SAM.py` and `scbam.py`; 7 scripts updated to import from `cli_common` (backward-compat re-export kept in `SAM.py`)
 - **overlay_bigwig.py**: Replace 8 trivial wrapper functions (Add, Subtract, Product, Division, Average, geometricMean, Max, Min) and `_check_list` with inline lambdas in `_ACTIONS` dict + single `_apply()` validation wrapper (~40 lines removed)
 - **geneBody_coverage.py**: Delete local `_printlog()`, use `cli_common.printlog()` with new `logfile=` parameter; simplify `pearson_moment_coefficient()` to list comprehension and fix `int(len/2)` → `len//2`
 - **RNA_fragment_size.py**: Rename `overlap_length2()` → `overlap_length()` (the `2` suffix was a historical artifact from a deleted predecessor)
+- **SAM.py**, **read_distribution.py**: Replace all `bam_cigar.fetch_exon()` calls (6 sites) with pysam's native `aligned_read.get_blocks()`, which also handles `=`/`X` CIGAR ops correctly.
+- **scbam.py**: Replace `mapping_stat()` temp-file + awk antipattern (`subprocess.check_output("awk '!a[$0]++' *.reads_id.txt | wc -l", shell=True)`) with in-memory `set()` for unique read counting. Removes file I/O, subprocess calls, and intermediate file cleanup.
+- **mystat.py**: Replace manual `percentile_list()` interpolation loop with `np.percentile(..., method='linear')`.
+- **heatmap.py**: Remove `install.packages("pheatmap")` from generated R script (fails silently in non-interactive R sessions); replace manual subprocess call with `run_rscript()` from `cli_common`.
+- **BED.py**: Standardize header skipping in `getUTR()`, `getTranscriptRanges()`, `getIntron()` from three separate `startswith` checks to tuple form `startswith(("#", "track", "browser"))` (matching `getExon`, `getCDSExon`, `getIntergenic`).
+- **fastq.py**: Rewrite `fasta_iter()` and `fastq_iter()` using `pysam.FastxFile` instead of hand-rolled line-counting parser. Gains native gzip support via htslib, correct multiline FASTA concatenation, and strict FASTQ validation. **Breaking:** bz2-compressed input is no longer supported (was handled by the now-removed `_open_file()` helper; bz2 FASTA/FASTQ is practically unused).
+- **FrameKmer.py**: Rewrite `seq_generator()` using `pysam.FastxFile` instead of manual line-by-line parsing. Gains multiline FASTA support, native gzip handling, and proper comment/header handling. DNA pattern filter now applied to full concatenated sequences rather than individual lines.
+- **scbam.py**: Replace `list2str(aligned_read.cigar)` with pysam's native `aligned_read.cigarstring` property in `mapping_stat()`.
+
+### Removed
+
+- **bam_cigar.py**: Delete `fetch_exon()` function — replaced by pysam's `aligned_read.get_blocks()` at all call sites.
+- **fastq.py**: Delete `_open_file()` helper — replaced by `pysam.FastxFile` (handles plain and gzip natively). bz2 decompression support dropped.
+- **scbam.py**: Delete `list2str()` function and `_CIGAR_CHAR` tuple — replaced by pysam's native `aligned_read.cigarstring`.
+- **scbam.py**: Remove `subprocess`, `glob`, `os` imports (no longer needed after `mapping_stat()` rewrite).
 
 ## [6.1.0] - 2026-03-19
 
