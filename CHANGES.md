@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [6.2.1] — 2026-03-19
+
+### Fixed
+
+- **fastq.py**, **FrameKmer.py**: Fix `ValueError: Firing event 10 with no exception set` crash on Python 3.13 — pysam `FastxFile` iteration hits the same CPython bug as BAM iteration (already handled by `_pysam_iter`). Scripts affected: `read_hexamer.py`, `sc_seqQual.py`, `sc_seqLogo.py`.
+- **publish workflow**: Publish to PyPI now gates on test/lint/typecheck passing — previously the publish workflow ran independently of CI, allowing releases with failing tests.
+
 ## [6.2.0] — 2026-03-19
 
 ### Fixed

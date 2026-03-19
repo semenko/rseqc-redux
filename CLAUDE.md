@@ -45,7 +45,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - `exit(0)`/`sys.exit(0)` → `sys.exit(1)` in ~90 error paths across all scripts and library code
 - Dead bare field expressions removed (~70 sites across BED.py, SAM.py, scripts)
 - `list(map((lambda ...), ...))` → list comprehensions (~80 sites across all BED-parsing code)
-- Python 3.13 compatibility: `_pysam_iter()` helper wraps all pysam BAM iteration (handles ValueError bug)
+- Python 3.13 compatibility: `_pysam_iter()` wraps BAM iteration, `_pysam_fastx_iter()` wraps FastxFile iteration (both handle pysam ValueError bug)
 - `while 1: next(samfile)` anti-pattern replaced with `for` loops across all files
 - E501 (line length) fully resolved and enabled in ruff — 0 violations
 - 95 bare `open()` calls converted to `with` statements (resource leak prevention)
@@ -149,10 +149,17 @@ Runtime: `pysam`, `bx-python`, `numpy`, `pyBigWig`, `logomaker`, `matplotlib`
 
 ## CI/CD
 
-GitHub Actions workflows should:
-- Run pytest on push/PR against Python 3.10, 3.11, 3.12, 3.13
-- Run ruff for linting and formatting checks
-- Publish to PyPI on tagged releases
+GitHub Actions workflows:
+- **CI** (`ci.yml`): runs pytest (3.10–3.13), ruff check, ruff format, mypy on push/PR to main
+- **Publish** (`publish.yml`): triggers on `v*` tags — runs the full test/lint/typecheck suite first, then builds, publishes to PyPI, and creates a GitHub release. Build and publish are gated on tests passing.
+- **Docs** (`docs.yml`): deploys docs on push to main
+
+### Release process
+1. Verify CI is green on main (`gh run list`)
+2. Bump `version` in `pyproject.toml`
+3. In `CHANGES.md`: rename `[Unreleased]` to the new version/date, add fresh empty `[Unreleased]`
+4. Commit as `release: vX.Y.Z`, tag `vX.Y.Z`, push commit and tag
+5. The publish workflow runs tests again before building/publishing — if tests fail, the release is blocked and nothing is published. **Do not release if CI is failing.**
 
 ## Development Conventions
 
