@@ -18,8 +18,8 @@
 | rseqc/scbam.py                  |      261 |       60 |     77% |184, 254-256, 310-350, 357-358, 361, 366, 409-451 |
 | rseqc/twoList.py                |       29 |        0 |    100% |           |
 | scripts/FPKM\_UQ.py             |      112 |       47 |     58% |43-75, 170-176, 185-229, 238 |
-| scripts/FPKM\_count.py          |      189 |      153 |     19% |103-135, 137-164, 170-176, 178-367, 371 |
-| scripts/RNA\_fragment\_size.py  |       74 |       10 |     86% |64, 66, 68, 70, 72, 77, 79, 113-114, 132 |
+| scripts/FPKM\_count.py          |      180 |      144 |     20% |102-123, 125-174, 180-298, 306-307, 311 |
+| scripts/RNA\_fragment\_size.py  |       74 |       10 |     86% |64, 66, 68, 70, 72, 77, 79, 113-114, 125 |
 | scripts/RPKM\_saturation.py     |       93 |       14 |     85% |62-63, 155-156, 158-159, 161-162, 164-165, 168-182, 186 |
 | scripts/\_\_init\_\_.py         |        0 |        0 |    100% |           |
 | scripts/bam2fq.py               |       36 |       19 |     47% | 38-56, 60 |
@@ -30,7 +30,7 @@
 | scripts/divide\_bam.py          |       38 |        2 |     95% |    55, 68 |
 | scripts/geneBody\_coverage2.py  |       78 |       12 |     85% |29-30, 47, 59-60, 62, 124-126, 129-130, 139 |
 | scripts/geneBody\_coverage.py   |      174 |       38 |     78% |71-72, 109, 121-139, 215-225, 275-276, 296-304, 312-316, 322, 330 |
-| scripts/infer\_experiment.py    |       38 |       17 |     55% |40-41, 45-63, 67 |
+| scripts/infer\_experiment.py    |       34 |       15 |     56% | 41-59, 63 |
 | scripts/inner\_distance.py      |       26 |        7 |     73% |70-71, 74-75, 77-86, 90 |
 | scripts/insertion\_profile.py   |       23 |        7 |     70% | 46-52, 56 |
 | scripts/junction\_annotation.py |       98 |       17 |     83% |37, 53, 102, 114, 200-216, 220 |
@@ -42,7 +42,7 @@
 | scripts/read\_NVC.py            |       19 |        5 |     74% |32-33, 36-37, 41 |
 | scripts/read\_distribution.py   |      190 |       82 |     57% |207-305, 323-350, 354 |
 | scripts/read\_duplication.py    |       19 |        3 |     84% | 48-49, 53 |
-| scripts/read\_hexamer.py        |       54 |       10 |     81% |55-56, 77-85, 95-96, 100 |
+| scripts/read\_hexamer.py        |       48 |       10 |     79% |47-48, 69-77, 87-88, 92 |
 | scripts/read\_quality.py        |       19 |        5 |     74% |41-42, 45-46, 50 |
 | scripts/sc\_bamStat.py          |       30 |        5 |     83% |87, 99-100, 112, 116 |
 | scripts/sc\_editMatrix.py       |       38 |       10 |     74% |108, 118-119, 131-148, 163 |
@@ -51,7 +51,7 @@
 | scripts/split\_bam.py           |       52 |        3 |     94% |93-94, 105 |
 | scripts/split\_paired\_bam.py   |       56 |        2 |     96% |    70, 89 |
 | scripts/tin.py                  |      181 |       35 |     81% |34, 38, 64, 66, 71, 73, 77, 87-88, 94, 134, 136, 141, 143, 163, 173-183, 260, 263-264, 266, 278-279, 311-313, 331 |
-| **TOTAL**                       | **4432** |  **803** | **82%** |           |
+| **TOTAL**                       | **4413** |  **792** | **82%** |           |
 
 
 ## Setup coverage badge
