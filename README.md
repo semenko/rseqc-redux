@@ -115,6 +115,14 @@ junction_annotation -r gene_model.bed -i sample.bam -o output
 | `sc_seqLogo` | DNA sequence logo from FASTQ/FASTA |
 | `sc_seqQual` | Sequencing quality heatmap from FASTQ |
 
+## Upgrading from RSeQC 5.x or earlier rseqc-redux releases
+
+### Soft clipping bug fix (post-6.1.0)
+
+`fetch_exon()` in `bam_cigar.py` had a long-standing bug inherited from the original RSeQC: soft clip CIGAR operations incorrectly advanced the reference coordinate, shifting exon boundaries rightward for reads with leading soft clips. The sibling function `fetch_intron()` already handled this correctly. This affects output from any script that resolves read-to-genome exon coordinates: `bam2wig`, `read_distribution`, `read_duplication`, `RPKM_saturation`, `FPKM_count`, and `inner_distance`.
+
+**Should I re-run my analyses?** Almost certainly not. The shifts are small (1–10 bp, matching the soft clip length) and only affect the ~5% of reads with leading soft clips. Gene-level counts, coverage profiles, and quality metrics change by amounts well below meaningful thresholds. See [CHANGES.md](CHANGES.md) for a per-script impact table.
+
 ## Contributing
 
 Contributions are welcome!

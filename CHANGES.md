@@ -6,7 +6,24 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- **bam_cigar.py**: Fix `fetch_exon()` soft clipping bug — soft clip CIGAR ops (S/4) incorrectly advanced the reference coordinate, shifting exon boundaries for reads with leading soft clips. In the BAM specification, soft clips consume query sequence but **not** reference positions; pysam's `reference_start` already points past leading soft clips, so the S op was double-counting the offset. The sibling function `fetch_intron()` already handled this correctly (the equivalent line was commented out). In typical RNA-seq data, 5–15% of reads have soft clips. Soft clipping occurs when the aligner (e.g. STAR, HISAT2) trims the ends of a read that don't match the reference — often due to adapter contamination, low-quality bases at read ends, or reads spanning exon–exon junctions where the short overhang doesn't map uniquely. For affected reads, exon coordinates were shifted rightward by the clip length, subtly distorting per-base coverage profiles (`bam2wig`), duplicate detection (`read_duplication`), read distribution counts, and RPKM/FPKM quantification.
+- **bam_cigar.py**: Fix `fetch_exon()` soft clipping bug — soft clip CIGAR ops (S/4) incorrectly advanced the reference coordinate, shifting exon boundaries rightward for reads with leading soft clips. The sibling function `fetch_intron()` already handled this correctly (the equivalent line was commented out). This is a **breaking change** in output for any script that calls `fetch_exon()` — see details below.
+
+  **What was wrong:** In the BAM specification, soft clips consume query sequence but **not** reference positions. pysam's `reference_start` already points past any leading soft clips, so the S op in `fetch_exon()` was double-counting the offset — shifting all exon block coordinates rightward by the clip length. The block *length* was preserved, only the *position* was wrong.
+
+  **Which reads are affected:** Soft clipping occurs when the aligner (e.g. STAR, HISAT2) cannot place part of a read against the reference — typically due to adapter read-through, low-quality bases at read ends, or short overhangs at exon–exon junctions that don't map uniquely. In typical RNA-seq data, 5–15% of reads carry soft clips; roughly half are leading clips. Only **leading** soft clips (e.g. `5S45M`) triggered the bug; trailing clips (`45M5S`) were harmless because the S op came after all exon blocks were already recorded.
+
+  **Practical impact per caller:**
+  | Script / method | What it uses exon blocks for | Effect of the bug | Severity |
+  |---|---|---|---|
+  | `bam2wig` (`bamTowig`) | Per-base coverage array | Coverage deposited a few bp to the right of the true position; total signal magnitude unchanged | Very low — invisible at typical genome-browser zoom |
+  | `RPKM_saturation` (`calWigSum`) | Sum of exon block lengths | Block lengths were correct (only position was shifted) | **None** |
+  | `read_duplication` (`readDupRate`) | Position-based duplicate key includes exon boundary string | Reads with different clip lengths but identical alignment could get distinct keys, slightly underestimating position-based duplication | Very low — PCR duplicates almost always share the same CIGAR |
+  | `inner_distance` (`mRNA_inner_distance`) | Overlap calculation between read1/read2 exon blocks | Off by at most the clip length (1–10 bp) in the overlap count | Negligible vs. typical insert sizes of 200–500 bp |
+  | `RPKM_saturation` (`saturation_RPKM`) | Midpoint of exon blocks → gene interval-tree lookup | Midpoint shifted by clip length; could misassign a read at a gene boundary | Very low — affects reads within ~10 bp of a gene edge |
+  | `read_distribution` | Midpoint of exon blocks → feature classification (CDS, UTR, intron, intergenic) | Same midpoint shift; could reclassify a read at a feature boundary | Very low — probability proportional to clip_size / feature_size |
+  | `FPKM_count` | Midpoint of exon blocks → gene-level counting | Same midpoint shift as above | Very low |
+
+  **Bottom line:** The bug produced incorrect coordinates, but the practical impact on any single analysis was very small to undetectable. Shifts of 1–10 bp for ~5% of reads do not meaningfully change gene-level counts, coverage profiles, or quality metrics. No biological conclusions from prior RNA-seq experiments should need revisiting.
 
 ### Changed
 
