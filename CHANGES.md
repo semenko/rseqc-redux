@@ -29,6 +29,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **SAM.py**: `bamTowig()` now writes BigWig files natively via `pyBigWig` instead of shelling out to the external `wigToBigWig` binary — removes the only non-Python binary runtime dependency. The `chrom_file` parameter has been removed (internal API only; no downstream callers). `subprocess` import removed from SAM.py.
 - **scbam.py**: Pre-compile 6 regex patterns in `read_match_type()` at module level instead of calling `re.search()` with literal patterns per read.
 - **FrameKmer.py**: Move `DNA_pat` regex to module-level `_DNA_PAT` (was re-compiled every call to `seq_generator()`)
 - **SAM.py**: Move MD-tag regex to module-level `_MD_PAT` (was re-compiled every call to `mismatchProfile()`)

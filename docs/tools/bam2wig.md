@@ -22,4 +22,4 @@ bam2wig.py -i input.bam -s chrom.sizes -o output_prefix
 
 ## Output
 
-Generates wiggle (`.wig`) file(s). If strand-specific, produces separate files for each strand.
+Generates both wiggle (`.wig`) and BigWig (`.bw`) files. If strand-specific, produces separate Forward and Reverse files for each format. BigWig files are written natively via `pyBigWig` — the external `wigToBigWig` tool is no longer required.

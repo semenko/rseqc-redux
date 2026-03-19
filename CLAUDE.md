@@ -50,7 +50,8 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - E501 (line length) fully resolved and enabled in ruff — 0 violations
 - 95 bare `open()` calls converted to `with` statements (resource leak prevention)
 - `heatmap.py` string concatenation bug fixed in `logging.error()`
-- `subprocess.call(..., shell=True)` replaced with `subprocess.run([...], check=False)` (23 sites: Rscript, gzip, wigToBigWig, htseq-count)
+- `subprocess.call(..., shell=True)` replaced with `subprocess.run([...], check=False)` (23 sites: Rscript, gzip, htseq-count)
+- `bamTowig()` BigWig output: external `wigToBigWig` replaced with native `pyBigWig`; `subprocess` removed from SAM.py
 - `subprocess.run("rm -rf *.pattern", shell=True)` replaced with `glob.glob()` + `os.unlink()` in `scbam.py`
 - `BED.ParseBED` supports context managers (`__enter__`/`__exit__`/`close()`) to fix file handle leaks
 - Dead ParseBAM methods removed from SAM.py (5 methods: `calculate_rpkm`, `coverageGeneBody`, `junction_freq`, `shuffle_RPKM`, `fetchAlignments` + `print_bits_as_bed`)
@@ -88,7 +89,6 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - Standardize logging vs `print(file=sys.stderr)` (430+ print-to-stderr calls)
 
 **Potential future directions (lower priority):**
-- `SAM.bamTowig()` writes `.wig` then shells out to `wigToBigWig` — could write `.bw` directly via `pyBigWig` (already a dependency), eliminating the external tool dependency and intermediate file. Significant refactor, not a quick cleanup.
 - `SAM.bam2fq()` and `SAM.readsNVC()` use manual `str.maketrans()`/`[::-1]` for reverse complementing. The `readsNVC()` base-counting inner loop is already numpy-vectorized, but the reverse complement step remains manual Python.
 
 ## Commands

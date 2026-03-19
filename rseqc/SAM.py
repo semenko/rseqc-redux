@@ -5,11 +5,11 @@ from __future__ import annotations
 import collections
 import random
 import re
-import subprocess
 import sys
 from typing import Any
 
 import numpy as np
+import pyBigWig
 import pysam
 from bx.bitset import BinnedBitSet
 from bx.bitset_builders import binned_bitsets_from_list
@@ -28,6 +28,47 @@ _NVC_ASCII_MAP[ord("C")] = 1
 _NVC_ASCII_MAP[ord("G")] = 2
 _NVC_ASCII_MAP[ord("T")] = 3
 _NVC_ASCII_MAP[ord("N")] = 4
+
+
+def _write_bigwig_chrom(
+    bw: pyBigWig.pyBigWig,
+    chr_name: str,
+    coverage: np.ndarray,
+    factor: float,
+) -> None:
+    """Write one chromosome's coverage data to an open BigWig file.
+
+    ``coverage`` is a 1-based numpy array (index 0 unused).  Consecutive
+    positions with the same value are merged into bedGraph-style intervals
+    for efficient storage.  Coordinates are converted from 1-based to
+    0-based half-open as required by pyBigWig.
+    """
+    nonzero_idx = np.nonzero(coverage)[0]
+    if len(nonzero_idx) == 0:
+        return
+
+    values = coverage[nonzero_idx] * factor
+
+    # Run-length encode: merge consecutive positions with the same value
+    # Detect breakpoints where either position jumps or value changes
+    pos_breaks = np.diff(nonzero_idx) != 1
+    val_breaks = np.diff(values) != 0.0
+    breaks = np.where(pos_breaks | val_breaks)[0] + 1
+
+    # Build interval lists
+    run_starts = np.empty(len(breaks) + 1, dtype=np.int64)
+    run_starts[0] = 0
+    run_starts[1:] = breaks
+    run_ends_idx = np.empty(len(breaks) + 1, dtype=np.int64)
+    run_ends_idx[:-1] = breaks
+    run_ends_idx[-1] = len(nonzero_idx)
+
+    # Convert 1-based positions to 0-based half-open
+    starts = (nonzero_idx[run_starts] - 1).tolist()
+    ends = nonzero_idx[run_ends_idx - 1].tolist()
+    vals = values[run_starts].tolist()
+
+    bw.addEntries([chr_name] * len(starts), starts, ends=ends, values=vals)
 
 
 def _passes_qc(read: Any, q_cut: int) -> bool:
@@ -285,25 +326,37 @@ class ParseBAM:
         self,
         outfile: str,
         chrom_sizes: dict[str, int],
-        chrom_file: str,
         skip_multi: bool = True,
         strand_rule: str | None = None,
         WigSumFactor: float | None = None,
         q_cut: int = 30,
     ) -> None:
-        """Convert BAM/SAM file to wig file. chrom_size is dict with chrom as key and chrom_size as value
-        strandRule should be determined from \"infer_experiment\". such as \"1++,1--,2+-,2-+\". When
-        WigSumFactor is provided, output wig file will be normalized to this number"""
+        """Convert BAM/SAM file to wig and BigWig files.
+
+        ``chrom_sizes`` is a dict with chrom name as key and size as value.
+        ``strand_rule`` should be determined from ``infer_experiment``, e.g.
+        ``"1++,1--,2+-,2-+"``.  When ``WigSumFactor`` is provided, output
+        values will be normalized (multiplied) by this factor.
+        """
 
         strandRule = _parse_strand_rule(strand_rule)
+
+        # Open WIG file handles
         if len(strandRule) == 0:
-            wig_files = open(f"{outfile}.wig", "w")
-            FWO = wig_files
+            FWO = open(f"{outfile}.wig", "w")
             RVO = None
         else:
-            wig_files = open(f"{outfile}.Forward.wig", "w")
-            FWO = wig_files
+            FWO = open(f"{outfile}.Forward.wig", "w")
             RVO = open(f"{outfile}.Reverse.wig", "w")
+
+        # Open BigWig file handles
+        header = list(chrom_sizes.items())
+        bw_fwd = pyBigWig.open(f"{outfile}.bw" if len(strandRule) == 0 else f"{outfile}.Forward.bw", "w")
+        bw_fwd.addHeader(header)
+        bw_rev: pyBigWig.pyBigWig | None = None
+        if len(strandRule) > 0:
+            bw_rev = pyBigWig.open(f"{outfile}.Reverse.bw", "w")
+            bw_rev.addHeader(header)
 
         try:
             read_id = ""
@@ -374,23 +427,18 @@ class ParseBAM:
                         values = Rwig[positions] * factor  # type: ignore[index]
                         lines = np.column_stack((positions, values))
                         np.savetxt(RVO, lines, fmt="%d\t%.2f")  # type: ignore[arg-type]
+
+                # Write BigWig data for this chromosome
+                _write_bigwig_chrom(bw_fwd, chr_name, Fwig, factor)
+                if bw_rev is not None and Rwig is not None:
+                    _write_bigwig_chrom(bw_rev, chr_name, Rwig, factor)
         finally:
             FWO.close()
             if RVO is not None:
                 RVO.close()
-        if len(strandRule) == 0:
-            wig_pairs = [(f"{outfile}.wig", f"{outfile}.bw")]
-        else:
-            wig_pairs = [
-                (f"{outfile}.Forward.wig", f"{outfile}.Forward.bw"),
-                (f"{outfile}.Reverse.wig", f"{outfile}.Reverse.bw"),
-            ]
-        for wig_in, bw_out in wig_pairs:
-            try:
-                print(f"Run wigToBigWig {wig_in} {chrom_file} {bw_out}")
-                subprocess.run(["wigToBigWig", "-clip", wig_in, chrom_file, bw_out], check=False)
-            except OSError:
-                print('Failed to call "wigToBigWig".', file=sys.stderr)
+            bw_fwd.close()
+            if bw_rev is not None:
+                bw_rev.close()
 
     def calWigSum(self, chrom_sizes: dict[str, int], skip_multi: bool = True, q_cut: int = 30) -> float:
         """Calculate wigsum from BAM file.

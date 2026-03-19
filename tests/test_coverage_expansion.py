@@ -759,19 +759,37 @@ class TestConfigureExperiment:
 # ---------------------------------------------------------------------------
 
 
+def _parse_wig(content: str) -> dict[str, dict[int, float]]:
+    """Parse variableStep WIG content into {chrom: {pos: value}}."""
+    result: dict[str, dict[int, float]] = {}
+    current_chrom = None
+    for line in content.strip().split("\n"):
+        if line.startswith("variableStep"):
+            current_chrom = line.split("chrom=")[1]
+            result[current_chrom] = {}
+        elif current_chrom is not None:
+            parts = line.split("\t")
+            result[current_chrom][int(parts[0])] = float(parts[1])
+    return result
+
+
 class TestBamToWigStranded:
     def test_stranded_produces_forward_reverse(self, pe_clip_bam, tmp_path):
-        """bamTowig with strand rule should produce Forward and Reverse wig files.
+        """bamTowig with strand rule should produce Forward and Reverse wig files
+        with correct position/value content.
 
         Uses pe_clip_bam (all paired reads) because unpaired reads with a
         paired-end strand rule trigger a KeyError (pre-existing bug).
+
+        pe_clip_bam reads (strand rule "1++,1--,2+-,2-+"):
+          pair1 R1: 1000+5S45M, fwd strand, R1 → key "1+" → "+" → Forward
+          pair1 R2: 1200+45M5S, fwd strand, R2 → key "2+" → "-" → Reverse
+          pair2 R1: 2000+50M,   fwd strand, R1 → key "1+" → "+" → Forward
+          pair2 R2: 2200+3S47M, fwd strand, R2 → key "2+" → "-" → Reverse
         """
         obj = SAM.ParseBAM(str(pe_clip_bam))
         outprefix = str(tmp_path / "wig_str")
         chrom_sizes = {"chr1": 50000}
-        chrom_file = str(tmp_path / "chrom.sizes")
-        with open(chrom_file, "w") as f:
-            f.write("chr1\t50000\n")
 
         old_stderr = sys.stderr
         sys.stderr = io.StringIO()
@@ -779,7 +797,6 @@ class TestBamToWigStranded:
             obj.bamTowig(
                 outfile=outprefix,
                 chrom_sizes=chrom_sizes,
-                chrom_file=chrom_file,
                 skip_multi=True,
                 strand_rule="1++,1--,2+-,2-+",
                 q_cut=0,
@@ -792,14 +809,33 @@ class TestBamToWigStranded:
         assert fwd.exists()
         assert rev.exists()
 
+        # Parse and validate forward WIG content (R1 reads → forward)
+        fwd_data = _parse_wig(fwd.read_text())
+        assert "chr1" in fwd_data
+        fwd_chr1 = fwd_data["chr1"]
+        # pair1 R1 covers 1001-1045 (45M after 5S clip)
+        for p in range(1001, 1046):
+            assert fwd_chr1.get(p, 0) >= 1.0, f"Forward chr1:{p} should have coverage"
+        # pair2 R1 covers 2001-2050 (50M)
+        for p in range(2001, 2051):
+            assert fwd_chr1.get(p, 0) >= 1.0, f"Forward chr1:{p} should have coverage"
+
+        # Parse and validate reverse WIG content (R2 reads → reverse)
+        rev_data = _parse_wig(rev.read_text())
+        assert "chr1" in rev_data
+        rev_chr1 = rev_data["chr1"]
+        # pair1 R2 covers 1201-1245 (45M, trailing 5S clip)
+        for p in range(1201, 1246):
+            assert rev_chr1.get(p, 0) <= -1.0, f"Reverse chr1:{p} should have negative coverage"
+        # pair2 R2 covers 2201-2247 (47M after 3S clip)
+        for p in range(2201, 2248):
+            assert rev_chr1.get(p, 0) <= -1.0, f"Reverse chr1:{p} should have negative coverage"
+
     def test_wigsumfactor_normalization(self, mini_bam, tmp_path):
-        """bamTowig with WigSumFactor should scale values."""
+        """bamTowig with WigSumFactor should scale values by exact factor."""
         obj = SAM.ParseBAM(str(mini_bam))
         outprefix = str(tmp_path / "wig_norm")
         chrom_sizes = {"chr1": 50000}
-        chrom_file = str(tmp_path / "chrom.sizes")
-        with open(chrom_file, "w") as f:
-            f.write("chr1\t50000\n")
 
         old_stderr = sys.stderr
         sys.stderr = io.StringIO()
@@ -807,7 +843,6 @@ class TestBamToWigStranded:
             obj.bamTowig(
                 outfile=outprefix,
                 chrom_sizes=chrom_sizes,
-                chrom_file=chrom_file,
                 skip_multi=True,
                 strand_rule=None,
                 WigSumFactor=2.0,
@@ -818,15 +853,108 @@ class TestBamToWigStranded:
 
         wig = Path(outprefix + ".wig")
         assert wig.exists()
+        data = _parse_wig(wig.read_text())
+        assert "chr1" in data
+        chr1 = data["chr1"]
+        # mini_bam has 2 reads at pos 1051-1100 (read_unique1 + read_pair_r1), MAPQ=60
+        # Raw coverage = 2.0, with factor=2.0 → 4.0
+        for p in range(1051, 1101):
+            assert chr1.get(p) == pytest.approx(4.0), f"chr1:{p} expected 4.0, got {chr1.get(p)}"
+
+    def test_empty_chrom_no_crash(self, mini_bam, tmp_path):
+        """bamTowig with a chrom that has no reads should not crash."""
+        obj = SAM.ParseBAM(str(mini_bam))
+        outprefix = str(tmp_path / "wig_empty")
+        chrom_sizes = {"chr1": 50000, "chrEmpty": 10000}
+
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            obj.bamTowig(
+                outfile=outprefix,
+                chrom_sizes=chrom_sizes,
+                skip_multi=True,
+                strand_rule=None,
+                q_cut=30,
+            )
+        finally:
+            sys.stderr = old_stderr
+
+        wig = Path(outprefix + ".wig")
+        assert wig.exists()
         content = wig.read_text()
-        # Values should be 2x what they normally are (factor=2.0)
-        for line in content.strip().split("\n"):
-            if line.startswith("variableStep"):
-                continue
-            parts = line.split("\t")
-            val = float(parts[1])
-            # Original coverage is integer, so with factor=2 all values should be even
-            assert val > 0
+        # chrEmpty should not appear (fetch raises KeyError → "skipped")
+        # but chr1 data should be present
+        data = _parse_wig(content)
+        assert "chr1" in data
+        assert len(data["chr1"]) > 0
+
+    def test_stranded_multi_chrom_ordering(self, pe_clip_bam, tmp_path):
+        """Stranded bamTowig should write chrom headers in dict order."""
+        # Create a BAM with two chromosomes
+        tmpdir = tmp_path / "multi_chr"
+        tmpdir.mkdir()
+        unsorted = tmpdir / "unsorted.bam"
+        sorted_bam = tmpdir / "multi.bam"
+
+        header = pysam.AlignmentHeader.from_dict(
+            {
+                "HD": {"VN": "1.6", "SO": "coordinate"},
+                "SQ": [{"SN": "chr1", "LN": 50000}, {"SN": "chr2", "LN": 50000}],
+            }
+        )
+
+        def _read(name, ref_id, start, flag, mate_start=0):
+            a = pysam.AlignedSegment(header)
+            a.query_name = name
+            a.flag = flag
+            a.reference_id = ref_id
+            a.reference_start = start
+            a.mapping_quality = 60
+            a.cigar = [(0, 50)]
+            a.query_sequence = "A" * 50
+            a.query_qualities = pysam.qualitystring_to_array("I" * 50)
+            a.next_reference_id = ref_id
+            a.next_reference_start = mate_start
+            a.template_length = 200
+            return a
+
+        reads = [
+            _read("p1", 0, 1000, 0x1 | 0x2 | 0x40, mate_start=1200),
+            _read("p1", 0, 1200, 0x1 | 0x2 | 0x80, mate_start=1000),
+            _read("p2", 1, 500, 0x1 | 0x2 | 0x40, mate_start=700),
+            _read("p2", 1, 700, 0x1 | 0x2 | 0x80, mate_start=500),
+        ]
+
+        with pysam.AlignmentFile(str(unsorted), "wb", header=header) as outf:
+            for r in reads:
+                outf.write(r)
+        pysam.sort("-o", str(sorted_bam), str(unsorted))
+        pysam.index(str(sorted_bam))
+
+        obj = SAM.ParseBAM(str(sorted_bam))
+        outprefix = str(tmp_path / "wig_multi_str")
+        chrom_sizes = {"chr1": 50000, "chr2": 50000}
+
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            obj.bamTowig(
+                outfile=outprefix,
+                chrom_sizes=chrom_sizes,
+                skip_multi=True,
+                strand_rule="1++,1--,2+-,2-+",
+                q_cut=0,
+            )
+        finally:
+            sys.stderr = old_stderr
+
+        fwd = Path(outprefix + ".Forward.wig")
+        content = fwd.read_text()
+        # chr1 header should appear before chr2 header
+        chr1_pos = content.index("variableStep chrom=chr1")
+        chr2_pos = content.index("variableStep chrom=chr2")
+        assert chr1_pos < chr2_pos
 
 
 # ---------------------------------------------------------------------------
@@ -851,6 +979,203 @@ class TestParseStrandRule:
 
         result = _parse_strand_rule("++,--")
         assert result == {"+": "+", "-": "-"}
+
+
+# ---------------------------------------------------------------------------
+# SAM.py: bamTowig BigWig output
+# ---------------------------------------------------------------------------
+
+
+class TestBamToWigBigWig:
+    def test_bamTowig_produces_bigwig(self, mini_bam, tmp_path):
+        """Non-stranded bamTowig should produce a valid .bw file."""
+        obj = SAM.ParseBAM(str(mini_bam))
+        outprefix = str(tmp_path / "bw_test")
+        chrom_sizes = {"chr1": 50000, "chr2": 50000}
+
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            obj.bamTowig(
+                outfile=outprefix,
+                chrom_sizes=chrom_sizes,
+                skip_multi=True,
+                strand_rule=None,
+                q_cut=30,
+            )
+        finally:
+            sys.stderr = old_stderr
+
+        bw_path = Path(outprefix + ".bw")
+        assert bw_path.exists()
+        bw = pyBigWig.open(str(bw_path))
+        assert bw is not None
+        assert bw.isBigWig()
+        bw.close()
+
+    def test_bamTowig_bigwig_matches_wig(self, mini_bam, tmp_path):
+        """BigWig values should match WIG file values (within float32 precision)."""
+        obj = SAM.ParseBAM(str(mini_bam))
+        outprefix = str(tmp_path / "bw_match")
+        chrom_sizes = {"chr1": 50000, "chr2": 50000}
+
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            obj.bamTowig(
+                outfile=outprefix,
+                chrom_sizes=chrom_sizes,
+                skip_multi=True,
+                strand_rule=None,
+                q_cut=30,
+            )
+        finally:
+            sys.stderr = old_stderr
+
+        # Parse WIG
+        wig_data = _parse_wig(Path(outprefix + ".wig").read_text())
+
+        # Compare with BigWig
+        bw = pyBigWig.open(str(tmp_path / "bw_match.bw"))
+        for chrom, positions in wig_data.items():
+            for pos, wig_val in positions.items():
+                # WIG positions are 1-based; pyBigWig uses 0-based half-open
+                bw_vals = bw.values(chrom, pos - 1, pos)
+                assert bw_vals is not None and len(bw_vals) == 1
+                assert bw_vals[0] == pytest.approx(wig_val, abs=1e-2), f"{chrom}:{pos} WIG={wig_val}, BW={bw_vals[0]}"
+        bw.close()
+
+    def test_bamTowig_stranded_bigwig(self, pe_clip_bam, tmp_path):
+        """Stranded bamTowig should produce Forward.bw and Reverse.bw."""
+        obj = SAM.ParseBAM(str(pe_clip_bam))
+        outprefix = str(tmp_path / "bw_strand")
+        chrom_sizes = {"chr1": 50000}
+
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            obj.bamTowig(
+                outfile=outprefix,
+                chrom_sizes=chrom_sizes,
+                skip_multi=True,
+                strand_rule="1++,1--,2+-,2-+",
+                q_cut=0,
+            )
+        finally:
+            sys.stderr = old_stderr
+
+        fwd_bw = Path(outprefix + ".Forward.bw")
+        rev_bw = Path(outprefix + ".Reverse.bw")
+        assert fwd_bw.exists()
+        assert rev_bw.exists()
+
+        bw = pyBigWig.open(str(fwd_bw))
+        assert bw.isBigWig()
+        bw.close()
+
+        bw = pyBigWig.open(str(rev_bw))
+        assert bw.isBigWig()
+        bw.close()
+
+    def test_bamTowig_bigwig_with_normalization(self, mini_bam, tmp_path):
+        """BigWig values should reflect WigSumFactor normalization."""
+        obj = SAM.ParseBAM(str(mini_bam))
+        outprefix = str(tmp_path / "bw_norm")
+        chrom_sizes = {"chr1": 50000}
+
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            obj.bamTowig(
+                outfile=outprefix,
+                chrom_sizes=chrom_sizes,
+                skip_multi=True,
+                strand_rule=None,
+                WigSumFactor=2.0,
+                q_cut=30,
+            )
+        finally:
+            sys.stderr = old_stderr
+
+        bw = pyBigWig.open(str(tmp_path / "bw_norm.bw"))
+        # mini_bam has 2 reads covering 1051-1100 → raw=2.0, factor=2.0 → 4.0
+        for pos in range(1050, 1100):  # 0-based
+            vals = bw.values("chr1", pos, pos + 1)
+            assert vals[0] == pytest.approx(4.0, abs=1e-2), f"chr1:{pos} expected 4.0, got {vals[0]}"
+        bw.close()
+
+    def test_bamTowig_bigwig_chrom_sizes(self, mini_bam, tmp_path):
+        """BigWig header should contain all chroms with correct sizes."""
+        obj = SAM.ParseBAM(str(mini_bam))
+        outprefix = str(tmp_path / "bw_chroms")
+        chrom_sizes = {"chr1": 50000, "chr2": 50000}
+
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            obj.bamTowig(
+                outfile=outprefix,
+                chrom_sizes=chrom_sizes,
+                skip_multi=True,
+                strand_rule=None,
+                q_cut=30,
+            )
+        finally:
+            sys.stderr = old_stderr
+
+        bw = pyBigWig.open(str(tmp_path / "bw_chroms.bw"))
+        bw_chroms = bw.chroms()
+        assert bw_chroms == chrom_sizes
+        bw.close()
+
+    def test_bamTowig_bigwig_empty_chrom(self, mini_bam, tmp_path):
+        """Chrom with no reads should be in header but have no data."""
+        obj = SAM.ParseBAM(str(mini_bam))
+        outprefix = str(tmp_path / "bw_empty")
+        # chrEmpty is not in the BAM header, so fetch will raise KeyError → skipped
+        # Use chr1 (has data) to verify the file is valid
+        chrom_sizes = {"chr1": 50000, "chrEmpty": 10000}
+
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            obj.bamTowig(
+                outfile=outprefix,
+                chrom_sizes=chrom_sizes,
+                skip_multi=True,
+                strand_rule=None,
+                q_cut=30,
+            )
+        finally:
+            sys.stderr = old_stderr
+
+        bw = pyBigWig.open(str(tmp_path / "bw_empty.bw"))
+        # Both chroms should be in header
+        bw_chroms = bw.chroms()
+        assert "chr1" in bw_chroms
+        assert "chrEmpty" in bw_chroms
+        assert bw_chroms["chrEmpty"] == 10000
+        # chrEmpty should have no data (all NaN or 0)
+        vals = bw.values("chrEmpty", 0, 100)
+        import math
+
+        assert all(math.isnan(v) or v == 0.0 for v in vals)
+        bw.close()
+
+    def test_bamTowig_no_subprocess(self):
+        """bamTowig should not use subprocess (wigToBigWig removed)."""
+        import ast
+
+        source = Path(SAM.__file__).read_text()
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == "bamTowig":
+                src_lines = source.split("\n")
+                method_src = "\n".join(src_lines[node.lineno - 1 : node.end_lineno])
+                assert "subprocess" not in method_src, "bamTowig should not use subprocess"
+                assert "wigToBigWig" not in method_src, "bamTowig should not call wigToBigWig"
+                return
+        pytest.fail("bamTowig method not found")
 
 
 # ---------------------------------------------------------------------------

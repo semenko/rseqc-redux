@@ -108,7 +108,6 @@ def main() -> None:
     obj.bamTowig(
         outfile=args.output_prefix,
         chrom_sizes=chromSizes,
-        chrom_file=args.chromSize,
         q_cut=args.map_qual,
         skip_multi=args.skip_multi,
         strand_rule=args.strand_rule,

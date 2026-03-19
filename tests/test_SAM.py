@@ -442,11 +442,6 @@ def test_parsebam_bamTowig_exact_output(mini_bam, tmp_path):
     obj = SAM.ParseBAM(str(mini_bam))
     outprefix = str(tmp_path / "wig")
     chrom_sizes = {"chr1": 50000, "chr2": 50000}
-    # Write a temp chrom sizes file (needed by bamTowig signature but won't be used for bigwig)
-    chrom_file = str(tmp_path / "chrom.sizes")
-    with open(chrom_file, "w") as f:
-        for c, s in chrom_sizes.items():
-            f.write(f"{c}\t{s}\n")
 
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
@@ -454,7 +449,6 @@ def test_parsebam_bamTowig_exact_output(mini_bam, tmp_path):
         obj.bamTowig(
             outfile=outprefix,
             chrom_sizes=chrom_sizes,
-            chrom_file=chrom_file,
             skip_multi=True,
             strand_rule=None,
             WigSumFactor=None,
@@ -817,22 +811,19 @@ def test_calWigSum_no_tag_based_filtering():
             assert "multi_hit_tags" not in method_src, "calWigSum should use mapq, not tag-based filtering"
 
 
-# ---- Tests for subprocess deduplication (#3) ----
+# ---- Tests for subprocess removal (#3) ----
 
 
-def test_subprocess_imported_at_module_level():
-    """subprocess should be imported at module level, not inside try blocks."""
+def test_subprocess_not_imported():
+    """subprocess should not be imported in SAM.py (wigToBigWig replaced with pyBigWig)."""
     import ast
 
     source = Path(SAM.__file__).read_text()
     tree = ast.parse(source)
-    # Check that 'import subprocess' appears at module level
-    for node in tree.body:
+    for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name == "subprocess":
-                    return  # Found at module level
-    pytest.fail("subprocess not imported at module level")
+                assert alias.name != "subprocess", "subprocess should not be imported in SAM.py"
 
 
 # ---- Tests for vectorized wig output (#2) ----
@@ -860,10 +851,6 @@ def test_bamTowig_exact_output_with_savetxt(mini_bam, tmp_path):
     obj = SAM.ParseBAM(str(mini_bam))
     outprefix = str(tmp_path / "wig")
     chrom_sizes = {"chr1": 50000, "chr2": 50000}
-    chrom_file = str(tmp_path / "chrom.sizes")
-    with open(chrom_file, "w") as f:
-        for c, s in chrom_sizes.items():
-            f.write(f"{c}\t{s}\n")
 
     old_stderr = sys.stderr
     sys.stderr = io.StringIO()
@@ -871,7 +858,6 @@ def test_bamTowig_exact_output_with_savetxt(mini_bam, tmp_path):
         obj.bamTowig(
             outfile=outprefix,
             chrom_sizes=chrom_sizes,
-            chrom_file=chrom_file,
             skip_multi=True,
             strand_rule=None,
             WigSumFactor=None,
