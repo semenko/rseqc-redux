@@ -123,12 +123,9 @@ def main() -> None:
             ]
         )
     )
-    samfile = pysam.AlignmentFile(args.input_file)
-    try:
+    with pysam.AlignmentFile(args.input_file) as samfile:
         for tmp in fragment_size(args.refgene_bed, samfile, args.map_qual, args.fragment_num):
             print(tmp)
-    finally:
-        samfile.close()
 
 
 if __name__ == "__main__":

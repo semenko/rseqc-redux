@@ -4,6 +4,7 @@ Equally divide BAM file (m alignments) into n parts. Each part contains roughly 
 that are randomly sampled from total alignments.
 """
 
+import contextlib
 import sys
 from random import randrange
 
@@ -36,13 +37,15 @@ def main() -> None:
         sys.exit(1)
     validate_files_exist(args.input_file)
 
-    samfile = pysam.AlignmentFile(args.input_file, "rb")
+    with contextlib.ExitStack() as stack:
+        samfile = stack.enter_context(pysam.AlignmentFile(args.input_file, "rb"))
 
-    sub_bam = {}
-    count_bam = {}
-    try:
+        sub_bam = {}
+        count_bam = {}
         for i in range(0, args.subset_num):
-            sub_bam[i] = pysam.AlignmentFile(args.output_prefix + "_" + str(i) + ".bam", "wb", template=samfile)
+            sub_bam[i] = stack.enter_context(
+                pysam.AlignmentFile(args.output_prefix + "_" + str(i) + ".bam", "wb", template=samfile)
+            )
             count_bam[i] = 0
 
         total_alignment = 0
@@ -56,10 +59,6 @@ def main() -> None:
             count_bam[tmp] += 1
 
         print("Done", file=sys.stderr)
-    finally:
-        for bam in sub_bam.values():
-            bam.close()
-        samfile.close()
 
     for i in range(0, args.subset_num):
         print("%-55s%d" % (args.output_prefix + "_" + str(i) + ".bam", count_bam[i]))

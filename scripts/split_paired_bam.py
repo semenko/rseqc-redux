@@ -32,63 +32,52 @@ def main() -> None:
         sys.exit(1)
     validate_files_exist(args.input_file)
 
-    samfile = pysam.AlignmentFile(args.input_file, "rb")
-    OUT1 = pysam.AlignmentFile(
-        args.output_prefix + ".R1.bam", "wb", template=samfile
-    )  # bam file containing reads hit to exon region
-    OUT2 = pysam.AlignmentFile(
-        args.output_prefix + ".R2.bam", "wb", template=samfile
-    )  # bam file containing reads not hit to exon region
-    OUT3 = pysam.AlignmentFile(
-        args.output_prefix + ".unmap.bam", "wb", template=samfile
-    )  # bam file containing reads not hit to exon region
+    with pysam.AlignmentFile(args.input_file, "rb") as samfile:
+        with (
+            pysam.AlignmentFile(args.output_prefix + ".R1.bam", "wb", template=samfile) as OUT1,
+            pysam.AlignmentFile(args.output_prefix + ".R2.bam", "wb", template=samfile) as OUT2,
+            pysam.AlignmentFile(args.output_prefix + ".unmap.bam", "wb", template=samfile) as OUT3,
+        ):
+            total_alignment = 0
+            r1_alignment = 0
+            r2_alignment = 0
+            unmapped = 0
 
-    total_alignment = 0
-    r1_alignment = 0
-    r2_alignment = 0
-    unmapped = 0
+            print("spliting " + args.input_file + " ...", end=" ", file=sys.stderr)
+            for old_alignment in _pysam_iter(samfile):
+                new_alignment = pysam.AlignedSegment(samfile.header)
+                total_alignment += 1
 
-    try:
-        print("spliting " + args.input_file + " ...", end=" ", file=sys.stderr)
-        for old_alignment in _pysam_iter(samfile):
-            new_alignment = pysam.AlignedSegment(samfile.header)
-            total_alignment += 1
+                new_alignment.qname = old_alignment.qname
+                new_alignment.tid = old_alignment.tid
+                new_alignment.pos = old_alignment.pos
+                new_alignment.mapq = old_alignment.mapq
+                new_alignment.cigar = old_alignment.cigar
+                new_alignment.seq = old_alignment.seq
+                new_alignment.qual = old_alignment.qual
+                new_alignment.tags = old_alignment.tags
+                new_alignment.flag = 0x0000
+                if old_alignment.is_unmapped:
+                    OUT3.write(old_alignment)
+                    unmapped += 1
+                    continue
+                if old_alignment.is_reverse:
+                    new_alignment.flag = new_alignment.flag | 0x0010
 
-            new_alignment.qname = old_alignment.qname
-            new_alignment.tid = old_alignment.tid
-            new_alignment.pos = old_alignment.pos
-            new_alignment.mapq = old_alignment.mapq
-            new_alignment.cigar = old_alignment.cigar
-            new_alignment.seq = old_alignment.seq
-            new_alignment.qual = old_alignment.qual
-            new_alignment.tags = old_alignment.tags
-            new_alignment.flag = 0x0000
-            if old_alignment.is_unmapped:
-                OUT3.write(old_alignment)
-                unmapped += 1
-                continue
-            if old_alignment.is_reverse:
-                new_alignment.flag = new_alignment.flag | 0x0010
+                if old_alignment.is_secondary:
+                    new_alignment.flag = new_alignment.flag | 0x0100
+                if old_alignment.is_qcfail:
+                    new_alignment.flag = new_alignment.flag | 0x0200
+                if old_alignment.is_duplicate:
+                    new_alignment.flag = new_alignment.flag | 0x0400
+                if old_alignment.is_read1:
+                    OUT1.write(new_alignment)
+                    r1_alignment += 1
+                else:
+                    OUT2.write(new_alignment)
+                    r2_alignment += 1
 
-            if old_alignment.is_secondary:
-                new_alignment.flag = new_alignment.flag | 0x0100
-            if old_alignment.is_qcfail:
-                new_alignment.flag = new_alignment.flag | 0x0200
-            if old_alignment.is_duplicate:
-                new_alignment.flag = new_alignment.flag | 0x0400
-            if old_alignment.is_read1:
-                OUT1.write(new_alignment)
-                r1_alignment += 1
-            else:
-                OUT2.write(new_alignment)
-                r2_alignment += 1
-
-        print("Done", file=sys.stderr)
-    finally:
-        OUT1.close()
-        OUT2.close()
-        OUT3.close()
-        samfile.close()
+            print("Done", file=sys.stderr)
 
     print("%-55s%d" % ("Total records:", total_alignment))
     print("%-55s%d" % (args.output_prefix + "Read 1:", r1_alignment))

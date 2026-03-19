@@ -288,11 +288,11 @@ def main() -> None:
         with (
             open(os.path.basename(f).replace("bam", "") + "summary.txt", "w") as SUM,
             open(os.path.basename(f).replace("bam", "") + "tin.xls", "w") as OUT,
+            pysam.AlignmentFile(f, "rb") as samfile,
         ):
             print("\t".join(["Bam_file", "TIN(mean)", "TIN(median)", "TIN(stdev)"]), file=SUM)
             print("\t".join(["geneID", "chrom", "tx_start", "tx_end", "TIN"]), file=OUT)
 
-            samfile = pysam.AlignmentFile(f, "rb")
             sample_TINs = []  # sample level TIN, values are from different genes
             finish = 0
             noise_level = 0.0
@@ -325,7 +325,6 @@ def main() -> None:
                 ),
                 file=SUM,
             )
-            samfile.close()
 
 
 if __name__ == "__main__":

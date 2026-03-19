@@ -99,8 +99,7 @@ def genebody_coverage(bam: str, position_list: dict) -> dict:
 
     Uses pysam's C-level count_coverage() instead of Python-level pileup iteration.
     """
-    samfile = pysam.AlignmentFile(bam, "rb")
-    try:
+    with pysam.AlignmentFile(bam, "rb") as samfile:
         aggreagated_cvg = collections.defaultdict(int)
 
         gene_finished = 0
@@ -139,8 +138,6 @@ def genebody_coverage(bam: str, position_list: dict) -> dict:
             if gene_finished % 100 == 0:
                 print("\t%d transcripts finished\r" % (gene_finished), end=" ", file=sys.stderr)
         return aggreagated_cvg
-    finally:
-        samfile.close()
 
 
 def Rcode_write(dataset: list, file_prefix: str, format: str = "pdf", colNum: int = 100) -> None:
