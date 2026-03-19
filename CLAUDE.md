@@ -142,3 +142,4 @@ GitHub Actions workflows should:
 - Test fixtures (small BAM/BED files) go in `tests/fixtures/`
 - Do not change behavior without a test proving the old behavior first
 - When fixing a bug, add a regression test before applying the fix
+- **CHANGES.md**: Add a bullet under `[Unreleased]` for every user-visible change (bug fix, new feature, performance improvement, removed code, changed behavior). When bumping the version for a release, rename `[Unreleased]` to the new version/date and add a fresh empty `[Unreleased]` section at the top. Never leave released changes tagged as `[Unreleased]`.

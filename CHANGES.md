@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- CI: auto-create GitHub releases on tag push.
+
+### Performance
+
+- **saturation_junction()**: Replaced O(n) rescan of all unique junctions at each percentile step with incremental counters. Known/unknown counts updated as each splice site observation is added.
+- **configure_experiment()**: Fast-path the common single-hit case (read overlaps one gene) to avoid `set()` + `':'.join()` allocation per read.
+
+## [6.0.0] - 2026-03-12
+
+Major modernization release — first release under the `rseqc-redux` name.
+
 ### Tests
 
 - Expanded unit test coverage from 409 to 550 tests (+141 tests), then consolidated during module cleanup (476 tests currently).
@@ -80,6 +93,10 @@ All notable changes to this project will be documented in this file.
 - **mystat.py**: Cached `sum(lst)` before loops in all 6 statistical functions — was O(n²), now O(n).
 - **bam_cigar.py**: `list2str()` and `list2longstr()` use `"".join()` with module-level tuple lookup instead of string concatenation.
 
-## [5.0.3] - 2026-03-08
+## [5.0.3] - 2026-03-12
 
-Initial modernized release. All changes listed above were developed incrementally and first released in this version.
+Initial modernized release — performance optimizations, bug fixes, dead code removal, argparse migration, and test infrastructure. Most changes consolidated into the v6.0.0 release notes above.
+
+## [5.0.2] - 2026-03-11
+
+Project infrastructure: `pyproject.toml`, GitHub Actions CI (Python 3.10–3.13), PyPI publishing workflow, ruff linting/formatting.
