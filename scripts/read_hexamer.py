@@ -8,14 +8,6 @@ from rseqc import FrameKmer
 from rseqc.cli_common import create_parser
 
 
-def file_exist(file: str) -> bool:
-    try:
-        with open(file):
-            return True
-    except IOError:
-        return False
-
-
 def main() -> None:
     parser = create_parser(__doc__)
     parser.add_argument(
@@ -51,7 +43,7 @@ def main() -> None:
     read_file_sum = {}  # sum of hexamer
 
     for read_file in args.input_read.split(","):
-        if not file_exist(read_file):
+        if not os.path.exists(read_file):
             print(read_file, " does NOT exist!", file=sys.stderr)
             continue
         print("Calculate hexamer of " + read_file + " file ...", end=" ", file=sys.stderr)
@@ -62,7 +54,7 @@ def main() -> None:
         read_file_sum[os.path.basename(read_file)] = float(sum(read_table[os.path.basename(read_file)].values()))
         print("Done", file=sys.stderr)
 
-    if args.ref_genome and file_exist(args.ref_genome):
+    if args.ref_genome and os.path.exists(args.ref_genome):
         print("Calculate hexamer of " + args.ref_genome + " file ...", end=" ", file=sys.stderr)
         read_table[os.path.basename(args.ref_genome)] = FrameKmer.kmer_freq_file(
             fastafile=args.ref_genome, word_size=6, step_size=1, frame=0
@@ -73,7 +65,7 @@ def main() -> None:
         )
         print("Done.", file=sys.stderr)
 
-    if args.ref_gene and file_exist(args.ref_gene):
+    if args.ref_gene and os.path.exists(args.ref_gene):
         print("Calculate hexamer of " + args.ref_gene + " file ...", end=" ", file=sys.stderr)
         read_table[os.path.basename(args.ref_gene)] = FrameKmer.kmer_freq_file(
             fastafile=args.ref_gene, word_size=6, step_size=1, frame=0

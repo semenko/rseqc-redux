@@ -6,7 +6,6 @@ from scripts.FPKM_count import build_range
 from scripts.geneBody_coverage import pearson_moment_coefficient, valid_name
 from scripts.junction_annotation import generate_bed12, generate_interact
 from scripts.read_distribution import cal_size
-from scripts.read_hexamer import file_exist
 from scripts.RNA_fragment_size import overlap_length2
 from scripts.RPKM_saturation import square_error
 from scripts.tin import shannon_entropy, tin_score, uniqify
@@ -246,19 +245,6 @@ def test_build_range_empty_file(tmp_path):
     bed.write_text("")
     result = build_range(str(bed))
     assert result == {}
-
-
-# --- scripts.read_hexamer: file_exist ---
-
-
-def test_file_exist_true(tmp_path):
-    f = tmp_path / "test.txt"
-    f.write_text("hello")
-    assert file_exist(str(f)) is True
-
-
-def test_file_exist_false():
-    assert file_exist("/nonexistent/file.txt") is False
 
 
 # --- scripts.junction_annotation: generate_bed12, generate_interact ---
