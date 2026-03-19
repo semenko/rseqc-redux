@@ -279,73 +279,43 @@ def main() -> None:
                 unAssignFrags += 1
     print("Finished\n", file=sys.stderr)
 
-    print("%-30s%d" % ("Total Reads", totalReads))
-    print("%-30s%d" % ("Total Tags", totalFrags))
-    print("%-30s%d" % ("Total Assigned Tags", totalFrags - unAssignFrags))
+    print(f"{'Total Reads':<30}{totalReads}")
+    print(f"{'Total Tags':<30}{totalFrags}")
+    print(f"{'Total Assigned Tags':<30}{totalFrags - unAssignFrags}")
 
     print("=====================================================================")
-    print("%-20s%-20s%-20s%-20s" % ("Group", "Total_bases", "Tag_count", "Tags/Kb"))
-    print(
-        "%-20s%-20d%-20d%-18.2f"
-        % ("CDS_Exons", cds_exon_base, cds_exon_read, cds_exon_read * 1000.0 / (cds_exon_base + 1))
-    )
-    print("%-20s%-20d%-20d%-18.2f" % ("5'UTR_Exons", utr_5_base, utr_5_read, utr_5_read * 1000.0 / (utr_5_base + 1)))
-    print("%-20s%-20d%-20d%-18.2f" % ("3'UTR_Exons", utr_3_base, utr_3_read, utr_3_read * 1000.0 / (utr_3_base + 1)))
-    print("%-20s%-20d%-20d%-18.2f" % ("Introns", intron_base, intron_read, intron_read * 1000.0 / (intron_base + 1)))
+    print(f"{'Group':<20}{'Total_bases':<20}{'Tag_count':<20}{'Tags/Kb':<20}")
+    cds_tags_kb = cds_exon_read * 1000.0 / (cds_exon_base + 1)
+    print(f"{'CDS_Exons':<20}{cds_exon_base:<20}{cds_exon_read:<20}{cds_tags_kb:<18.2f}")
+    utr5_label = "5'UTR_Exons"
+    utr3_label = "3'UTR_Exons"
+    print(f"{utr5_label:<20}{utr_5_base:<20}{utr_5_read:<20}{utr_5_read * 1000.0 / (utr_5_base + 1):<18.2f}")
+    print(f"{utr3_label:<20}{utr_3_base:<20}{utr_3_read:<20}{utr_3_read * 1000.0 / (utr_3_base + 1):<18.2f}")
+    print(f"{'Introns':<20}{intron_base:<20}{intron_read:<20}{intron_read * 1000.0 / (intron_base + 1):<18.2f}")
 
     print(
-        "%-20s%-20d%-20d%-18.2f"
-        % (
-            "TSS_up_1kb",
-            intergenic_up1kb_base,
-            intergenic_up1kb_read,
-            intergenic_up1kb_read * 1000.0 / (intergenic_up1kb_base + 1),
-        )
+        f"{'TSS_up_1kb':<20}{intergenic_up1kb_base:<20}{intergenic_up1kb_read:<20}"
+        f"{intergenic_up1kb_read * 1000.0 / (intergenic_up1kb_base + 1):<18.2f}"
     )
     print(
-        "%-20s%-20d%-20d%-18.2f"
-        % (
-            "TSS_up_5kb",
-            intergenic_up5kb_base,
-            intergenic_up5kb_read,
-            intergenic_up5kb_read * 1000.0 / (intergenic_up5kb_base + 1),
-        )
+        f"{'TSS_up_5kb':<20}{intergenic_up5kb_base:<20}{intergenic_up5kb_read:<20}"
+        f"{intergenic_up5kb_read * 1000.0 / (intergenic_up5kb_base + 1):<18.2f}"
     )
     print(
-        "%-20s%-20d%-20d%-18.2f"
-        % (
-            "TSS_up_10kb",
-            intergenic_up10kb_base,
-            intergenic_up10kb_read,
-            intergenic_up10kb_read * 1000.0 / (intergenic_up10kb_base + 1),
-        )
+        f"{'TSS_up_10kb':<20}{intergenic_up10kb_base:<20}{intergenic_up10kb_read:<20}"
+        f"{intergenic_up10kb_read * 1000.0 / (intergenic_up10kb_base + 1):<18.2f}"
     )
     print(
-        "%-20s%-20d%-20d%-18.2f"
-        % (
-            "TES_down_1kb",
-            intergenic_down1kb_base,
-            intergenic_down1kb_read,
-            intergenic_down1kb_read * 1000.0 / (intergenic_down1kb_base + 1),
-        )
+        f"{'TES_down_1kb':<20}{intergenic_down1kb_base:<20}{intergenic_down1kb_read:<20}"
+        f"{intergenic_down1kb_read * 1000.0 / (intergenic_down1kb_base + 1):<18.2f}"
     )
     print(
-        "%-20s%-20d%-20d%-18.2f"
-        % (
-            "TES_down_5kb",
-            intergenic_down5kb_base,
-            intergenic_down5kb_read,
-            intergenic_down5kb_read * 1000.0 / (intergenic_down5kb_base + 1),
-        )
+        f"{'TES_down_5kb':<20}{intergenic_down5kb_base:<20}{intergenic_down5kb_read:<20}"
+        f"{intergenic_down5kb_read * 1000.0 / (intergenic_down5kb_base + 1):<18.2f}"
     )
     print(
-        "%-20s%-20d%-20d%-18.2f"
-        % (
-            "TES_down_10kb",
-            intergenic_down10kb_base,
-            intergenic_down10kb_read,
-            intergenic_down10kb_read * 1000.0 / (intergenic_down10kb_base + 1),
-        )
+        f"{'TES_down_10kb':<20}{intergenic_down10kb_base:<20}{intergenic_down10kb_read:<20}"
+        f"{intergenic_down10kb_read * 1000.0 / (intergenic_down10kb_base + 1):<18.2f}"
     )
     print("=====================================================================")
 

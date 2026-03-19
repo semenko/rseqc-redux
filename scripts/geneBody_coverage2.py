@@ -75,7 +75,7 @@ def coverageGeneBody_bigwig(bigFile: str, refbed: str, outfile: str, gtype: str 
             sig = bw.values(chrom, percentile_base[i] - 1, percentile_base[i])
             coverage[i] += nan_to_num(sig[0])
 
-        print(" \t%d genes finished\r" % gene_count, end=" ", file=sys.stderr)
+        print(f" \t{gene_count} genes finished\r", end=" ", file=sys.stderr)
 
     # Close bigwig file
     bw.close()
@@ -88,14 +88,16 @@ def coverageGeneBody_bigwig(bigFile: str, refbed: str, outfile: str, gtype: str 
         for i in coverage:
             x_coord.append(str(i))
             y_coord.append(str(coverage[i]))
-            handle.write("%i\t%i\n" % (i, coverage[i]))
+            handle.write(f"{i}\t{coverage[i]}\n")
 
     with open(outfile + ".geneBodyCoverage_plot.r", "w") as handle:
-        handle.write("%s('%s')\n" % (gtype, outfile + ".geneBodyCoverage." + gtype))
+        gbc_path = f"{outfile}.geneBodyCoverage.{gtype}"
+        handle.write(f"{gtype}('{gbc_path}')\n")
         handle.write("x=1:100\n")
-        handle.write("y=c(%s)\n" % ",".join(y_coord))
+        y_csv = ",".join(y_coord)
+        handle.write(f"y=c({y_csv})\n")
         handle.write(
-            "plot(x, y/%s, xlab=\"percentile of gene body (5'->3')\", ylab='average wigsum', type='s')\n" % gene_count
+            f"plot(x, y/{gene_count}, xlab=\"percentile of gene body (5'->3')\", ylab='average wigsum', type='s')\n"
         )
         handle.write("dev.off()\n")
 

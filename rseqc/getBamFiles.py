@@ -22,10 +22,10 @@ def isbamfile(infile: str) -> bool:
             if os.path.isfile(infile + ".bai"):
                 return True
             else:
-                print("Warning: %s.bai does not exist! Skip it." % (infile), file=sys.stderr)
+                print(f"Warning: {infile}.bai does not exist! Skip it.", file=sys.stderr)
                 return False
         else:
-            print("The size of %s is 0! Skip it." % (infile), file=sys.stderr)
+            print(f"The size of {infile} is 0! Skip it.", file=sys.stderr)
             return False
     else:
         return False

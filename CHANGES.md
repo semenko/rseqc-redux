@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Convert `%`-formatting (~92 sites) and string concatenation (~77 sites) to f-strings across all `rseqc/` and `scripts/` files; enable ruff rules `UP031`/`UP032` to prevent regression
 - **FPKM_count.py**: Replace inline strand rule parsing with shared `_parse_strand_rule()`, deduplicate triple print block, use truthiness checks, simplify `elif`→`else`
 - **read_hexamer.py**: Remove custom `file_exist()` function, use `os.path.exists()` directly
 - **infer_experiment.py**: Replace manual file existence loop with `validate_files_exist()`

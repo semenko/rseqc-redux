@@ -71,7 +71,7 @@ def _parse_strand_rule(strand_rule: str | None) -> dict[str, str]:
         return {p[0] + p[1]: p[2] for p in parts}
     if len(parts) == 2:  # SingleEnd, strand-specific
         return {p[0]: p[1] for p in parts}
-    print("Unknown value of option: 'strand_rule' " + strand_rule, file=sys.stderr)
+    print(f"Unknown value of option: 'strand_rule' {strand_rule}", file=sys.stderr)
     sys.exit(1)
 
 
@@ -159,23 +159,25 @@ class ParseBAM:
         print("\n#==================================================", file=sys.stdout)
         print("#All numbers are READ count", file=sys.stdout)
         print("#==================================================\n", file=sys.stdout)
-        print("%-40s%d" % ("Total records:", R_total), file=sys.stdout)
+        print(f"{'Total records:':<40}{R_total}", file=sys.stdout)
         print("\n", end="", file=sys.stdout)
-        print("%-40s%d" % ("QC failed:", R_qc_fail), file=sys.stdout)
-        print("%-40s%d" % ("Optical/PCR duplicate:", R_duplicate), file=sys.stdout)
-        print("%-40s%d" % ("Non primary hits", R_nonprimary), file=sys.stdout)
-        print("%-40s%d" % ("Unmapped reads:", R_unmap), file=sys.stdout)
-        print("%-40s%d" % ("mapq < mapq_cut (non-unique):", R_multipleHit), file=sys.stdout)
+        print(f"{'QC failed:':<40}{R_qc_fail}", file=sys.stdout)
+        print(f"{'Optical/PCR duplicate:':<40}{R_duplicate}", file=sys.stdout)
+        print(f"{'Non primary hits':<40}{R_nonprimary}", file=sys.stdout)
+        print(f"{'Unmapped reads:':<40}{R_unmap}", file=sys.stdout)
+        print(f"{'mapq < mapq_cut (non-unique):':<40}{R_multipleHit}", file=sys.stdout)
         print("\n", end="", file=sys.stdout)
-        print("%-40s%d" % ("mapq >= mapq_cut (unique):", R_uniqHit), file=sys.stdout)
-        print("%-40s%d" % ("Read-1:", R_read1), file=sys.stdout)
-        print("%-40s%d" % ("Read-2:", R_read2), file=sys.stdout)
-        print("%-40s%d" % ("Reads map to '+':", R_forward), file=sys.stdout)
-        print("%-40s%d" % ("Reads map to '-':", R_reverse), file=sys.stdout)
-        print("%-40s%d" % ("Non-splice reads:", R_nonSplice), file=sys.stdout)
-        print("%-40s%d" % ("Splice reads:", R_splice), file=sys.stdout)
-        print("%-40s%d" % ("Reads mapped in proper pairs:", R_properPair), file=sys.stdout)
-        print("%-40s%d" % ("Proper-paired reads map to different chrom:", R_pair_diff_chrom), file=sys.stdout)
+        print(f"{'mapq >= mapq_cut (unique):':<40}{R_uniqHit}", file=sys.stdout)
+        print(f"{'Read-1:':<40}{R_read1}", file=sys.stdout)
+        print(f"{'Read-2:':<40}{R_read2}", file=sys.stdout)
+        plus_label = "Reads map to '+':"
+        minus_label = "Reads map to '-':"
+        print(f"{plus_label:<40}{R_forward}", file=sys.stdout)
+        print(f"{minus_label:<40}{R_reverse}", file=sys.stdout)
+        print(f"{'Non-splice reads:':<40}{R_nonSplice}", file=sys.stdout)
+        print(f"{'Splice reads:':<40}{R_splice}", file=sys.stdout)
+        print(f"{'Reads mapped in proper pairs:':<40}{R_properPair}", file=sys.stdout)
+        print(f"{'Proper-paired reads map to different chrom:':<40}{R_pair_diff_chrom}", file=sys.stdout)
 
     def configure_experiment(self, refbed: str, sample_size: int, q_cut: int = 30) -> list[str | float]:
         """Given a BAM/SAM file, this function will try to guess the RNA-seq experiment:
@@ -190,7 +192,7 @@ class ParseBAM:
         s_strandness: dict[str, int] = collections.defaultdict(int)
         # load reference gene model
         gene_ranges = {}
-        print("Reading reference gene model " + refbed + " ...", end=" ", file=sys.stderr)
+        print(f"Reading reference gene model {refbed} ...", end=" ", file=sys.stderr)
         with open(refbed, "r") as _fh:
             for line in _fh:
                 try:
@@ -203,7 +205,7 @@ class ParseBAM:
                     txEnd = int(fields[2])
                     strand = fields[5]
                 except (IndexError, ValueError):
-                    print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
+                    print(f"[NOTE:input bed must be 12-column] skipped this line: {line}", file=sys.stderr)
                     continue
                 if chrom not in gene_ranges:
                     gene_ranges[chrom] = Intersecter()
@@ -259,7 +261,7 @@ class ParseBAM:
                     count += 1
         print("Finished", file=sys.stderr)
 
-        print("Total " + str(count) + " usable reads were sampled", file=sys.stderr)
+        print(f"Total {count} usable reads were sampled", file=sys.stderr)
         protocol = "unknown"
         spec1 = 0.0
         spec2 = 0.0
@@ -304,13 +306,13 @@ class ParseBAM:
 
         strandRule = _parse_strand_rule(strand_rule)
         if len(strandRule) == 0:
-            wig_files = open(outfile + ".wig", "w")
+            wig_files = open(f"{outfile}.wig", "w")
             FWO = wig_files
             RVO = None
         else:
-            wig_files = open(outfile + ".Forward.wig", "w")
+            wig_files = open(f"{outfile}.Forward.wig", "w")
             FWO = wig_files
-            RVO = open(outfile + ".Reverse.wig", "w")
+            RVO = open(f"{outfile}.Reverse.wig", "w")
 
         try:
             read_id = ""
@@ -319,14 +321,14 @@ class ParseBAM:
                 try:
                     self.samfile.fetch(chr_name, 0, chr_size)
                 except (KeyError, ValueError):
-                    print("No alignments for " + chr_name + ". skipped", file=sys.stderr)
+                    print(f"No alignments for {chr_name}. skipped", file=sys.stderr)
                     continue
-                print("Processing " + chr_name + " ...", file=sys.stderr)
+                print(f"Processing {chr_name} ...", file=sys.stderr)
                 if len(strandRule) == 0:
-                    FWO.write("variableStep chrom=" + chr_name + "\n")
+                    FWO.write(f"variableStep chrom={chr_name}\n")
                 else:
-                    FWO.write("variableStep chrom=" + chr_name + "\n")
-                    RVO.write("variableStep chrom=" + chr_name + "\n")  # type: ignore[union-attr]
+                    FWO.write(f"variableStep chrom={chr_name}\n")
+                    RVO.write(f"variableStep chrom={chr_name}\n")  # type: ignore[union-attr]
                 # Use numpy arrays for coverage accumulation (1-based positions → index 0 unused)
                 Fwig = np.zeros(chr_size + 1, dtype=np.float64)
                 Rwig = np.zeros(chr_size + 1, dtype=np.float64) if len(strandRule) > 0 else None
@@ -387,15 +389,15 @@ class ParseBAM:
             if RVO is not None:
                 RVO.close()
         if len(strandRule) == 0:
-            wig_pairs = [(outfile + ".wig", outfile + ".bw")]
+            wig_pairs = [(f"{outfile}.wig", f"{outfile}.bw")]
         else:
             wig_pairs = [
-                (outfile + ".Forward.wig", outfile + ".Forward.bw"),
-                (outfile + ".Reverse.wig", outfile + ".Reverse.bw"),
+                (f"{outfile}.Forward.wig", f"{outfile}.Forward.bw"),
+                (f"{outfile}.Reverse.wig", f"{outfile}.Reverse.bw"),
             ]
         for wig_in, bw_out in wig_pairs:
             try:
-                print("Run wigToBigWig " + wig_in + " " + chrom_file + " " + bw_out)
+                print(f"Run wigToBigWig {wig_in} {chrom_file} {bw_out}")
                 subprocess.run(["wigToBigWig", "-clip", wig_in, chrom_file, bw_out], check=False)
             except OSError:
                 print('Failed to call "wigToBigWig".', file=sys.stderr)
@@ -412,9 +414,9 @@ class ParseBAM:
             try:
                 alignedReads = self.samfile.fetch(chr_name, 0, chr_size)
             except (KeyError, ValueError):
-                print("No alignments for " + chr_name + ". skipped", file=sys.stderr)
+                print(f"No alignments for {chr_name}. skipped", file=sys.stderr)
                 continue
-            print("Processing " + chr_name + " ...", file=sys.stderr)
+            print(f"Processing {chr_name} ...", file=sys.stderr)
 
             for aligned_read in _pysam_iter(alignedReads):
                 if aligned_read.is_qcfail:
@@ -439,7 +441,7 @@ class ParseBAM:
         transtab = str.maketrans("ACGTNX", "TGCANX")
 
         if paired:
-            with open(prefix + ".R1.fastq", "w") as OUT1, open(prefix + ".R2.fastq", "w") as OUT2:
+            with open(f"{prefix}.R1.fastq", "w") as OUT1, open(f"{prefix}.R2.fastq", "w") as OUT2:
                 read1_count = 0
                 read2_count = 0
                 read_name = ""
@@ -457,26 +459,26 @@ class ParseBAM:
                     if aligned_read.is_read1:
                         read1_count += 1
                         if not read_name.endswith("/1"):
-                            print("@" + read_name + "/1", file=OUT1)
+                            print(f"@{read_name}/1", file=OUT1)
                         else:
-                            print("@" + read_name, file=OUT1)
+                            print(f"@{read_name}", file=OUT1)
                         print(read_seq, file=OUT1)
                         print("+", file=OUT1)
                         print(read_qual, file=OUT1)
                     if aligned_read.is_read2:
                         read2_count += 1
                         if not read_name.endswith("/2"):
-                            print("@" + read_name + "/2", file=OUT2)
+                            print(f"@{read_name}/2", file=OUT2)
                         else:
-                            print("@" + read_name, file=OUT2)
+                            print(f"@{read_name}", file=OUT2)
                         print(read_seq, file=OUT2)
                         print("+", file=OUT2)
                         print(read_qual, file=OUT2)
                 print("Done", file=sys.stderr)
-            print("read_1 count: %d" % read1_count, file=sys.stderr)
-            print("read_2 count: %d" % read2_count, file=sys.stderr)
+            print(f"read_1 count: {read1_count}", file=sys.stderr)
+            print(f"read_2 count: {read2_count}", file=sys.stderr)
         else:
-            with open(prefix + ".fastq", "w") as OUT:
+            with open(f"{prefix}.fastq", "w") as OUT:
                 read_count = 0
                 read_name = ""
                 read_seq = ""
@@ -491,17 +493,17 @@ class ParseBAM:
                         read_seq = read_seq.translate(transtab)[::-1]
                         read_qual = read_qual[::-1]
                     read_count += 1
-                    print("@" + read_name, file=OUT)
+                    print(f"@{read_name}", file=OUT)
                     print(read_seq, file=OUT)
                     print("+", file=OUT)
                     print(read_qual, file=OUT)
                 print("Done", file=sys.stderr)
-            print("read count: %d" % read_count, file=sys.stderr)
+            print(f"read count: {read_count}", file=sys.stderr)
 
     def readsNVC(self, outfile: str, nx: bool = True, q_cut: int = 30) -> None:
         """for each read, calculate nucleotide frequency vs position"""
-        outfile1 = outfile + ".NVC.xls"
-        outfile2 = outfile + ".NVC_plot.r"
+        outfile1 = f"{outfile}.NVC.xls"
+        outfile2 = f"{outfile}.NVC_plot.r"
         with open(outfile1, "w") as FO, open(outfile2, "w") as RS:
             transtab = str.maketrans("ACGTNX", "TGCANX")
             read_len = 0
@@ -544,29 +546,30 @@ class ParseBAM:
             n_count = []
             x_count = []
             for i in range(read_len):
-                print(str(i) + "\t", end=" ", file=FO)
-                print(str(base_freq[i, 0]) + "\t", end=" ", file=FO)
+                print(f"{i}\t", end=" ", file=FO)
+                print(f"{base_freq[i, 0]}\t", end=" ", file=FO)
                 a_count.append(str(base_freq[i, 0]))
-                print(str(base_freq[i, 1]) + "\t", end=" ", file=FO)
+                print(f"{base_freq[i, 1]}\t", end=" ", file=FO)
                 c_count.append(str(base_freq[i, 1]))
-                print(str(base_freq[i, 2]) + "\t", end=" ", file=FO)
+                print(f"{base_freq[i, 2]}\t", end=" ", file=FO)
                 g_count.append(str(base_freq[i, 2]))
-                print(str(base_freq[i, 3]) + "\t", end=" ", file=FO)
+                print(f"{base_freq[i, 3]}\t", end=" ", file=FO)
                 t_count.append(str(base_freq[i, 3]))
-                print(str(base_freq[i, 4]) + "\t", end=" ", file=FO)
+                print(f"{base_freq[i, 4]}\t", end=" ", file=FO)
                 n_count.append(str(base_freq[i, 4]))
-                print(str(base_freq[i, 5]) + "\t", file=FO)
+                print(f"{base_freq[i, 5]}\t", file=FO)
                 x_count.append(str(base_freq[i, 5]))
 
             # generating R scripts
             print("generating R script  ...", file=sys.stderr)
-            print("position=c(" + ",".join([str(i) for i in range(read_len)]) + ")", file=RS)
-            print("A_count=c(" + ",".join(a_count) + ")", file=RS)
-            print("C_count=c(" + ",".join(c_count) + ")", file=RS)
-            print("G_count=c(" + ",".join(g_count) + ")", file=RS)
-            print("T_count=c(" + ",".join(t_count) + ")", file=RS)
-            print("N_count=c(" + ",".join(n_count) + ")", file=RS)
-            print("X_count=c(" + ",".join(x_count) + ")", file=RS)
+            pos_str = ",".join([str(i) for i in range(read_len)])
+            print(f"position=c({pos_str})", file=RS)
+            print(f"A_count=c({','.join(a_count)})", file=RS)
+            print(f"C_count=c({','.join(c_count)})", file=RS)
+            print(f"G_count=c({','.join(g_count)})", file=RS)
+            print(f"T_count=c({','.join(t_count)})", file=RS)
+            print(f"N_count=c({','.join(n_count)})", file=RS)
+            print(f"X_count=c({','.join(x_count)})", file=RS)
 
             if nx:
                 print("total= A_count + C_count + G_count + T_count + N_count + X_count", file=RS)
@@ -580,7 +583,7 @@ class ParseBAM:
                     file=RS,
                 )
 
-                print('pdf("%s")' % (outfile + ".NVC_plot.pdf"), file=RS)  # type: ignore[operator]
+                print(f'pdf("{outfile}.NVC_plot.pdf")', file=RS)
                 print(
                     'plot(position,A_count/total,type="o",pch=20,'
                     'ylim=c(yn,ym),col="dark green",'
@@ -593,13 +596,11 @@ class ParseBAM:
                 print('lines(position,N_count/total,type="o",pch=20,col="black")', file=RS)
                 print('lines(position,X_count/total,type="o",pch=20,col="grey")', file=RS)
                 print(
-                    "legend("
-                    + str(read_len - 10)
-                    + ",ym,"
-                    + 'legend=c("A","T","G","C","N","X"),'
-                    + 'col=c("dark green","red","blue","cyan","black","grey"),'
-                    + "lwd=2,pch=20,"
-                    + 'text.col=c("dark green","red","blue","cyan","black","grey"))',
+                    f"legend({read_len - 10},ym,"
+                    'legend=c("A","T","G","C","N","X"),'
+                    'col=c("dark green","red","blue","cyan","black","grey"),'
+                    "lwd=2,pch=20,"
+                    'text.col=c("dark green","red","blue","cyan","black","grey"))',
                     file=RS,
                 )
                 print("dev.off()", file=RS)
@@ -608,7 +609,7 @@ class ParseBAM:
                 print("ym=max(A_count/total,C_count/total,G_count/total,T_count/total) + 0.05", file=RS)
                 print("yn=min(A_count/total,C_count/total,G_count/total,T_count/total)", file=RS)
 
-                print('pdf("%s")' % (outfile + ".NVC_plot.pdf"), file=RS)  # type: ignore[operator]
+                print(f'pdf("{outfile}.NVC_plot.pdf")', file=RS)
                 print(
                     'plot(position,A_count/total,type="o",pch=20,'
                     'ylim=c(yn,ym),col="dark green",'
@@ -619,13 +620,11 @@ class ParseBAM:
                 print('lines(position,G_count/total,type="o",pch=20,col="blue")', file=RS)
                 print('lines(position,C_count/total,type="o",pch=20,col="cyan")', file=RS)
                 print(
-                    "legend("
-                    + str(read_len - 10)
-                    + ",ym,"
-                    + 'legend=c("A","T","G","C"),'
-                    + 'col=c("dark green","red","blue","cyan"),'
-                    + "lwd=2,pch=20,"
-                    + 'text.col=c("dark green","red","blue","cyan"))',
+                    f"legend({read_len - 10},ym,"
+                    'legend=c("A","T","G","C"),'
+                    'col=c("dark green","red","blue","cyan"),'
+                    "lwd=2,pch=20,"
+                    'text.col=c("dark green","red","blue","cyan"))',
                     file=RS,
                 )
                 print("dev.off()", file=RS)
@@ -633,7 +632,7 @@ class ParseBAM:
     def readsQual_boxplot(self, outfile: str, shrink: int = 1000, q_cut: int = 30) -> None:
         """calculate phred quality score for each base in read (5->3)"""
 
-        output = outfile + ".qual.r"
+        output = f"{outfile}.qual.r"
         with open(output, "w") as FO:
             if self.bam_format:
                 print("Read BAM file ... ", end=" ", file=sys.stderr)
@@ -675,26 +674,24 @@ class ParseBAM:
                         q_list.append(str(quality[p][q]))
                     else:
                         q_list.append(str(0))
-                i_box[p] = "rep(c(" + ",".join(val) + "),times=c(" + ",".join(occurrence) + ")/" + str(shrink) + ")"
+                i_box[p] = f"rep(c({','.join(val)}),times=c({','.join(occurrence)})/{shrink})"
 
             # generate R script for boxplot
-            print("pdf('%s')" % (outfile + ".qual.boxplot.pdf"), file=FO)
+            print(f"pdf('{outfile}.qual.boxplot.pdf')", file=FO)
             for i in sorted(i_box):
-                print("p" + str(i) + "<-" + i_box[i], file=FO)
+                print(f"p{i}<-{i_box[i]}", file=FO)
+            boxplot_vars = ",".join([f"p{i}" for i in i_box])
             print(
-                "boxplot("
-                + ",".join(["p" + str(i) for i in i_box])
-                + ',xlab="Position of Read(5\'->3\')",ylab="Phred Quality Score",outline=F'
-                + ")",
+                f'boxplot({boxplot_vars},xlab="Position of Read(5\'->3\')",ylab="Phred Quality Score",outline=F)',
                 file=FO,
             )
             print("dev.off()", file=FO)
 
             # generate R script for heatmap
             print("\n", file=FO)
-            print("pdf('%s')" % (outfile + ".qual.heatmap.pdf"), file=FO)
-            print("qual=c(" + ",".join(q_list) + ")", file=FO)
-            print("mat=matrix(qual,ncol=%s,byrow=F)" % (read_len), file=FO)
+            print(f"pdf('{outfile}.qual.heatmap.pdf')", file=FO)
+            print(f"qual=c({','.join(q_list)})", file=FO)
+            print(f"mat=matrix(qual,ncol={read_len},byrow=F)", file=FO)
             print(
                 "Lab.palette <- colorRampPalette("
                 'c("blue", "orange", "red3","red2","red1","red"), '
@@ -702,19 +699,19 @@ class ParseBAM:
                 file=FO,
             )
             print(
-                "heatmap(mat,Rowv=NA,Colv=NA,"
-                'xlab="Position of Read",'
-                'ylab="Phred Quality Score",'
-                "labRow=seq(from=%s,to=%s),"
-                'col = Lab.palette(256),scale="none" )' % (q_min, q_max),
+                f"heatmap(mat,Rowv=NA,Colv=NA,"
+                f'xlab="Position of Read",'
+                f'ylab="Phred Quality Score",'
+                f"labRow=seq(from={q_min},to={q_max}),"
+                f'col = Lab.palette(256),scale="none" )',
                 file=FO,
             )
             print("dev.off()", file=FO)
 
     def readGC(self, outfile: str, q_cut: int = 30) -> None:
         """GC content distribution of reads"""
-        outfile1 = outfile + ".GC.xls"
-        outfile2 = outfile + ".GC_plot.r"
+        outfile1 = f"{outfile}.GC.xls"
+        outfile2 = f"{outfile}.GC_plot.r"
         with open(outfile1, "w") as FO, open(outfile2, "w") as RS:
             gc_hist: dict[int, int] = collections.defaultdict(int)  # key is GC% * 100 (int), value is count
 
@@ -738,28 +735,30 @@ class ParseBAM:
             print("writing GC content ...", file=sys.stderr)
             print("GC%\tread_count", file=FO)
             for gc_key in gc_hist:
-                gc_str = "%4.2f" % (gc_key / 100.0)
-                print(gc_str + "\t" + str(gc_hist[gc_key]), file=FO)
+                gc_str = f"{gc_key / 100.0:4.2f}"
+                print(f"{gc_str}\t{gc_hist[gc_key]}", file=FO)
 
             print("writing R script ...", file=sys.stderr)
-            print('pdf("%s")' % (outfile + ".GC_plot.pdf"), file=RS)
-            gc_strs = ["%4.2f" % (k / 100.0) for k in gc_hist]
+            print(f'pdf("{outfile}.GC_plot.pdf")', file=RS)
+            gc_strs = [f"{k / 100.0:4.2f}" for k in gc_hist]
+            gc_vals = ",".join(str(v) for v in gc_hist.values())
             print(
-                "gc=rep(c(" + ",".join(gc_strs) + ")," + "times=c(" + ",".join(str(v) for v in gc_hist.values()) + "))",
+                f"gc=rep(c({','.join(gc_strs)}),times=c({gc_vals}))",
                 file=RS,
             )
             print(
-                'hist(gc,probability=T,breaks=%d,xlab="GC content (%%)",ylab="Density of Reads",border="blue",main="")'
-                % 100,
+                f"hist(gc,probability=T,breaks={100},"
+                f'xlab="GC content (%)",ylab="Density of Reads",'
+                f'border="blue",main="")',
                 file=RS,
             )
             print("dev.off()", file=RS)
 
     def readDupRate(self, q_cut: int, outfile: str, up_bound: int = 500) -> None:
         """Calculate reads's duplicate rates"""
-        outfile1 = outfile + ".seq.DupRate.xls"
-        outfile2 = outfile + ".pos.DupRate.xls"
-        outfile3 = outfile + ".DupRate_plot.r"
+        outfile1 = f"{outfile}.seq.DupRate.xls"
+        outfile2 = f"{outfile}.pos.DupRate.xls"
+        outfile3 = f"{outfile}.DupRate_plot.r"
         with open(outfile1, "w") as SEQ, open(outfile2, "w") as POS, open(outfile3, "w") as RS:
             seqDup: dict[str, int] = collections.defaultdict(int)
             posDup: dict[str, int] = collections.defaultdict(int)
@@ -796,38 +795,38 @@ class ParseBAM:
             for i in seqDup.values():  # key is occurence, value is uniq reads number (based on seq)
                 seqDup_count[i] += 1
             for k in sorted(seqDup_count.keys()):
-                print(str(k) + "\t" + str(seqDup_count[k]), file=SEQ)
+                print(f"{k}\t{seqDup_count[k]}", file=SEQ)
 
             print("report duplicte rate based on mapping  ...", file=sys.stderr)
             print("Occurrence\tUniqReadNumber", file=POS)
             for i in posDup.values():  # key is occurence, value is uniq reads number (based on coord)
                 posDup_count[i] += 1
             for k in sorted(posDup_count.keys()):
-                print(str(k) + "\t" + str(posDup_count[k]), file=POS)
+                print(f"{k}\t{posDup_count[k]}", file=POS)
 
             print("generate R script ...", file=sys.stderr)
-            print("pdf('%s')" % (outfile + ".DupRate_plot.pdf"), file=RS)  # type: ignore[operator]
+            print(f"pdf('{outfile}.DupRate_plot.pdf')", file=RS)
             print("par(mar=c(5,4,4,5),las=0)", file=RS)
-            print("seq_occ=c(" + ",".join([str(i) for i in sorted(seqDup_count.keys())]) + ")", file=RS)
+            seq_occ = ",".join([str(i) for i in sorted(seqDup_count.keys())])
+            print(f"seq_occ=c({seq_occ})", file=RS)
+            seq_uniq = ",".join([str(seqDup_count[i]) for i in sorted(seqDup_count.keys())])
+            print(f"seq_uniqRead=c({seq_uniq})", file=RS)
+            pos_occ = ",".join([str(i) for i in sorted(posDup_count.keys())])
+            print(f"pos_occ=c({pos_occ})", file=RS)
+            pos_uniq = ",".join([str(posDup_count[i]) for i in sorted(posDup_count.keys())])
+            print(f"pos_uniqRead=c({pos_uniq})", file=RS)
             print(
-                "seq_uniqRead=c(" + ",".join([str(seqDup_count[i]) for i in sorted(seqDup_count.keys())]) + ")", file=RS
-            )
-            print("pos_occ=c(" + ",".join([str(i) for i in sorted(posDup_count.keys())]) + ")", file=RS)
-            print(
-                "pos_uniqRead=c(" + ",".join([str(posDup_count[i]) for i in sorted(posDup_count.keys())]) + ")", file=RS
-            )
-            print(
-                "plot(pos_occ,log10(pos_uniqRead),"
-                "ylab='Number of Reads (log10)',"
-                "xlab='Occurrence of read',"
-                "pch=4,cex=0.8,col='blue',xlim=c(1,%d),yaxt='n')" % up_bound,
+                f"plot(pos_occ,log10(pos_uniqRead),"
+                f"ylab='Number of Reads (log10)',"
+                f"xlab='Occurrence of read',"
+                f"pch=4,cex=0.8,col='blue',xlim=c(1,{up_bound}),yaxt='n')",
                 file=RS,
             )
             print("points(seq_occ,log10(seq_uniqRead),pch=20,cex=0.8,col='red')", file=RS)
             print("ym=floor(max(log10(pos_uniqRead)))", file=RS)
+            legend_x = max(up_bound - 200, 1)
             print(
-                "legend(%d,ym,legend=c('Sequence-based','Mapping-based'),col=c('blue','red'),pch=c(4,20))"
-                % max(up_bound - 200, 1),
+                f"legend({legend_x},ym,legend=c('Sequence-based','Mapping-based'),col=c('blue','red'),pch=c(4,20))",
                 file=RS,
             )
             print("axis(side=2,at=0:ym,labels=0:ym)", file=RS)
@@ -848,8 +847,8 @@ class ParseBAM:
     def clipping_profile(self, outfile: str, q_cut: int, PE: bool, type: str = "S") -> None:
         """calculate profile of soft clipping or insertion"""
 
-        out_file1 = outfile + ".clipping_profile.xls"
-        out_file2 = outfile + ".clipping_profile.r"
+        out_file1 = f"{outfile}.clipping_profile.xls"
+        out_file2 = f"{outfile}.clipping_profile.r"
         with open(out_file1, "w") as OUT, open(out_file2, "w") as ROUT:
             print("Position\tClipped_nt\tNon_clipped_nt", file=OUT)
 
@@ -897,20 +896,22 @@ class ParseBAM:
                             pos += s
                 print("Done", file=sys.stderr)
 
-                print("Total reads used: %d" % int(total_read), file=sys.stderr)
+                print(f"Total reads used: {int(total_read)}", file=sys.stderr)
                 read_pos = list(range(0, last_read_len))
                 clip_count = []
                 for i in read_pos:
                     print(
-                        str(i) + "\t" + str(soft_clip_profile[i]) + "\t" + str(total_read - soft_clip_profile[i]),
+                        f"{i}\t{soft_clip_profile[i]}\t{total_read - soft_clip_profile[i]}",
                         file=OUT,
                     )
                     clip_count.append(soft_clip_profile[i])
 
-                print('pdf("%s")' % (outfile + ".clipping_profile.pdf"), file=ROUT)
-                print("read_pos=c(%s)" % ",".join([str(i) for i in read_pos]), file=ROUT)
-                print("clip_count=c(%s)" % ",".join([str(i) for i in clip_count]), file=ROUT)
-                print("nonclip_count= %d - clip_count" % (total_read), file=ROUT)
+                print(f'pdf("{outfile}.clipping_profile.pdf")', file=ROUT)
+                rp = ",".join([str(i) for i in read_pos])
+                print(f"read_pos=c({rp})", file=ROUT)
+                cc = ",".join([str(i) for i in clip_count])
+                print(f"clip_count=c({cc})", file=ROUT)
+                print(f"nonclip_count= {int(total_read)} - clip_count", file=ROUT)
                 print(
                     "plot(read_pos, "
                     "nonclip_count*100/(clip_count+nonclip_count),"
@@ -966,16 +967,12 @@ class ParseBAM:
                 r1_clip_count = []
                 r2_clip_count = []
 
-                print("Total read-1 used: %d" % int(total_read1), file=sys.stderr)
-                print("Total read-2 used: %d" % int(total_read2), file=sys.stderr)
+                print(f"Total read-1 used: {int(total_read1)}", file=sys.stderr)
+                print(f"Total read-2 used: {int(total_read2)}", file=sys.stderr)
                 print("Read-1:", file=OUT)
                 for i in read_pos:
                     print(
-                        str(i)
-                        + "\t"
-                        + str(r1_soft_clip_profile[i])
-                        + "\t"
-                        + str(total_read1 - r1_soft_clip_profile[i]),
+                        f"{i}\t{r1_soft_clip_profile[i]}\t{total_read1 - r1_soft_clip_profile[i]}",
                         file=OUT,
                     )
                     r1_clip_count.append(r1_soft_clip_profile[i])
@@ -983,19 +980,17 @@ class ParseBAM:
                 print("Read-2:", file=OUT)
                 for i in read_pos:
                     print(
-                        str(i)
-                        + "\t"
-                        + str(r2_soft_clip_profile[i])
-                        + "\t"
-                        + str(total_read2 - r2_soft_clip_profile[i]),
+                        f"{i}\t{r2_soft_clip_profile[i]}\t{total_read2 - r2_soft_clip_profile[i]}",
                         file=OUT,
                     )
                     r2_clip_count.append(r2_soft_clip_profile[i])
 
-                print('pdf("%s")' % (outfile + ".clipping_profile.R1.pdf"), file=ROUT)
-                print("read_pos=c(%s)" % ",".join([str(i) for i in read_pos]), file=ROUT)
-                print("r1_clip_count=c(%s)" % ",".join([str(i) for i in r1_clip_count]), file=ROUT)
-                print("r1_nonclip_count = %d - r1_clip_count" % (total_read1), file=ROUT)
+                rp = ",".join([str(i) for i in read_pos])
+                print(f'pdf("{outfile}.clipping_profile.R1.pdf")', file=ROUT)
+                print(f"read_pos=c({rp})", file=ROUT)
+                r1cc = ",".join([str(i) for i in r1_clip_count])
+                print(f"r1_clip_count=c({r1cc})", file=ROUT)
+                print(f"r1_nonclip_count = {int(total_read1)} - r1_clip_count", file=ROUT)
                 print(
                     "plot(read_pos, "
                     "r1_nonclip_count*100/(r1_clip_count + r1_nonclip_count),"
@@ -1006,10 +1001,11 @@ class ParseBAM:
                 )
                 print("dev.off()", file=ROUT)
 
-                print('pdf("%s")' % (outfile + ".clipping_profile.R2.pdf"), file=ROUT)
-                print("read_pos=c(%s)" % ",".join([str(i) for i in read_pos]), file=ROUT)
-                print("r2_clip_count=c(%s)" % ",".join([str(i) for i in r2_clip_count]), file=ROUT)
-                print("r2_nonclip_count = %d - r2_clip_count" % (total_read2), file=ROUT)
+                print(f'pdf("{outfile}.clipping_profile.R2.pdf")', file=ROUT)
+                print(f"read_pos=c({rp})", file=ROUT)
+                r2cc = ",".join([str(i) for i in r2_clip_count])
+                print(f"r2_clip_count=c({r2cc})", file=ROUT)
+                print(f"r2_nonclip_count = {int(total_read2)} - r2_clip_count", file=ROUT)
                 print(
                     "plot(read_pos, "
                     "r2_nonclip_count*100/(r2_clip_count + r2_nonclip_count),"
@@ -1023,8 +1019,8 @@ class ParseBAM:
     def insertion_profile(self, outfile: str, q_cut: int, PE: bool, type: str = "I") -> None:
         """calculate profile of insertion"""
 
-        out_file1 = outfile + ".insertion_profile.xls"
-        out_file2 = outfile + ".insertion_profile.r"
+        out_file1 = f"{outfile}.insertion_profile.xls"
+        out_file2 = f"{outfile}.insertion_profile.r"
         with open(out_file1, "w") as OUT, open(out_file2, "w") as ROUT:
             print("Position\tInsert_nt\tNon_insert_nt", file=OUT)
 
@@ -1072,20 +1068,22 @@ class ParseBAM:
                             pos += s
                 print("Done", file=sys.stderr)
 
-                print("Total reads used: %d" % int(total_read), file=sys.stderr)
+                print(f"Total reads used: {int(total_read)}", file=sys.stderr)
                 read_pos = list(range(0, last_read_len))
                 clip_count = []
                 for i in read_pos:
                     print(
-                        str(i) + "\t" + str(soft_clip_profile[i]) + "\t" + str(total_read - soft_clip_profile[i]),
+                        f"{i}\t{soft_clip_profile[i]}\t{total_read - soft_clip_profile[i]}",
                         file=OUT,
                     )
                     clip_count.append(soft_clip_profile[i])
 
-                print('pdf("%s")' % (outfile + ".insertion_profile.pdf"), file=ROUT)
-                print("read_pos=c(%s)" % ",".join([str(i) for i in read_pos]), file=ROUT)
-                print("insert_count=c(%s)" % ",".join([str(i) for i in clip_count]), file=ROUT)
-                print("noninsert_count= %d - insert_count" % (total_read), file=ROUT)
+                print(f'pdf("{outfile}.insertion_profile.pdf")', file=ROUT)
+                rp = ",".join([str(i) for i in read_pos])
+                print(f"read_pos=c({rp})", file=ROUT)
+                ic = ",".join([str(i) for i in clip_count])
+                print(f"insert_count=c({ic})", file=ROUT)
+                print(f"noninsert_count= {int(total_read)} - insert_count", file=ROUT)
                 print(
                     "plot(read_pos, "
                     "insert_count*100/(insert_count+noninsert_count),"
@@ -1141,16 +1139,12 @@ class ParseBAM:
                 r1_clip_count = []
                 r2_clip_count = []
 
-                print("Total read-1 used: %d" % int(total_read1), file=sys.stderr)
-                print("Total read-2 used: %d" % int(total_read2), file=sys.stderr)
+                print(f"Total read-1 used: {int(total_read1)}", file=sys.stderr)
+                print(f"Total read-2 used: {int(total_read2)}", file=sys.stderr)
                 print("Read-1:", file=OUT)
                 for i in read_pos:
                     print(
-                        str(i)
-                        + "\t"
-                        + str(r1_soft_clip_profile[i])
-                        + "\t"
-                        + str(total_read1 - r1_soft_clip_profile[i]),
+                        f"{i}\t{r1_soft_clip_profile[i]}\t{total_read1 - r1_soft_clip_profile[i]}",
                         file=OUT,
                     )
                     r1_clip_count.append(r1_soft_clip_profile[i])
@@ -1158,19 +1152,17 @@ class ParseBAM:
                 print("Read-2:", file=OUT)
                 for i in read_pos:
                     print(
-                        str(i)
-                        + "\t"
-                        + str(r2_soft_clip_profile[i])
-                        + "\t"
-                        + str(total_read2 - r2_soft_clip_profile[i]),
+                        f"{i}\t{r2_soft_clip_profile[i]}\t{total_read2 - r2_soft_clip_profile[i]}",
                         file=OUT,
                     )
                     r2_clip_count.append(r2_soft_clip_profile[i])
 
-                print('pdf("%s")' % (outfile + ".insertion_profile.R1.pdf"), file=ROUT)
-                print("read_pos=c(%s)" % ",".join([str(i) for i in read_pos]), file=ROUT)
-                print("r1_insert_count=c(%s)" % ",".join([str(i) for i in r1_clip_count]), file=ROUT)
-                print("r1_noninsert_count = %d - r1_insert_count" % (total_read1), file=ROUT)
+                rp = ",".join([str(i) for i in read_pos])
+                print(f'pdf("{outfile}.insertion_profile.R1.pdf")', file=ROUT)
+                print(f"read_pos=c({rp})", file=ROUT)
+                r1ic = ",".join([str(i) for i in r1_clip_count])
+                print(f"r1_insert_count=c({r1ic})", file=ROUT)
+                print(f"r1_noninsert_count = {int(total_read1)} - r1_insert_count", file=ROUT)
                 print(
                     "plot(read_pos, "
                     "r1_insert_count*100/"
@@ -1182,10 +1174,11 @@ class ParseBAM:
                 )
                 print("dev.off()", file=ROUT)
 
-                print('pdf("%s")' % (outfile + ".insertion_profile.R2.pdf"), file=ROUT)
-                print("read_pos=c(%s)" % ",".join([str(i) for i in read_pos]), file=ROUT)
-                print("r2_insert_count=c(%s)" % ",".join([str(i) for i in r2_clip_count]), file=ROUT)
-                print("r2_noninsert_count = %d - r2_insert_count" % (total_read2), file=ROUT)
+                print(f'pdf("{outfile}.insertion_profile.R2.pdf")', file=ROUT)
+                print(f"read_pos=c({rp})", file=ROUT)
+                r2ic = ",".join([str(i) for i in r2_clip_count])
+                print(f"r2_insert_count=c({r2ic})", file=ROUT)
+                print(f"r2_noninsert_count = {int(total_read2)} - r2_insert_count", file=ROUT)
                 print(
                     "plot(read_pos, "
                     "r2_insert_count*100/"
@@ -1209,9 +1202,9 @@ class ParseBAM:
     ) -> None:
         """estimate the inner distance of mRNA pair end fragment. fragment size = insert_size + 2 x read_length"""
 
-        out_file1 = outfile + ".inner_distance.txt"
-        out_file2 = outfile + ".inner_distance_freq.txt"
-        out_file3 = outfile + ".inner_distance_plot.r"
+        out_file1 = f"{outfile}.inner_distance.txt"
+        out_file2 = f"{outfile}.inner_distance_freq.txt"
+        out_file3 = f"{outfile}.inner_distance_plot.r"
 
         with open(out_file1, "w") as FO, open(out_file2, "w") as FQ, open(out_file3, "w") as RS:
             fchrom = "chr100"  # this is the fake chromosome
@@ -1228,7 +1221,7 @@ class ParseBAM:
             counts = []
             count = 0
 
-            print("Get exon regions from " + refbed + " ...", file=sys.stderr)
+            print(f"Get exon regions from {refbed} ...", file=sys.stderr)
             bed_obj = BED.ParseBED(refbed)
             ref_exons = []
 
@@ -1274,9 +1267,7 @@ class ParseBAM:
                 R_read1_ref = self.samfile.getrname(aligned_read.tid)  # type: ignore[attr-defined]
                 R_read2_ref = self.samfile.getrname(aligned_read.rnext)  # type: ignore[attr-defined]
                 if R_read1_ref != R_read2_ref:
-                    FO.write(
-                        aligned_read.qname + "\t" + "NA" + "\tsameChrom=No\n"
-                    )  # reads mapped to different chromosomes
+                    FO.write(f"{aligned_read.qname}\tNA\tsameChrom=No\n")  # reads mapped to different chromosomes
                     continue
 
                 chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
@@ -1318,7 +1309,7 @@ class ParseBAM:
 
                 if len(read1_gene_names.intersection(read2_gene_names)) == 0:  # no common gene
                     FO.write(
-                        aligned_read.qname + "\t" + str(inner_distance) + "\tsameTranscript=No,dist=genomic\n"
+                        f"{aligned_read.qname}\t{inner_distance}\tsameTranscript=No,dist=genomic\n"
                     )  # reads mapped to different gene
                     ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
                     continue
@@ -1338,32 +1329,26 @@ class ParseBAM:
                         inner_distance_bitsets.iand(tmp)  # clear BinnedBitSet
 
                         if size == inner_distance:
-                            FO.write(
-                                aligned_read.qname + "\t" + str(size) + "\tsameTranscript=Yes,sameExon=Yes,dist=mRNA\n"
-                            )
+                            FO.write(f"{aligned_read.qname}\t{size}\tsameTranscript=Yes,sameExon=Yes,dist=mRNA\n")
                             ranges[fchrom].add_interval(Interval(size - 1, size))
                         elif size > 0 and size < inner_distance:
-                            FO.write(
-                                aligned_read.qname + "\t" + str(size) + "\tsameTranscript=Yes,sameExon=No,dist=mRNA\n"
-                            )
+                            FO.write(f"{aligned_read.qname}\t{size}\tsameTranscript=Yes,sameExon=No,dist=mRNA\n")
                             ranges[fchrom].add_interval(Interval(size - 1, size))
                         elif size <= 0:
                             FO.write(
-                                aligned_read.qname
-                                + "\t"
-                                + str(inner_distance)
-                                + "\tsameTranscript=Yes,nonExonic=Yes,dist=genomic\n"
+                                f"{aligned_read.qname}\t{inner_distance}"
+                                f"\tsameTranscript=Yes,nonExonic=Yes,dist=genomic\n"
                             )
                             ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
                     else:
-                        FO.write(aligned_read.qname + "\t" + str(inner_distance) + "\tunknownChromosome,dist=genomic\n")
+                        FO.write(f"{aligned_read.qname}\t{inner_distance}\tunknownChromosome,dist=genomic\n")
                         ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
                 else:
-                    FO.write(aligned_read.qname + "\t" + str(inner_distance) + "\treadPairOverlap\n")
+                    FO.write(f"{aligned_read.qname}\t{inner_distance}\treadPairOverlap\n")
                     ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
             print("Done", file=sys.stderr)
 
-            print("Total read pairs  used " + str(pair_num), file=sys.stderr)
+            print(f"Total read pairs  used {pair_num}", file=sys.stderr)
             if pair_num == 0:
                 print("Cannot find paired reads", file=sys.stderr)
                 sys.exit(1)
@@ -1372,24 +1357,27 @@ class ParseBAM:
                 sizes.append(str(st + step / 2))
                 count = str(len(ranges[fchrom].find(st, st + step)))  # type: ignore[assignment]
                 counts.append(count)
-                print(str(st) + "\t" + str(st + step) + "\t" + count, file=FQ)  # type: ignore[operator]
-            print("out_file = '%s'" % outfile, file=RS)
-            print("pdf('%s')" % (outfile + ".inner_distance_plot.pdf"), file=RS)
-            print("fragsize=rep(c(" + ",".join(sizes) + ")," + "times=c(" + ",".join(counts) + "))", file=RS)  # type: ignore[arg-type]
+                print(f"{st}\t{st + step}\t{count}", file=FQ)  # type: ignore[operator]
+            print(f"out_file = '{outfile}'", file=RS)
+            print(f"pdf('{outfile}.inner_distance_plot.pdf')", file=RS)
+            sz = ",".join(sizes)  # type: ignore[arg-type]
+            ct = ",".join(counts)  # type: ignore[arg-type]
+            print(f"fragsize=rep(c({sz}),times=c({ct}))", file=RS)
             print("frag_sd = sd(fragsize)", file=RS)
             print("frag_mean = mean(fragsize)", file=RS)
             print("frag_median = median(fragsize)", file=RS)
             print('write(x=c("Name","Mean","Median","sd"), sep="\t", file=stdout(),ncolumns=4)', file=RS)
             print('write(c(out_file,frag_mean,frag_median,frag_sd),sep="\t", file=stdout(),ncolumns=4)', file=RS)
+            n_breaks = len(window_left_bound)
             print(
-                "hist(fragsize,probability=T,breaks=%d,"
-                'xlab="mRNA insert size (bp)",'
-                'main=paste(c("Mean=",frag_mean,";",'
-                '"SD=",frag_sd),collapse=""),'
-                'border="blue")' % len(window_left_bound),
+                f"hist(fragsize,probability=T,breaks={n_breaks},"
+                f'xlab="mRNA insert size (bp)",'
+                f'main=paste(c("Mean=",frag_mean,";",'
+                f'"SD=",frag_sd),collapse=""),'
+                f'border="blue")',
                 file=RS,
             )
-            print("lines(density(fragsize,bw=%d),col='red')" % (2 * step), file=RS)
+            print(f"lines(density(fragsize,bw={2 * step}),col='red')", file=RS)
             print("dev.off()", file=RS)
 
     def annotate_junction(self, refgene: str | None, outfile: str, min_intron: int = 50, q_cut: int = 30) -> None:
@@ -1397,8 +1385,8 @@ class ParseBAM:
         events  (splice multiple times), and the same splicing events can be consolidated into a single
         junction"""
 
-        out_file = outfile + ".junction.xls"
-        out_file2 = outfile + ".junction_plot.r"
+        out_file = f"{outfile}.junction.xls"
+        out_file2 = f"{outfile}.junction_plot.r"
         if refgene is None:
             print("You must provide reference gene model in bed format.", file=sys.stderr)
             sys.exit(1)
@@ -1459,7 +1447,7 @@ class ParseBAM:
                     if intrn[1] - intrn[0] < min_intron:
                         filtered_junc += 1
                         continue
-                    splicing_events[chrom + ":" + str(intrn[0]) + ":" + str(intrn[1])] += 1
+                    splicing_events[f"{chrom}:{intrn[0]}:{intrn[1]}"] += 1
                     if intrn[0] in refIntronStarts[chrom] and intrn[1] in refIntronEnds[chrom]:
                         known_junc += 1  # known both
                     elif intrn[0] not in refIntronStarts[chrom] and intrn[1] not in refIntronEnds[chrom]:
@@ -1468,39 +1456,33 @@ class ParseBAM:
                         novel3or5_junc += 1
             print("Done", file=sys.stderr)
 
-            print("total = " + str(total_junc))
+            print(f"total = {total_junc}")
             if total_junc == 0:
                 print("No splice junction found.", file=sys.stderr)
                 sys.exit(1)
 
-            print('pdf("%s")' % (outfile + ".splice_events.pdf"), file=ROUT)
+            print(f'pdf("{outfile}.splice_events.pdf")', file=ROUT)
+            evt_pcts = ",".join([str(i * 100.0 / total_junc) for i in (novel3or5_junc, novel35_junc, known_junc)])
+            print(f"events=c({evt_pcts})", file=ROUT)
+            pn_pct = round(novel3or5_junc * 100.0 / total_junc)
+            cn_pct = round(novel35_junc * 100.0 / total_junc)
+            k_pct = round(known_junc * 100.0 / total_junc)
             print(
-                "events=c("
-                + ",".join([str(i * 100.0 / total_junc) for i in (novel3or5_junc, novel35_junc, known_junc)])
-                + ")",
-                file=ROUT,
-            )
-            print(
-                "pie(events,col=c(2,3,4),init.angle=30,"
-                "angle=c(60,120,150),density=c(70,70,70),"
-                'main="splicing events",'
-                'labels=c("partial_novel %d%%",'
-                '"complete_novel %d%%","known %d%%"))'
-                % (
-                    round(novel3or5_junc * 100.0 / total_junc),
-                    round(novel35_junc * 100.0 / total_junc),
-                    round(known_junc * 100.0 / total_junc),
-                ),
+                f"pie(events,col=c(2,3,4),init.angle=30,"
+                f"angle=c(60,120,150),density=c(70,70,70),"
+                f'main="splicing events",'
+                f'labels=c("partial_novel {pn_pct}%",'
+                f'"complete_novel {cn_pct}%","known {k_pct}%"))',
                 file=ROUT,
             )
             print("dev.off()", file=ROUT)
 
             print("\n===================================================================", file=sys.stderr)
-            print("Total splicing  Events:\t" + str(total_junc), file=sys.stderr)
-            print("Known Splicing Events:\t" + str(known_junc), file=sys.stderr)
-            print("Partial Novel Splicing Events:\t" + str(novel3or5_junc), file=sys.stderr)
-            print("Novel Splicing Events:\t" + str(novel35_junc), file=sys.stderr)
-            print("Filtered Splicing Events:\t" + str(filtered_junc), file=sys.stderr)
+            print(f"Total splicing  Events:\t{total_junc}", file=sys.stderr)
+            print(f"Known Splicing Events:\t{known_junc}", file=sys.stderr)
+            print(f"Partial Novel Splicing Events:\t{novel3or5_junc}", file=sys.stderr)
+            print(f"Novel Splicing Events:\t{novel35_junc}", file=sys.stderr)
+            print(f"Filtered Splicing Events:\t{filtered_junc}", file=sys.stderr)
 
             # reset variables
             total_junc = 0
@@ -1513,7 +1495,7 @@ class ParseBAM:
                 total_junc += 1
                 (chrom, i_st, i_end) = i.split(":")  # type: ignore[assignment]
                 print(
-                    "\t".join([chrom.replace("CHR", "chr"), i_st, i_end]) + "\t" + str(splicing_events[i]) + "\t",  # type: ignore[list-item]
+                    f"{chrom.replace('CHR', 'chr')}\t{i_st}\t{i_end}\t{splicing_events[i]}\t",
                     end=" ",
                     file=OUT,
                 )
@@ -1532,39 +1514,24 @@ class ParseBAM:
             if total_junc == 0:
                 print("No splice read found", file=sys.stderr)
                 sys.exit(1)
-            print("\nTotal splicing  Junctions:\t" + str(total_junc), file=sys.stderr)
-            print("Known Splicing Junctions:\t" + str(known_junc), file=sys.stderr)
-            print("Partial Novel Splicing Junctions:\t" + str(novel3or5_junc), file=sys.stderr)
-            print("Novel Splicing Junctions:\t" + str(novel35_junc), file=sys.stderr)
+            print(f"\nTotal splicing  Junctions:\t{total_junc}", file=sys.stderr)
+            print(f"Known Splicing Junctions:\t{known_junc}", file=sys.stderr)
+            print(f"Partial Novel Splicing Junctions:\t{novel3or5_junc}", file=sys.stderr)
+            print(f"Novel Splicing Junctions:\t{novel35_junc}", file=sys.stderr)
             print("\n===================================================================", file=sys.stderr)
 
-            print('pdf("%s")' % (outfile + ".splice_junction.pdf"), file=ROUT)
+            print(f'pdf("{outfile}.splice_junction.pdf")', file=ROUT)
+            junc_pcts = ",".join([str(i * 100.0 / total_junc) for i in (novel3or5_junc, novel35_junc, known_junc)])
+            print(f"junction=c({junc_pcts})", file=ROUT)
+            pn_pct = round(novel3or5_junc * 100.0 / total_junc)
+            cn_pct = round(novel35_junc * 100.0 / total_junc)
+            k_pct = round(known_junc * 100.0 / total_junc)
             print(
-                "junction=c("
-                + ",".join(
-                    [
-                        str(i * 100.0 / total_junc)
-                        for i in (
-                            novel3or5_junc,
-                            novel35_junc,
-                            known_junc,
-                        )
-                    ]
-                )
-                + ")",
-                file=ROUT,
-            )
-            print(
-                "pie(junction,col=c(2,3,4),init.angle=30,"
-                "angle=c(60,120,150),density=c(70,70,70),"
-                'main="splicing junctions",'
-                'labels=c("partial_novel %d%%",'
-                '"complete_novel %d%%","known %d%%"))'
-                % (
-                    round(novel3or5_junc * 100.0 / total_junc),
-                    round(novel35_junc * 100.0 / total_junc),
-                    round(known_junc * 100.0 / total_junc),
-                ),
+                f"pie(junction,col=c(2,3,4),init.angle=30,"
+                f"angle=c(60,120,150),density=c(70,70,70),"
+                f'main="splicing junctions",'
+                f'labels=c("partial_novel {pn_pct}%",'
+                f'"complete_novel {cn_pct}%","known {k_pct}%"))',
                 file=ROUT,
             )
             print("dev.off()", file=ROUT)
@@ -1582,7 +1549,7 @@ class ParseBAM:
     ) -> None:
         """check if an RNA-seq experiment is saturated in terms of detecting known splicing junction"""
 
-        out_file = outfile + ".junctionSaturation_plot.r"  # type: ignore[operator]
+        out_file = f"{outfile}.junctionSaturation_plot.r"
         if refgene is None:
             print("You must provide reference gene model in bed format.", file=sys.stderr)
             sys.exit(1)
@@ -1613,8 +1580,8 @@ class ParseBAM:
                     intron_start = exon_ends[:-1]
                     intron_end = exon_starts[1:]
                     for st, end in zip(intron_start, intron_end):
-                        knownSpliceSites.add(chrom + ":" + str(st) + "-" + str(end))
-            print("Done! Total " + str(len(knownSpliceSites)) + " known splicing junctions.", file=sys.stderr)
+                        knownSpliceSites.add(f"{chrom}:{st}-{end}")
+            print(f"Done! Total {len(knownSpliceSites)} known splicing junctions.", file=sys.stderr)
 
             # read SAM file
             samSpliceSites = []
@@ -1643,7 +1610,7 @@ class ParseBAM:
                 for intrn in intron_blocks:
                     if intrn[1] - intrn[0] < min_intron:
                         continue
-                    samSpliceSites.append(chrom + ":" + str(intrn[0]) + "-" + str(intrn[1]))
+                    samSpliceSites.append(f"{chrom}:{intrn[0]}-{intrn[1]}")
             print("Done", file=sys.stderr)
 
             print("shuffling alignments ...", end=" ", file=sys.stderr)
@@ -1668,9 +1635,7 @@ class ParseBAM:
                     index_st = 0
                 sample_size += index_end - index_st
 
-                print(
-                    "sampling " + str(pertl) + "% (" + str(sample_size) + ") splicing reads.", end=" ", file=sys.stderr
-                )
+                print(f"sampling {pertl}% ({sample_size}) splicing reads.", end=" ", file=sys.stderr)
 
                 # Incrementally update counts as new splice sites are added
                 for i in range(index_st, index_end):
@@ -1687,27 +1652,25 @@ class ParseBAM:
 
                 all_junctionNum = len(uniqSpliceSites)
                 all_junc.append(str(all_junctionNum))
-                print(str(all_junctionNum) + " splicing junctions.", end=" ", file=sys.stderr)
+                print(f"{all_junctionNum} splicing junctions.", end=" ", file=sys.stderr)
 
-                print(str(known_junctionNum) + " known splicing junctions.", end=" ", file=sys.stderr)
+                print(f"{known_junctionNum} known splicing junctions.", end=" ", file=sys.stderr)
                 known_junc.append(str(known_junctionNum))
 
                 unknown_junc.append(str(unknown_junctionNum))
-                print(str(unknown_junctionNum) + " novel splicing junctions.", file=sys.stderr)
+                print(f"{unknown_junctionNum} novel splicing junctions.", file=sys.stderr)
 
-            print("pdf('%s')" % (outfile + ".junctionSaturation_plot.pdf"), file=OUT)  # type: ignore[operator]
-            print("x=c(" + ",".join([str(i) for i in tmp]) + ")", file=OUT)
-            print("y=c(" + ",".join(known_junc) + ")", file=OUT)
-            print("z=c(" + ",".join(all_junc) + ")", file=OUT)
-            print("w=c(" + ",".join(unknown_junc) + ")", file=OUT)
+            print(f"pdf('{outfile}.junctionSaturation_plot.pdf')", file=OUT)
+            print(f"x=c({','.join([str(i) for i in tmp])})", file=OUT)
+            print(f"y=c({','.join(known_junc)})", file=OUT)
+            print(f"z=c({','.join(all_junc)})", file=OUT)
+            print(f"w=c({','.join(unknown_junc)})", file=OUT)
             print(
-                "m=max(%d,%d,%d)"
-                % (int(known_junc[-1]) // 1000, int(all_junc[-1]) // 1000, int(unknown_junc[-1]) // 1000),
+                f"m=max({int(known_junc[-1]) // 1000},{int(all_junc[-1]) // 1000},{int(unknown_junc[-1]) // 1000})",
                 file=OUT,
             )
             print(
-                "n=min(%d,%d,%d)"
-                % (int(known_junc[0]) // 1000, int(all_junc[0]) // 1000, int(unknown_junc[0]) // 1000),
+                f"n=min({int(known_junc[0]) // 1000},{int(all_junc[0]) // 1000},{int(unknown_junc[0]) // 1000})",
                 file=OUT,
             )
             print(
@@ -1720,10 +1683,10 @@ class ParseBAM:
             print("points(x,y/1000,type='o',col='red')", file=OUT)
             print("points(x,w/1000,type='o',col='green')", file=OUT)
             print(
-                "legend(5,%d, "
-                'legend=c("All junctions","known junctions",'
-                ' "novel junctions"),'
-                'col=c("blue","red","green"),lwd=1,pch=1)' % (int(all_junc[-1]) // 1000),
+                f"legend(5,{int(all_junc[-1]) // 1000}, "
+                f'legend=c("All junctions","known junctions",'
+                f' "novel junctions"),'
+                f'col=c("blue","red","green"),lwd=1,pch=1)',
                 file=OUT,
             )
             print("dev.off()", file=OUT)
@@ -1744,8 +1707,8 @@ class ParseBAM:
         if refbed is None:
             print("You must specify a bed file representing gene model\n", file=sys.stderr)
             sys.exit(1)
-        rpkm_file = outfile + ".eRPKM.xls"
-        raw_file = outfile + ".rawCount.xls"
+        rpkm_file = f"{outfile}.eRPKM.xls"
+        raw_file = f"{outfile}.rawCount.xls"
 
         with open(rpkm_file, "w") as RPKM_OUT, open(raw_file, "w") as RAW_OUT:
             cUR_num = 0  # number of fragments
@@ -1845,10 +1808,10 @@ class ParseBAM:
                         key = "\t".join((chrom.lower(), str(tx_start), str(tx_end), geneName, "0", strand))
                         mRNA_len = sum(exon_sizes)
                     except (IndexError, ValueError):
-                        print("[NOTE:input bed must be 12-column] skipped this line: " + line, file=sys.stderr)
+                        print(f"[NOTE:input bed must be 12-column] skipped this line: {line}", file=sys.stderr)
                         continue
                     if mRNA_len == 0:
-                        print(geneName + " has 0 nucleotides. Exit!", file=sys.stderr)
+                        print(f"{geneName} has 0 nucleotides. Exit!", file=sys.stderr)
                         sys.exit(1)
                     gene_models.append((key, strand, list(zip(exon_starts, exon_ends)), mRNA_len))
 
@@ -1861,33 +1824,25 @@ class ParseBAM:
                 if percent_st < 0:
                     percent_st = 0
                 sample_size = cUR_num * percent_end
-                RPKM_head.append(str(pertl) + "%")
+                RPKM_head.append(f"{pertl}%")
 
                 if strand_rule is not None:
                     print(
-                        "sampling "
-                        + str(pertl)
-                        + "% ("
-                        + str(int(cUR_plus * percent_end))
-                        + ") forward strand fragments ...",
+                        f"sampling {pertl}% ({int(cUR_plus * percent_end)}) forward strand fragments ...",
                         file=sys.stderr,
                     )
                     for ch, coord in midpoints_plus[int(cUR_plus * percent_st) : int(cUR_plus * percent_end)]:
                         accum_plus[ch].append(coord)
 
                     print(
-                        "sampling "
-                        + str(pertl)
-                        + "% ("
-                        + str(int(cUR_minus * percent_end))
-                        + ") reverse strand fragments ...",
+                        f"sampling {pertl}% ({int(cUR_minus * percent_end)}) reverse strand fragments ...",
                         file=sys.stderr,
                     )
                     for ch, coord in midpoints_minus[int(cUR_minus * percent_st) : int(cUR_minus * percent_end)]:
                         accum_minus[ch].append(coord)
 
                 else:
-                    print("sampling " + str(pertl) + "% (" + str(int(sample_size)) + ") fragments ...", file=sys.stderr)
+                    print(f"sampling {pertl}% ({int(sample_size)}) fragments ...", file=sys.stderr)
                     for ch, coord in midpoints[int(cUR_num * percent_st) : int(cUR_num * percent_end)]:
                         accum[ch].append(coord)
 
@@ -1897,7 +1852,7 @@ class ParseBAM:
                 sorted_minus = {ch: np.sort(np.array(coords)) for ch, coords in accum_minus.items()}
 
                 # ========================= calculating RPKM based on sub-population
-                print("assign reads to transcripts in " + refbed + " ...", file=sys.stderr)
+                print(f"assign reads to transcripts in {refbed} ...", file=sys.stderr)
                 for key, strand, exon_intervals, mRNA_len in gene_models:
                     chrom = key.split("\t")[0].upper()
                     mRNA_count = 0
@@ -1924,9 +1879,9 @@ class ParseBAM:
             print("\t".join(RPKM_head), file=RPKM_OUT)
             print("\t".join(RPKM_head), file=RAW_OUT)
             for key in RPKM_table:
-                print(key + "\t", end=" ", file=RPKM_OUT)
+                print(f"{key}\t", end=" ", file=RPKM_OUT)
                 print("\t".join(RPKM_table[key]), file=RPKM_OUT)
-                print(key + "\t", end=" ", file=RAW_OUT)
+                print(f"{key}\t", end=" ", file=RAW_OUT)
                 print("\t".join(rawCount_table[key]), file=RAW_OUT)
 
     def mismatchProfile(self, read_length: int, read_num: int, outfile: str, q_cut: int = 30) -> None:
@@ -1934,7 +1889,7 @@ class ParseBAM:
         Calculate mismatch profile. Note that the "MD" tag must exist.
         """
 
-        with open(outfile + ".mismatch_profile.xls", "w") as DOUT, open(outfile + ".mismatch_profile.r", "w") as ROUT:
+        with open(f"{outfile}.mismatch_profile.xls", "w") as DOUT, open(f"{outfile}.mismatch_profile.r", "w") as ROUT:
             # reading input SAM file
             if self.bam_format:
                 print("Process BAM file ... ", end=" ", file=sys.stderr)
@@ -1948,7 +1903,7 @@ class ParseBAM:
             data: dict[int, dict[str, int]] = collections.defaultdict(dict)
             for aligned_read in _pysam_iter(self.samfile):
                 if count >= read_num:
-                    print("Total reads used: " + str(count), file=sys.stderr)
+                    print(f"Total reads used: {count}", file=sys.stderr)
                     break
                 if not _passes_qc(aligned_read, q_cut):
                     continue
@@ -1989,21 +1944,22 @@ class ParseBAM:
                             read_base = read_seq[read_coord]
                             if read_base == ref_base:
                                 continue
-                            genotype = ref_base + "2" + read_base
+                            genotype = f"{ref_base}2{read_base}"
                             idx = (read_length - read_coord - 1) if is_reverse else read_coord
                             if genotype not in data[idx]:
                                 data[idx][genotype] = 1
                             else:
                                 data[idx][genotype] += 1
                             read_coord += 1
-            print("Total reads used: " + str(count), file=sys.stderr)
+            print(f"Total reads used: {count}", file=sys.stderr)
 
             if len(data) == 0:
                 print("No mismatches found", file=sys.stderr)
                 sys.exit(1)
             # write data out
             all_genotypes = ["A2C", "A2G", "A2T", "C2A", "C2G", "C2T", "G2A", "G2C", "G2T", "T2A", "T2C", "T2G"]
-            print("read_pos\tsum\t" + "\t".join(all_genotypes), file=DOUT)
+            gt_header = "\t".join(all_genotypes)
+            print(f"read_pos\tsum\t{gt_header}", file=DOUT)
             for indx in sorted(data):
                 tmp = [indx, sum(data[indx].values())]  # read position and sum of mismatches
                 for i in all_genotypes:
@@ -2022,7 +1978,7 @@ class ParseBAM:
                     else:
                         r_data[gt].append(0)
             for k in sorted(r_data):
-                print("%s=c(%s)" % (k, ",".join([str(i) for i in r_data[k]])), file=ROUT)
+                print(f"{k}=c({','.join([str(i) for i in r_data[k]])})", file=ROUT)
 
             print(
                 'color_code = c("green","powderblue",'
@@ -2032,29 +1988,27 @@ class ParseBAM:
                 file=ROUT,
             )
 
-            print("y_up_bound = max(c(%s))" % (",".join(["log10(" + str(i) + "+1)" for i in all_genotypes])), file=ROUT)
-            print(
-                "y_low_bound = min(c(%s))" % (",".join(["log10(" + str(i) + "+1)" for i in all_genotypes])), file=ROUT
-            )
+            print(f"y_up_bound = max(c({','.join([f'log10({i}+1)' for i in all_genotypes])}))", file=ROUT)
+            print(f"y_low_bound = min(c({','.join([f'log10({i}+1)' for i in all_genotypes])}))", file=ROUT)
 
-            print('pdf("%s")' % (outfile + ".mismatch_profile.pdf"), file=ROUT)
+            print(f'pdf("{outfile}.mismatch_profile.pdf")', file=ROUT)
             count = 1
             for gt in all_genotypes:
                 if count == 1:
                     print(
-                        'plot(log10(%s+1),type="l",'
-                        "col=color_code[%d],"
-                        "ylim=c(y_low_bound,y_up_bound),"
-                        'ylab="log10(# of mismatch)",'
-                        "xlab=\"Read position (5'->3')\")" % (gt, count),
+                        f'plot(log10({gt}+1),type="l",'
+                        f"col=color_code[{count}],"
+                        f"ylim=c(y_low_bound,y_up_bound),"
+                        f'ylab="log10(# of mismatch)",'
+                        f"xlab=\"Read position (5'->3')\")",
                         file=ROUT,
                     )
                 else:
-                    print("lines(log10(%s+1), col=color_code[%d])" % (gt, count), file=ROUT)
+                    print(f"lines(log10({gt}+1), col=color_code[{count}])", file=ROUT)
                 count += 1
+            gt_legend = ",".join([f'"{i}"' for i in all_genotypes])
             print(
-                "legend(13,y_up_bound,legend=c(%s), fill=color_code, border=color_code, ncol=4)"
-                % (",".join(['"' + i + '"' for i in all_genotypes])),
+                f"legend(13,y_up_bound,legend=c({gt_legend}), fill=color_code, border=color_code, ncol=4)",
                 file=ROUT,
             )
             print("dev.off()", file=ROUT)
@@ -2065,7 +2019,7 @@ class ParseBAM:
         Deletion: Deletion from the read (relative to the reference), CIGAR operator 'D'
         """
 
-        with open(outfile + ".deletion_profile.txt", "w") as DOUT, open(outfile + ".deletion_profile.r", "w") as ROUT:
+        with open(f"{outfile}.deletion_profile.txt", "w") as DOUT, open(f"{outfile}.deletion_profile.r", "w") as ROUT:
             # reading input SAM file
             if self.bam_format:
                 print("Process BAM file ... ", end=" ", file=sys.stderr)
@@ -2076,7 +2030,7 @@ class ParseBAM:
             del_postns: dict[int, int] = collections.defaultdict(int)  # key: position of read. value: deletion times
             for aligned_read in _pysam_iter(self.samfile):
                 if count >= read_num:
-                    print("Total reads used: " + str(count), file=sys.stderr)
+                    print(f"Total reads used: {count}", file=sys.stderr)
                     break
                 if not _passes_qc(aligned_read, q_cut):
                     continue
@@ -2109,21 +2063,21 @@ class ParseBAM:
                     if is_reverse:
                         p = read_length - p
                     del_postns[p] += 1
-            print("Total reads used: " + str(count), file=sys.stderr)
+            print(f"Total reads used: {count}", file=sys.stderr)
 
             del_count = []
             print("read_position\tdeletion_count", file=DOUT)
             for k in range(0, read_length):
                 if k in del_postns:
-                    print(str(k) + "\t" + str(del_postns[k]), file=DOUT)
+                    print(f"{k}\t{del_postns[k]}", file=DOUT)
                     del_count.append(str(del_postns[k]))
                 else:
-                    print(str(k) + "\t0", file=DOUT)
+                    print(f"{k}\t0", file=DOUT)
                     del_count.append("0")
 
-            print('pdf("%s")' % (outfile + ".deletion_profile.pdf"), file=ROUT)
-            print("pos=c(%s)" % ",".join([str(i) for i in range(0, read_length)]), file=ROUT)
-            print("value=c(%s)" % ",".join([i for i in del_count]), file=ROUT)
+            print(f'pdf("{outfile}.deletion_profile.pdf")', file=ROUT)
+            print(f"pos=c({','.join([str(i) for i in range(0, read_length)])})", file=ROUT)
+            print(f"value=c({','.join([i for i in del_count])})", file=ROUT)
             print(
                 "plot(pos,value,type='b', col='blue',xlab=\"Read position (5'->3')\", ylab='Deletion count')", file=ROUT
             )

@@ -129,7 +129,7 @@ def barcode_edits(
     limit : int
             Only process this number of alignments and stop.
     """
-    logging.info('Reading BAM file "%s" ...' % infile)
+    logging.info(f'Reading BAM file "{infile}" ...')
     samfile = pysam.AlignmentFile(infile, "rb")
 
     CB_miss = 0  # number of reads without cell barcode
@@ -181,20 +181,20 @@ def barcode_edits(
                 UMI_miss += 1
 
             if total_alignments % step_size == 0:
-                print("%d alignments processed.\r" % total_alignments, end=" ", file=sys.stderr)
+                print(f"{total_alignments} alignments processed.\r", end=" ", file=sys.stderr)
             if limit is not None:
                 if total_alignments >= limit:
                     break
     finally:
         samfile.close()
-    logging.info("Total alignments processed: %d" % total_alignments)
+    logging.info(f"Total alignments processed: {total_alignments}")
 
-    logging.info("Number of alignmenets with <cell barcode> kept AS IS: %d" % CB_same)
-    logging.info("Number of alignmenets with <cell barcode> edited: %d" % CB_diff)
-    logging.info("Number of alignmenets with <cell barcode> missing: %d" % CB_miss)
-    logging.info("Number of alignmenets with UMI kept AS IS: %d" % UMI_same)
-    logging.info("Number of alignmenets with UMI edited: %d" % UMI_diff)
-    logging.info("Number of alignmenets with UMI missing: %d" % UMI_miss)
+    logging.info(f"Number of alignmenets with <cell barcode> kept AS IS: {CB_same}")
+    logging.info(f"Number of alignmenets with <cell barcode> edited: {CB_diff}")
+    logging.info(f"Number of alignmenets with <cell barcode> missing: {CB_miss}")
+    logging.info(f"Number of alignmenets with UMI kept AS IS: {UMI_same}")
+    logging.info(f"Number of alignmenets with UMI edited: {UMI_diff}")
+    logging.info(f"Number of alignmenets with UMI missing: {UMI_miss}")
 
     # writing cell barcode
     logging.info('Writing cell barcode frequencies to "%s"' % (outfile + ".CB_freq.tsv"))
@@ -209,11 +209,11 @@ def barcode_edits(
             UMI_OUT.write(bc + "\t" + str(count) + "\n")
 
     CB_mat_file = outfile + ".CB_edits_count.csv"
-    logging.info('Writing the nucleotide editing matrix (count) of cell barcode to "%s"' % CB_mat_file)
+    logging.info(f'Writing the nucleotide editing matrix (count) of cell barcode to "{CB_mat_file}"')
     _write_edits_csv(CB_corrected_bases, CB_mat_file)
 
     UMI_mat_file = outfile + ".UMI_edits_count.csv"
-    logging.info('Writing the nucleotide editing matrix of molecular barcode (UMI) to "%s"' % UMI_mat_file)
+    logging.info(f'Writing the nucleotide editing matrix of molecular barcode (UMI) to "{UMI_mat_file}"')
     _write_edits_csv(UMI_corrected_bases, UMI_mat_file)
 
 
@@ -243,7 +243,7 @@ def mapping_stat(
     limit : int
             Only process this number of alignments and stop.
     """
-    logging.info('Reading BAM file "%s" ...' % infile)
+    logging.info(f'Reading BAM file "{infile}" ...')
     try:
         # older versions of pysam
         samfile = pysam.AlignmentFile(infile, mode="rb", require_index=True, thread=n_thread)  # type: ignore[call-arg]
@@ -291,7 +291,7 @@ def mapping_stat(
 
     try:
         for chr_id, chr_len in chrom_info:
-            logging.info('Processing "%s" ...' % chr_id)
+            logging.info(f'Processing "{chr_id}" ...')
             chrom_count = 0
             chrom_total_reads = set()  # total reads in BAM file
             chrom_confi_reads = set()  # reads marked as confidently mapped to transcriptome by xf:i:1 tag
@@ -358,8 +358,8 @@ def mapping_stat(
                         chrom_confi_reads.add(read_id)
 
                     if chrom_count % step_size == 0:
-                        print("%d alignments processed.\r" % chrom_count, end=" ", file=sys.stderr)
-                logging.info('Processed %d alignments from "%s"' % (chrom_count, chr_id))
+                        print(f"{chrom_count} alignments processed.\r", end=" ", file=sys.stderr)
+                logging.info(f'Processed {chrom_count} alignments from "{chr_id}"')
                 for i in chrom_total_reads:
                     print(i, file=ALL)
                 for i in chrom_confi_reads:
@@ -367,7 +367,7 @@ def mapping_stat(
     finally:
         samfile.close()
 
-    logging.info("Processing total %d alignments mapped to all chromosomes." % total_alignments)
+    logging.info(f"Processing total {total_alignments} alignments mapped to all chromosomes.")
 
     logging.info("Count total mapped reads ...")
     output1 = subprocess.check_output("awk '!a[$0]++' *.all_reads_id.txt |tee All_reads_uniqID.txt | wc -l", shell=True)
@@ -388,64 +388,70 @@ def mapping_stat(
     non_confi_reads = total_reads_n - confi_reads_n
 
     print("")
-    print("\nTotal_alignments: %d" % total_alignments)
-    print("└--Confident_alignments: %d" % confi_alignments)
+    print(f"\nTotal_alignments: {total_alignments}")
+    print(f"└--Confident_alignments: {confi_alignments}")
     print("")
-    print("Total_mapped_reads:\t%d" % total_reads_n)
-    print("|--Non_confidently_mapped_reads:\t%d\t(%.2f%%)" % (non_confi_reads, non_confi_reads * 100.0 / total_reads_n))
-    print("└--Confidently_mapped_reads:\t%d\t(%.2f%%)" % (confi_reads_n, confi_reads_n * 100.0 / total_reads_n))
+    print(f"Total_mapped_reads:\t{total_reads_n}")
+    non_confi_pct = non_confi_reads * 100.0 / total_reads_n
+    print(f"|--Non_confidently_mapped_reads:\t{non_confi_reads}\t({non_confi_pct:.2f}%)")
+    confi_pct = confi_reads_n * 100.0 / total_reads_n
+    print(f"└--Confidently_mapped_reads:\t{confi_reads_n}\t({confi_pct:.2f}%)")
 
-    print("   |--Reads_with_PCR_duplicates:\t%d\t(%.2f%%)" % (confi_reads_dup, confi_reads_dup * 100.0 / confi_reads_n))
-    print(
-        "   └--Reads_no_PCR_duplicates:\t%d\t(%.2f%%)"
-        % (confi_reads_nondup, confi_reads_nondup * 100.0 / confi_reads_n)
-    )
-    print("")
-
-    print(
-        "   |--Reads_map_to_forward(Waston)_strand:\t%d\t(%.2f%%)"
-        % (confi_reads_fwd, confi_reads_fwd * 100.0 / confi_reads_n)
-    )
-    print(
-        "   └--Reads_map_to_Reverse(Crick)_strand:\t%d\t(%.2f%%)"
-        % (confi_reads_rev, confi_reads_rev * 100.0 / confi_reads_n)
-    )
+    dup_pct = confi_reads_dup * 100.0 / confi_reads_n
+    print(f"   |--Reads_with_PCR_duplicates:\t{confi_reads_dup}\t({dup_pct:.2f}%)")
+    nondup_pct = confi_reads_nondup * 100.0 / confi_reads_n
+    print(f"   └--Reads_no_PCR_duplicates:\t{confi_reads_nondup}\t({nondup_pct:.2f}%)")
     print("")
 
-    print("   |--Reads_map_to_sense_strand:\t%d\t(%.2f%%)" % (sense_reads, sense_reads * 100.0 / confi_reads_n))
-    print("   └--Reads_map_to_antisense_strand:\t%d\t(%.2f%%)" % (anti_reads, anti_reads * 100.0 / confi_reads_n))
-    print("   └--Other:\t%d\t(%.2f%%)" % (other_reads2, other_reads2 * 100.0 / confi_reads_n))
+    fwd_pct = confi_reads_fwd * 100.0 / confi_reads_n
+    print(f"   |--Reads_map_to_forward(Waston)_strand:\t{confi_reads_fwd}\t({fwd_pct:.2f}%)")
+    rev_pct = confi_reads_rev * 100.0 / confi_reads_n
+    print(f"   └--Reads_map_to_Reverse(Crick)_strand:\t{confi_reads_rev}\t({rev_pct:.2f}%)")
     print("")
 
-    print("   |--Reads_map_to_exons:\t%d\t(%.2f%%)" % (exon_reads, exon_reads * 100.0 / confi_reads_n))
-    print("   └--Reads_map_to_introns:\t%d\t(%.2f%%)" % (intron_reads, intron_reads * 100.0 / confi_reads_n))
-    print("   └--Reads_map_to_intergenic:\t%d\t(%.2f%%)" % (intergenic_reads, intergenic_reads * 100.0 / confi_reads_n))
-    print("   └--Other:\t%d\t(%.2f%%)" % (other_reads1, other_reads1 * 100.0 / confi_reads_n))
+    sense_pct = sense_reads * 100.0 / confi_reads_n
+    print(f"   |--Reads_map_to_sense_strand:\t{sense_reads}\t({sense_pct:.2f}%)")
+    anti_pct = anti_reads * 100.0 / confi_reads_n
+    print(f"   └--Reads_map_to_antisense_strand:\t{anti_reads}\t({anti_pct:.2f}%)")
+    other2_pct = other_reads2 * 100.0 / confi_reads_n
+    print(f"   └--Other:\t{other_reads2}\t({other2_pct:.2f}%)")
     print("")
 
-    print("   |--Reads_with_error-corrected_barcode:\t%d\t(%.2f%%)" % (confi_CB, confi_CB * 100.0 / confi_reads_n))
-    print(
-        "   └--Reads_no_error-corrected_barcode:\t%d\t(%.2f%%)"
-        % ((confi_reads_n - confi_CB), (confi_reads_n - confi_CB) * 100.0 / confi_reads_n)
-    )
+    exon_pct = exon_reads * 100.0 / confi_reads_n
+    print(f"   |--Reads_map_to_exons:\t{exon_reads}\t({exon_pct:.2f}%)")
+    intron_pct = intron_reads * 100.0 / confi_reads_n
+    print(f"   └--Reads_map_to_introns:\t{intron_reads}\t({intron_pct:.2f}%)")
+    intergenic_pct = intergenic_reads * 100.0 / confi_reads_n
+    print(f"   └--Reads_map_to_intergenic:\t{intergenic_reads}\t({intergenic_pct:.2f}%)")
+    other1_pct = other_reads1 * 100.0 / confi_reads_n
+    print(f"   └--Other:\t{other_reads1}\t({other1_pct:.2f}%)")
     print("")
-    print("   |--Reads_with_error-corrected_UMI:\t%d\t(%.2f%%)" % (confi_UB, confi_UB * 100.0 / confi_reads_n))
-    print(
-        "   └--Reads_no_error-corrected_UMI:\t%d\t(%.2f%%)"
-        % ((confi_reads_n - confi_UB), (confi_reads_n - confi_UB) * 100.0 / confi_reads_n)
-    )
+
+    cb_pct = confi_CB * 100.0 / confi_reads_n
+    print(f"   |--Reads_with_error-corrected_barcode:\t{confi_CB}\t({cb_pct:.2f}%)")
+    no_cb = confi_reads_n - confi_CB
+    no_cb_pct = no_cb * 100.0 / confi_reads_n
+    print(f"   └--Reads_no_error-corrected_barcode:\t{no_cb}\t({no_cb_pct:.2f}%)")
     print("")
-    print("   |--Reads_map_to_mitochonrial_genome:\t%d\t(%.2f%%)" % (chrM_reads, chrM_reads * 100.0 / confi_reads_n))
-    print(
-        "   └--Reads_map_to_nuclear_genome:\t%d\t(%.2f%%)"
-        % ((confi_reads_n - chrM_reads), (confi_reads_n - chrM_reads) * 100.0 / confi_reads_n)
-    )
+    ub_pct = confi_UB * 100.0 / confi_reads_n
+    print(f"   |--Reads_with_error-corrected_UMI:\t{confi_UB}\t({ub_pct:.2f}%)")
+    no_ub = confi_reads_n - confi_UB
+    no_ub_pct = no_ub * 100.0 / confi_reads_n
+    print(f"   └--Reads_no_error-corrected_UMI:\t{no_ub}\t({no_ub_pct:.2f}%)")
+    print("")
+    chrm_pct = chrM_reads * 100.0 / confi_reads_n
+    print(f"   |--Reads_map_to_mitochonrial_genome:\t{chrM_reads}\t({chrm_pct:.2f}%)")
+    nuclear = confi_reads_n - chrM_reads
+    nuclear_pct = nuclear * 100.0 / confi_reads_n
+    print(f"   └--Reads_map_to_nuclear_genome:\t{nuclear}\t({nuclear_pct:.2f}%)")
 
     print("")
 
     for i in sorted(read_type):
         if i == "Others":
             continue
-        print("   |--%s:\t%d\t(%.2f%%)" % (i, read_type[i], read_type[i] * 100.0 / confi_reads_n))
-    print("   └--%s:\t%d\t(%.2f%%)" % ("Others", read_type["Others"], read_type["Others"] * 100.0 / confi_reads_n))
+        rt_pct = read_type[i] * 100.0 / confi_reads_n
+        print(f"   |--{i}:\t{read_type[i]}\t({rt_pct:.2f}%)")
+    others_pct = read_type["Others"] * 100.0 / confi_reads_n
+    print(f"   └--Others:\t{read_type['Others']}\t({others_pct:.2f}%)")
     print("")

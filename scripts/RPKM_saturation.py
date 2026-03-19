@@ -63,7 +63,8 @@ def show_saturation(infile: str, outfile: str, rpkm_cut: float = 0.01) -> None:
                 sys.exit(1)
 
     with open(outfile, "w") as ROUT:
-        print("pdf('%s')" % (outfile.replace(".r", ".pdf")), file=ROUT)
+        pdf_path = outfile.replace(".r", ".pdf")
+        print(f"pdf('{pdf_path}')", file=ROUT)
         print("par(mfrow=c(2,2))", file=ROUT)
         for quantile in sorted(Quan):
             line_count = 0
@@ -73,12 +74,15 @@ def show_saturation(infile: str, outfile: str, rpkm_cut: float = 0.01) -> None:
                 if (line_count > gene_count * Quan[quantile][0]) and (line_count <= gene_count * Quan[quantile][1]):
                     for i, j in enumerate(RPKM_values[k]):
                         norm_RPKM[head[i]].append(str(j))
-            print("name=c(%s)" % (",".join(head[:-1])), file=ROUT)
+            names_csv = ",".join(head[:-1])
+            print(f"name=c({names_csv})", file=ROUT)
             for i in head[:-1]:
-                print("S%s=c(%s)" % (i, ",".join(norm_RPKM[i])), file=ROUT)
+                s_csv = ",".join(norm_RPKM[i])
+                print(f"S{i}=c({s_csv})", file=ROUT)
+            box_data = ",".join([f"100*S{i}" for i in head[:-1]])
             print(
-                "boxplot(%s,names=name,outline=F,ylab='Percent Relative Error',main='%s',xlab='Resampling percentage')"
-                % (",".join(["100*S" + i for i in head[:-1]]), quantile),
+                f"boxplot({box_data},names=name,outline=F,"
+                f"ylab='Percent Relative Error',main='{quantile}',xlab='Resampling percentage')",
                 file=ROUT,
             )
         print("dev.off()", file=ROUT)

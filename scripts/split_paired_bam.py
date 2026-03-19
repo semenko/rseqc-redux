@@ -79,10 +79,10 @@ def main() -> None:
 
             print("Done", file=sys.stderr)
 
-    print("%-55s%d" % ("Total records:", total_alignment))
-    print("%-55s%d" % (args.output_prefix + "Read 1:", r1_alignment))
-    print("%-55s%d" % (args.output_prefix + "Read 2:", r2_alignment))
-    print("%-55s%d" % (args.output_prefix + "Unmapped:", unmapped))
+    print(f"{'Total records:':<55}{total_alignment}")
+    print(f"{args.output_prefix + 'Read 1:':<55}{r1_alignment}")
+    print(f"{args.output_prefix + 'Read 2:':<55}{r2_alignment}")
+    print(f"{args.output_prefix + 'Unmapped:':<55}{unmapped}")
 
 
 if __name__ == "__main__":

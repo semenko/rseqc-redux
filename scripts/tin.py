@@ -278,7 +278,7 @@ def main() -> None:
         print("No BAM file found, exit.", file=sys.stderr)
         sys.exit(1)
     else:
-        print("Total %d BAM file(s):" % len(bamfiles), file=sys.stderr)
+        print(f"Total {len(bamfiles)} BAM file(s):", file=sys.stderr)
         for f in bamfiles:
             print("\t" + f, file=sys.stderr)
 
@@ -317,7 +317,7 @@ def main() -> None:
                 tin1 = tin_score(cvg=coverage, length=len(pick_positions))
                 sample_TINs.append(tin1)
                 print("\t".join([str(i) for i in (gname, i_chr, i_tx_start, i_tx_end, tin1)]), file=OUT)
-                print(" %d transcripts finished\r" % (finish), end=" ", file=sys.stderr)
+                print(f" {finish} transcripts finished\r", end=" ", file=sys.stderr)
 
             print(
                 "\t".join(

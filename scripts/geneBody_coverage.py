@@ -136,7 +136,7 @@ def genebody_coverage(bam: str, position_list: dict) -> dict:
             gene_finished += 1
 
             if gene_finished % 100 == 0:
-                print("\t%d transcripts finished\r" % (gene_finished), end=" ", file=sys.stderr)
+                print(f"\t{gene_finished} transcripts finished\r", end=" ", file=sys.stderr)
         return aggreagated_cvg
 
 
@@ -153,6 +153,8 @@ def Rcode_write(dataset: list, file_prefix: str, format: str = "pdf", colNum: in
         tick_pos = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
         tick_lab = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
+        fmt_lower = format.lower()
+
         # do not generate heatmap if only 1 sample
         if len(names) >= 3:
             print(
@@ -161,8 +163,10 @@ def Rcode_write(dataset: list, file_prefix: str, format: str = "pdf", colNum: in
             )
             print("rowLabel <- c(" + ",".join(['"' + i + '"' for i in names]) + ")", file=ROUT)
             print("\n", file=ROUT)
-            print('%s("%s.%s")' % (format.lower(), file_prefix + ".heatMap", format.lower()), file=ROUT)
+            print(f'{fmt_lower}("{file_prefix}.heatMap.{fmt_lower}")', file=ROUT)
             print("rc <- cm.colors(ncol(data_matrix))", file=ROUT)
+            tick_pos_csv = ",".join([str(i) for i in tick_pos])
+            tick_lab_csv = ",".join(['"' + str(i) + '"' for i in tick_lab])
             heatmap_cmd = (
                 "heatmap(data_matrix"
                 ', scale=c("none"),keep.dendro=F, labRow = rowLabel '
@@ -170,61 +174,49 @@ def Rcode_write(dataset: list, file_prefix: str, format: str = "pdf", colNum: in
                 "margins = c(6, 8),ColSideColors = rc,"
                 "cexRow=1,cexCol=1,"
                 "xlab=\"Gene body percentile (5'->3')\", "
-                "add.expr=x_axis_expr <- axis(side=1,at=c(%s),"
-                "labels=c(%s)))"
-                % (
-                    ",".join([str(i) for i in tick_pos]),
-                    ",".join(['"' + str(i) + '"' for i in tick_lab]),
-                )
+                f"add.expr=x_axis_expr <- axis(side=1,at=c({tick_pos_csv}),"
+                f"labels=c({tick_lab_csv})))"
             )
             print(heatmap_cmd, file=ROUT)
             print("dev.off()", file=ROUT)
 
         print("\n", file=ROUT)
 
-        print('%s("%s.%s")' % (format.lower(), file_prefix + ".curves", format.lower()), file=ROUT)
-        print("x=1:%d" % (colNum), file=ROUT)
+        print(f'{fmt_lower}("{file_prefix}.curves.{fmt_lower}")', file=ROUT)
+        print(f"x=1:{colNum}", file=ROUT)
         print(
-            'icolor = colorRampPalette(c("#7fc97f","#beaed4","#fdc086","#ffff99","#386cb0","#f0027f"))(%d)'
-            % (len(names)),
+            f'icolor = colorRampPalette(c("#7fc97f","#beaed4","#fdc086","#ffff99","#386cb0","#f0027f"))({len(names)})',
             file=ROUT,
         )
 
+        plot_cmd = (
+            f"plot(x,{names[0]},type='l',xlab=\"Gene body percentile (5'->3')\","
+            ' ylab="Coverage",lwd=0.8,col=icolor[1])'
+        )
+
         if len(names) == 1:
-            print(
-                "plot(x,%s,type='l',xlab=\"Gene body percentile (5'->3')\", ylab=\"Coverage\",lwd=0.8,col=icolor[1])"
-                % (names[0]),
-                file=ROUT,
-            )
+            print(plot_cmd, file=ROUT)
 
         elif len(names) >= 2 and len(names) <= 6:
-            print(
-                "plot(x,%s,type='l',xlab=\"Gene body percentile (5'->3')\", ylab=\"Coverage\",lwd=0.8,col=icolor[1])"
-                % (names[0]),
-                file=ROUT,
-            )
+            print(plot_cmd, file=ROUT)
             for i in range(1, len(names)):
-                print("lines(x,%s,type='l',col=icolor[%d])" % (names[i], i + 1), file=ROUT)
+                print(f"lines(x,{names[i]},type='l',col=icolor[{i + 1}])", file=ROUT)
+            legend_names = ",".join(["'" + str(n) + "'" for n in names])
             print(
-                "legend(0,1,fill=icolor[%d:%d], legend=c(%s))"
-                % (1, len(names), ",".join(["'" + str(n) + "'" for n in names])),
+                f"legend(0,1,fill=icolor[{1}:{len(names)}], legend=c({legend_names}))",
                 file=ROUT,
             )
 
         elif len(names) > 6:
             print("layout(matrix(c(1,1,1,2,1,1,1,2,1,1,1,2), 4, 4, byrow = TRUE))", file=ROUT)
-            print(
-                "plot(x,%s,type='l',xlab=\"Gene body percentile (5'->3')\", ylab=\"Coverage\",lwd=0.8,col=icolor[1])"
-                % (names[0]),
-                file=ROUT,
-            )
+            print(plot_cmd, file=ROUT)
             for i in range(1, len(names)):
-                print("lines(x,%s,type='l',col=icolor[%d])" % (names[i], i + 1), file=ROUT)
+                print(f"lines(x,{names[i]},type='l',col=icolor[{i + 1}])", file=ROUT)
             print("par(mar=c(1,0,2,1))", file=ROUT)
             print("plot.new()", file=ROUT)
+            legend_names = ",".join(["'" + str(n) + "'" for n in names])
             print(
-                "legend(0,1,fill=icolor[%d:%d],legend=c(%s))"
-                % (1, len(names), ",".join(["'" + str(n) + "'" for n in names])),
+                f"legend(0,1,fill=icolor[{1}:{len(names)}],legend=c({legend_names}))",
                 file=ROUT,
             )
 

@@ -158,8 +158,8 @@ def main() -> None:
                             exonic_frags += 1
 
         print("Done", file=sys.stderr)
-        print("Total fragment = %-20s" % (str(total_frags)), file=sys.stderr)
-        print("Total exonic fragment = %-20s" % (str(exonic_frags)), file=sys.stderr)
+        print(f"Total fragment = {str(total_frags):<20}", file=sys.stderr)
+        print(f"Total exonic fragment = {str(exonic_frags):<20}", file=sys.stderr)
 
         if total_frags > 0 and exonic_frags > 0:
             if args.only_exon:
@@ -304,7 +304,7 @@ def main() -> None:
                 )
 
             gene_finished += 1
-            print(" %d transcripts finished\r" % (gene_finished), end=" ", file=sys.stderr)
+            print(f" {gene_finished} transcripts finished\r", end=" ", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -65,6 +65,7 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - Coverage config fixed: CI now measures `--cov=rseqc --cov=scripts`
 - `from __future__ import annotations` added to `tin.py`, `RNA_fragment_size.py`
 - Performance: `tin.py` and `geneBody_coverage.py` pileup loops replaced with pysam `count_coverage()` (C-level, ~50-100x faster); `readsNVC()` per-character Python loop replaced with numpy vectorized lookup; `calWigSum()` redundant double-fetch removed; `deletionProfile()` list comprehension → `any()` generator; `shannon_entropy()` vectorized with numpy
+- `%`-formatting (~92 sites) and string concatenation (~77 sites) converted to f-strings across all `rseqc/` and `scripts/`; ruff rules `UP031`/`UP032` enabled to prevent regression
 
 **What still needs work:**
 - Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels

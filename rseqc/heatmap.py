@@ -44,45 +44,29 @@ def make_heatmap(
     dispaly_num : bool
             If set, numbers will be displayed on each cell
     """
-    logging.info('Writing R code to "%s"' % (outfile + ".r"))
+    logging.info(f'Writing R code to "{outfile}.r"')
     with open(outfile + ".r", "w") as ROUT:
         print('if(!require(pheatmap)){install.packages("pheatmap")}', file=ROUT)
         print("library(pheatmap)", file=ROUT)
-        print("dat = read.table(file = '%s',sep=',',header=T,row.names=1,check.names=FALSE)" % infile, file=ROUT)
+        print(f"dat = read.table(file = '{infile}',sep=',',header=T,row.names=1,check.names=FALSE)", file=ROUT)
 
         color_ramp = "color = colorRampPalette(c('#f1eef6','#d7b5d8','#df65b0', '#ce1256'))(50)"
         if no_numbers:
             logging.info("Does not displayed numerical values on heatmap")
             if log2_scale:
                 print(
-                    "pheatmap(log2(as.matrix(dat)+1), filename='%s', "
-                    "cellwidth = %d, cellheight = %d, "
-                    "display_numbers = FALSE, angle_col=%d, fontsize=%d,"
-                    "cluster_rows=F, cluster_cols=F, scale='none',%s)"
-                    % (
-                        outfile + "." + filetype,
-                        cell_width,
-                        cell_height,
-                        col_angle,
-                        font_size,
-                        color_ramp,
-                    ),
+                    f"pheatmap(log2(as.matrix(dat)+1), filename='{outfile}.{filetype}', "
+                    f"cellwidth = {cell_width}, cellheight = {cell_height}, "
+                    f"display_numbers = FALSE, angle_col={col_angle}, fontsize={font_size},"
+                    f"cluster_rows=F, cluster_cols=F, scale='none',{color_ramp})",
                     file=ROUT,
                 )
             else:
                 print(
-                    "pheatmap(as.matrix(dat), filename='%s', "
-                    "cellwidth = %d, cellheight = %d, "
-                    "display_numbers = FALSE, angle_col=%d, fontsize=%d,"
-                    "cluster_rows=F, cluster_cols=F, scale='none',%s)"
-                    % (
-                        outfile + "." + filetype,
-                        cell_width,
-                        cell_height,
-                        col_angle,
-                        font_size,
-                        color_ramp,
-                    ),
+                    f"pheatmap(as.matrix(dat), filename='{outfile}.{filetype}', "
+                    f"cellwidth = {cell_width}, cellheight = {cell_height}, "
+                    f"display_numbers = FALSE, angle_col={col_angle}, fontsize={font_size},"
+                    f"cluster_rows=F, cluster_cols=F, scale='none',{color_ramp})",
                     file=ROUT,
                 )
         else:
@@ -90,42 +74,24 @@ def make_heatmap(
             if log2_scale:
                 logging.info("Numbers will be displayed on log2 scale")
                 print(
-                    "pheatmap(log2(as.matrix(dat)+1), filename='%s', "
-                    "cellwidth = %d, cellheight = %d, "
-                    "display_numbers = TRUE, angle_col=%d, fontsize=%d, "
-                    "number_color='%s',cluster_rows=F, cluster_cols=F, "
-                    "scale='none',%s)"
-                    % (
-                        outfile + "." + filetype,
-                        cell_width,
-                        cell_height,
-                        col_angle,
-                        font_size,
-                        text_color,
-                        color_ramp,
-                    ),
+                    f"pheatmap(log2(as.matrix(dat)+1), filename='{outfile}.{filetype}', "
+                    f"cellwidth = {cell_width}, cellheight = {cell_height}, "
+                    f"display_numbers = TRUE, angle_col={col_angle}, fontsize={font_size}, "
+                    f"number_color='{text_color}',cluster_rows=F, cluster_cols=F, "
+                    f"scale='none',{color_ramp})",
                     file=ROUT,
                 )
             else:
                 print(
-                    "pheatmap(as.matrix(dat), filename='%s', "
-                    "cellwidth = %d, cellheight = %d, "
-                    "display_numbers = TRUE, angle_col=%d, fontsize=%d, "
-                    "number_color='%s',cluster_rows=F, cluster_cols=F, "
-                    "scale='none',%s)"
-                    % (
-                        outfile + "." + filetype,
-                        cell_width,
-                        cell_height,
-                        col_angle,
-                        font_size,
-                        text_color,
-                        color_ramp,
-                    ),
+                    f"pheatmap(as.matrix(dat), filename='{outfile}.{filetype}', "
+                    f"cellwidth = {cell_width}, cellheight = {cell_height}, "
+                    f"display_numbers = TRUE, angle_col={col_angle}, fontsize={font_size}, "
+                    f"number_color='{text_color}',cluster_rows=F, cluster_cols=F, "
+                    f"scale='none',{color_ramp})",
                     file=ROUT,
                 )
 
-    logging.info('Running R script file "%s"' % (outfile + ".r"))
+    logging.info(f'Running R script file "{outfile}.r"')
     try:
         subprocess.run(["Rscript", outfile + ".r"], check=False)
     except OSError:

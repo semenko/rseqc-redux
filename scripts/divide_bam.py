@@ -61,7 +61,7 @@ def main() -> None:
         print("Done", file=sys.stderr)
 
     for i in range(0, args.subset_num):
-        print("%-55s%d" % (args.output_prefix + "_" + str(i) + ".bam", count_bam[i]))
+        print(f"{args.output_prefix + '_' + str(i) + '.bam':<55}{count_bam[i]}")
 
 
 if __name__ == "__main__":

@@ -45,15 +45,15 @@ def main() -> None:
         other = 0.0
     if protocol == "PairEnd":
         print("\n\nThis is PairEnd Data")
-        print("Fraction of reads failed to determine: %.4f" % other)
-        print('Fraction of reads explained by "1++,1--,2+-,2-+": %.4f' % sp1)
-        print('Fraction of reads explained by "1+-,1-+,2++,2--": %.4f' % sp2)
+        print(f"Fraction of reads failed to determine: {other:.4f}")
+        print(f'Fraction of reads explained by "1++,1--,2+-,2-+": {sp1:.4f}')
+        print(f'Fraction of reads explained by "1+-,1-+,2++,2--": {sp2:.4f}')
 
     elif protocol == "SingleEnd":
         print("\n\nThis is SingleEnd Data")
-        print("Fraction of reads failed to determine: %.4f" % other)
-        print('Fraction of reads explained by "++,--": %.4f' % sp1)
-        print('Fraction of reads explained by "+-,-+": %.4f' % sp2)
+        print(f"Fraction of reads failed to determine: {other:.4f}")
+        print(f'Fraction of reads explained by "++,--": {sp1:.4f}')
+        print(f'Fraction of reads explained by "+-,-+": {sp2:.4f}')
 
     else:
         print("Unknown Data type")

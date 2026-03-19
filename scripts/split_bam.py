@@ -95,10 +95,10 @@ def main() -> None:
 
     print("Done", file=sys.stderr)
 
-    print("%-55s%d" % ("Total records:", total_alignment))
-    print("%-55s%d" % (args.output_prefix + ".in.bam (Alignments consumed by input gene list):", in_alignment))
-    print("%-55s%d" % (args.output_prefix + ".ex.bam (Alignments not consumed by input gene list):", ex_alignment))
-    print("%-55s%d" % (args.output_prefix + ".junk.bam (qcfailed, unmapped reads):", bad_alignment))
+    print(f"{'Total records:':<55}{total_alignment}")
+    print(f"{args.output_prefix + '.in.bam (Alignments consumed by input gene list):':<55}{in_alignment}")
+    print(f"{args.output_prefix + '.ex.bam (Alignments not consumed by input gene list):':<55}{ex_alignment}")
+    print(f"{args.output_prefix + '.junk.bam (qcfailed, unmapped reads):':<55}{bad_alignment}")
 
 
 if __name__ == "__main__":

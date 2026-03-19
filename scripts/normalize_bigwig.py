@@ -55,7 +55,7 @@ def main() -> None:
         bw = pyBigWig.open(args.BigWig_File)
         try:
             if not bw.isBigWig():
-                print("%s is not a bigwig file!" % args.BigWig_File, file=sys.stderr)
+                print(f"{args.BigWig_File} is not a bigwig file!", file=sys.stderr)
                 sys.exit(1)
 
             print("Get chromosome sizes from BigWig header ...", file=sys.stderr)
@@ -82,7 +82,7 @@ def main() -> None:
                     if numpy.isnan(tmp):
                         continue
                     WIG_SUM += tmp
-                print("Total wigsum is %.2f\n" % WIG_SUM, file=sys.stderr)
+                print(f"Total wigsum is {WIG_SUM:.2f}\n", file=sys.stderr)
             else:
                 print("Calculate wigsum from " + args.BigWig_File, file=sys.stderr)
                 for chr_name, chr_size in chrom_sizes.items():  # iterate each chrom
@@ -99,7 +99,7 @@ def main() -> None:
                         if numpy.isnan(tmp):
                             continue
                         WIG_SUM += tmp
-                print("\nTotal wigsum is %.2f\n" % WIG_SUM, file=sys.stderr)
+                print(f"\nTotal wigsum is {WIG_SUM:.2f}\n", file=sys.stderr)
 
             try:
                 weight = args.total_wigsum / WIG_SUM
@@ -126,7 +126,7 @@ def main() -> None:
                         for v in bw_signal:
                             coord += 1
                             if v != 0:
-                                print("%d\t%.2f" % (coord, v), file=OUT)
+                                print(f"{coord}\t{v:.2f}", file=OUT)
                 elif args.out_format.upper() == "BGR":
                     print("Writing " + chr_name + " ...", file=sys.stderr)
                     for interval in BED.tillingBed(chrName=chr_name, chrSize=chr_size, stepSize=args.chunk_size):

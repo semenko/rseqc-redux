@@ -33,7 +33,7 @@ def fasta_iter(infile: str) -> Generator[str, None, None]:
     str
             String of nucleotides or quality scores.
     """
-    logging.info('Reading FASTA file "%s" ...' % infile)
+    logging.info(f'Reading FASTA file "{infile}" ...')
     for line in ireader.reader(infile):
         line = line.strip()
         if len(line) == 0:
@@ -59,7 +59,7 @@ def fastq_iter(infile: str, mode: str = "seq") -> Generator[str, None, None]:
     str
             String of nucleotides or quality scores.
     """
-    logging.info('Reading FASTQ file "%s" ...' % infile)
+    logging.info(f'Reading FASTQ file "{infile}" ...')
     count = 0
     s = ""
     q = ""
@@ -107,12 +107,12 @@ def qual2countMat(q_obj: Iterable[str], limit: int | None, step_size: int = 1000
             else:
                 dat[i][q_score] += 1
         if count % step_size == 0:
-            print("%d quality sequences finished\r" % count, end=" ", file=sys.stderr)
+            print(f"{count} quality sequences finished\r", end=" ", file=sys.stderr)
         if limit is not None:
             if count >= limit:
                 break
 
-    logging.info("%d quality sequences finished" % count)
+    logging.info(f"{count} quality sequences finished")
     return dict(dat)
 
 
@@ -149,11 +149,11 @@ def seq2countMat(
             else:
                 mat[indx][base] += 1
         if count % step_size == 0:
-            print("%d sequences finished\r" % count, end=" ", file=sys.stderr)
+            print(f"{count} sequences finished\r", end=" ", file=sys.stderr)
         if limit is not None:
             if count >= limit:
                 break
-    logging.info("%d sequences finished" % count)
+    logging.info(f"{count} sequences finished")
     return dict(mat)
 
 
@@ -273,11 +273,11 @@ def make_logo(
     df.sort_index(inplace=True)
 
     logging.info("Making logo ...")
-    logging.debug("Font name is: %s" % font_name)
-    logging.debug("Stack order is: %s" % stack_order)
-    logging.debug("Flip below flag: %s" % flip_below)
-    logging.debug("Shade below score: %f" % shade_below)
-    logging.debug("Fade below score: %f" % fade_below)
+    logging.debug(f"Font name is: {font_name}")
+    logging.debug(f"Stack order is: {stack_order}")
+    logging.debug(f"Flip below flag: {flip_below}")
+    logging.debug(f"Shade below score: {shade_below:f}")
+    logging.debug(f"Fade below score: {fade_below:f}")
     if exclude_N:
         logging.info("'N' will be excluded.")
         color = {"A": "green", "C": "blue", "G": "orange", "T": "red"}
@@ -288,7 +288,7 @@ def make_logo(
         if highlight_start < 0 or highlight_end < 0 or highlight_start > highlight_end:
             logging.error("Incorrect highlight positions")
             sys.exit(1)
-    logging.info('Mean-centered logo saved to "%s".' % (outfile + ".logo_mean_centered." + oformat))
+    logging.info(f'Mean-centered logo saved to "{outfile}.logo_mean_centered.{oformat}".')
     logo = logomaker.Logo(
         df,
         center_values=True,
@@ -300,11 +300,11 @@ def make_logo(
         fade_below=fade_below,
     )
     if isinstance(highlight_start, int) and isinstance(highlight_end, int):
-        logging.info("Highlight logo from %d to %d" % (highlight_start, highlight_end))
+        logging.info(f"Highlight logo from {highlight_start} to {highlight_end}")
         logo.highlight_position_range(pmin=highlight_start, pmax=highlight_end)
-    plt.savefig(outfile + ".logo.mean_centered.%s" % oformat.lower())
+    plt.savefig(outfile + f".logo.mean_centered.{oformat.lower()}")
 
-    logging.info('Logo saved to "%s".' % (outfile + ".logo." + oformat))
+    logging.info(f'Logo saved to "{outfile}.logo.{oformat}".')
     logo = logomaker.Logo(
         df,
         center_values=False,
@@ -316,6 +316,6 @@ def make_logo(
         fade_below=fade_below,
     )
     if isinstance(highlight_start, int) and isinstance(highlight_end, int):
-        logging.info("Highlight logo from %d to %d" % (highlight_start, highlight_end))
+        logging.info(f"Highlight logo from {highlight_start} to {highlight_end}")
         logo.highlight_position_range(pmin=highlight_start, pmax=highlight_end)
-    plt.savefig(outfile + ".logo.%s" % oformat.lower())
+    plt.savefig(outfile + f".logo.{oformat.lower()}")

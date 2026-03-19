@@ -96,7 +96,7 @@ def main() -> None:
                     for v in call_back(bw_signal1, bw_signal2):
                         coord += 1
                         if v != 0:
-                            print("%d\t%.2f" % (coord, v), file=OUT)
+                            print(f"{coord}\t{v:.2f}", file=OUT)
         finally:
             bw1.close()
             bw2.close()

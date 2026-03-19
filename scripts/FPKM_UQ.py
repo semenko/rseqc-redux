@@ -89,7 +89,7 @@ def cal_fpkm(count_file: str, infor_file: str, out_file: str, log2_flag: bool = 
             full_length, exon_length, exon_num
     """
 
-    printlog("Read gene information file: %s" % infor_file)
+    printlog(f"Read gene information file: {infor_file}")
     gene_sizes = {}  # mRNA size for all genes
     gene_infor = {}
     protein_coding = set()  # list of protein coding genes
@@ -104,10 +104,10 @@ def cal_fpkm(count_file: str, infor_file: str, out_file: str, log2_flag: bool = 
             if f[6] == "protein_coding":
                 protein_coding.add(f[0])
 
-    print("\tTotal genes: %d" % len(gene_sizes), file=sys.stderr)
-    print("\tTotal protein-coding genes: %d" % len(protein_coding), file=sys.stderr)
+    print(f"\tTotal genes: {len(gene_sizes)}", file=sys.stderr)
+    print(f"\tTotal protein-coding genes: {len(protein_coding)}", file=sys.stderr)
 
-    printlog("Read gene count file to calculate 75 percentile count and total count: %s" % count_file)
+    printlog(f"Read gene count file to calculate 75 percentile count and total count: {count_file}")
     gene_counts = []
     with open(count_file) as _fh:
         for line in _fh:
@@ -122,9 +122,9 @@ def cal_fpkm(count_file: str, infor_file: str, out_file: str, log2_flag: bool = 
 
     uq_count = np.percentile(sorted(gene_counts), 75)
     total_count = sum(gene_counts)
-    print("\tTotal protein-coding genes: %d" % len(gene_counts), file=sys.stderr)
-    print("\tThe 75 perentile count of protein-coding genes: %f" % (uq_count), file=sys.stderr)
-    print("\tThe total count of protein-coding genes: %f" % (total_count), file=sys.stderr)
+    print(f"\tTotal protein-coding genes: {len(gene_counts)}", file=sys.stderr)
+    print(f"\tThe 75 perentile count of protein-coding genes: {uq_count:f}", file=sys.stderr)
+    print(f"\tThe total count of protein-coding genes: {total_count:f}", file=sys.stderr)
 
     with open(out_file, "w") as FPKM_OUT:
         if log2_flag is True:
@@ -149,7 +149,7 @@ def cal_fpkm(count_file: str, infor_file: str, out_file: str, log2_flag: bool = 
                 "\t".join(["gene_ID", "symbol", "chrom", "start", "end", "strand", "raw_count", "FPKM", "FPKM-UQ"]),
                 file=FPKM_OUT,
             )
-        print("Read gene count file to calculate FPKM and FPKM-UQ: %s" % count_file, file=sys.stderr)
+        print(f"Read gene count file to calculate FPKM and FPKM-UQ: {count_file}", file=sys.stderr)
         with open(count_file) as _fh:
             for line in _fh:
                 line = line.strip()

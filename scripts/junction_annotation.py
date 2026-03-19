@@ -88,8 +88,8 @@ def generate_interact(infile: str, bam_file: str, size: int = 1) -> None:
     with open(outfile, "w") as OUT:
         print(
             'track type=interact name="Splice junctions"'
-            ' description="Splice junctions detected from %s"'
-            " maxHeightPixels=200:200:50 visibility=full" % bam_file,
+            f' description="Splice junctions detected from {bam_file}"'
+            " maxHeightPixels=200:200:50 visibility=full",
             file=OUT,
         )
         with open(infile, "r") as _fh:
