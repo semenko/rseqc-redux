@@ -12,7 +12,14 @@ from numpy import nan_to_num
 from pyBigWig import open as openBigWig
 
 from rseqc import mystat
-from rseqc.cli_common import add_output_prefix_arg, add_refgene_arg, create_parser, run_rscript, validate_files_exist
+from rseqc.cli_common import (
+    add_output_prefix_arg,
+    add_refgene_arg,
+    create_parser,
+    iter_bed12,
+    run_rscript,
+    validate_files_exist,
+)
 
 
 def coverageGeneBody_bigwig(bigFile: str, refbed: str, outfile: str, gtype: str = "png") -> None:
@@ -31,62 +38,45 @@ def coverageGeneBody_bigwig(bigFile: str, refbed: str, outfile: str, gtype: str 
     coverage = defaultdict(int)
     flag = 0
     gene_count = 0
-    with open(refbed, "r") as handle:
-        # Loop through the genes in the BED file
-        for line in handle:
-            try:
-                if line.startswith(("#", "track", "browser")):
-                    continue
+    for record in iter_bed12(refbed):
+        chrom = record.chrom
+        strand = record.strand
 
-                # Parse fields from gene tabls
-                fields = line.split()
-                chrom = fields[0]
-                tx_start = int(fields[1])
-                strand = fields[5]
+        # Skip chromosomes present in the bed file but not present in the bigwig file.
+        # This could happen with PATCHES or Unplaced chromosomes.
+        if chrom not in chroms:
+            continue
 
-                # Skip chromosomes present in the bed file but not present in the bigwig file.
-                # This could happen with PATCHES or Unplaced chromosomes.
-                if chrom not in chroms:
-                    continue
+        # Count gene if it was properly read
+        gene_count += 1
 
-                exon_starts = [int(x) for x in fields[11].rstrip(",\n").split(",")]
-                exon_starts = [x + tx_start for x in exon_starts]
-                exon_ends = [int(x) for x in fields[10].rstrip(",\n").split(",")]
-                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
-            except (IndexError, ValueError):
-                print("[NOTE: input bed must be 12-column] skipped this line: " + line, end="\n", file=sys.stderr)
-                continue
+        gene_all_base = []
+        mRNA_len = 0
+        flag = 0
+        for st, end in zip(record.exon_starts, record.exon_ends):
+            gene_all_base.extend(range(st + 1, end + 1))  # 0-based coordinates on genome
+            mRNA_len = len(gene_all_base)
+            if mRNA_len < 100:
+                flag = 1
+                break
+        if flag == 1:
+            continue
 
-            # Count gene if it was properly read
-            gene_count += 1
+        # Sort coordinates according to the strand
+        if strand == "-":
+            gene_all_base.sort(reverse=True)
+        else:
+            gene_all_base.sort(reverse=False)
 
-            gene_all_base = []
-            mRNA_len = 0
-            flag = 0
-            for st, end in zip(exon_starts, exon_ends):
-                gene_all_base.extend(range(st + 1, end + 1))  # 0-based coordinates on genome
-                mRNA_len = len(gene_all_base)
-                if mRNA_len < 100:
-                    flag = 1
-                    break
-            if flag == 1:
-                continue
+        # Get 100 points from each gene's coordinates
+        percentile_base = []
+        percentile_base = mystat.percentile_list(gene_all_base)
 
-            # Sort coordinates according to the strand
-            if strand == "-":
-                gene_all_base.sort(reverse=True)
-            else:
-                gene_all_base.sort(reverse=False)
+        for i in range(0, len(percentile_base)):
+            sig = bw.values(chrom, percentile_base[i] - 1, percentile_base[i])
+            coverage[i] += nan_to_num(sig[0])
 
-            # Get 100 points from each gene's coordinates
-            percentile_base = []
-            percentile_base = mystat.percentile_list(gene_all_base)
-
-            for i in range(0, len(percentile_base)):
-                sig = bw.values(chrom, percentile_base[i] - 1, percentile_base[i])
-                coverage[i] += nan_to_num(sig[0])
-
-            print(" \t%d genes finished\r" % gene_count, end=" ", file=sys.stderr)
+        print(" \t%d genes finished\r" % gene_count, end=" ", file=sys.stderr)
 
     # Close bigwig file
     bw.close()

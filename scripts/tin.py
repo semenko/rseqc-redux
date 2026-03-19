@@ -13,7 +13,7 @@ import pysam
 from numpy import mean, median, std
 
 from rseqc import getBamFiles
-from rseqc.cli_common import add_refgene_arg, build_bitsets, create_parser, printlog, validate_files_exist
+from rseqc.cli_common import add_refgene_arg, build_bitsets, create_parser, iter_bed12, printlog, validate_files_exist
 from rseqc.SAM import _pysam_iter
 
 
@@ -87,48 +87,37 @@ def genomic_positions(refbed: str, sample_size: int) -> Generator:
         print("You must specify a bed file representing gene model\n", file=sys.stderr)
         sys.exit(1)
 
-    with open(refbed, "r") as _fh:
-        for line in _fh:
-            try:
-                if line.startswith(("#", "track", "browser")):
-                    continue
-                # Parse fields from gene tabls
-                fields = line.split()
-                chrom = fields[0]
-                tx_start = int(fields[1])
-                tx_end = int(fields[2])
-                geneName = fields[3]
-                mRNA_size = sum(int(i) for i in fields[10].strip(",").split(","))
+    for record in iter_bed12(refbed):
+        mRNA_size = sum(end - start for start, end in zip(record.exon_starts, record.exon_ends))
+        intron_size = record.tx_end - record.tx_start - mRNA_size
+        if intron_size < 0:
+            intron_size = 0
 
-                exon_starts = [int(x) for x in fields[11].rstrip(",\n").split(",")]
-                exon_starts = [x + tx_start for x in exon_starts]
-                exon_ends = [int(x) for x in fields[10].rstrip(",\n").split(",")]
-                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
-                intron_size = tx_end - tx_start - mRNA_size
-                if intron_size < 0:
-                    intron_size = 0
-            except (IndexError, ValueError):
-                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-                continue
-
-            chose_bases = [tx_start + 1, tx_end]
-            exon_bounds = []
-            gene_all_base = []
-            if mRNA_size <= sample_size:  # return all bases of mRNA
-                for st, end in zip(exon_starts, exon_ends):
-                    chose_bases.extend(
-                        list(range(st + 1, end + 1))
-                    )  # 1-based coordinates on genome, include exon boundaries
-                yield (geneName, chrom, tx_start, tx_end, intron_size, chose_bases)
-            elif mRNA_size > sample_size:
-                step_size = int(mRNA_size / sample_size)
-                for st, end in zip(exon_starts, exon_ends):
-                    gene_all_base.extend(list(range(st + 1, end + 1)))
-                    exon_bounds.append(st + 1)
-                    exon_bounds.append(end)
-                indx = list(range(0, len(gene_all_base), step_size))
-                chose_bases = [gene_all_base[i] for i in indx]
-                yield (geneName, chrom, tx_start, tx_end, intron_size, uniqify(exon_bounds + chose_bases))
+        chose_bases = [record.tx_start + 1, record.tx_end]
+        exon_bounds = []
+        gene_all_base = []
+        if mRNA_size <= sample_size:  # return all bases of mRNA
+            for st, end in zip(record.exon_starts, record.exon_ends):
+                chose_bases.extend(
+                    list(range(st + 1, end + 1))
+                )  # 1-based coordinates on genome, include exon boundaries
+            yield (record.gene_name, record.chrom, record.tx_start, record.tx_end, intron_size, chose_bases)
+        elif mRNA_size > sample_size:
+            step_size = int(mRNA_size / sample_size)
+            for st, end in zip(record.exon_starts, record.exon_ends):
+                gene_all_base.extend(list(range(st + 1, end + 1)))
+                exon_bounds.append(st + 1)
+                exon_bounds.append(end)
+            indx = list(range(0, len(gene_all_base), step_size))
+            chose_bases = [gene_all_base[i] for i in indx]
+            yield (
+                record.gene_name,
+                record.chrom,
+                record.tx_start,
+                record.tx_end,
+                intron_size,
+                uniqify(exon_bounds + chose_bases),
+            )
 
 
 def check_min_reads(samfile: pysam.AlignmentFile, chrom: str, tx_st: int, tx_end: int, cutoff: int) -> bool:

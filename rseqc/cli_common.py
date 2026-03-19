@@ -6,8 +6,9 @@ import argparse
 import os
 import subprocess
 import sys
+from collections.abc import Generator
 from time import strftime
-from typing import Any
+from typing import Any, NamedTuple
 
 from bx.intervals import Intersecter, Interval
 
@@ -109,3 +110,55 @@ def run_rscript(script_path: str) -> None:
         subprocess.run(["Rscript", script_path], check=False)
     except OSError:
         print("Cannot generate pdf file from " + script_path, file=sys.stderr)
+
+
+class BED12Record(NamedTuple):
+    """Parsed BED12 record."""
+
+    chrom: str
+    tx_start: int
+    tx_end: int
+    gene_name: str
+    strand: str
+    exon_starts: list[int]
+    exon_ends: list[int]
+    fields: list[str]
+
+
+def iter_bed12(bedfile: str) -> Generator[BED12Record, None, None]:
+    """Iterate over BED12 records, skipping comment/track/browser headers.
+
+    Malformed lines are skipped with a warning to stderr.
+    """
+    with open(bedfile, "r") as fh:
+        for line in fh:
+            if line.startswith(("#", "track", "browser")):
+                continue
+            try:
+                fields = line.split()
+                chrom = fields[0]
+                tx_start = int(fields[1])
+                tx_end = int(fields[2])
+                gene_name = fields[3]
+                strand = fields[5]
+                exon_starts = [int(x) for x in fields[11].rstrip(",\n").split(",")]
+                exon_starts = [x + tx_start for x in exon_starts]
+                exon_ends = [int(x) for x in fields[10].rstrip(",\n").split(",")]
+                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
+            except (IndexError, ValueError):
+                print(
+                    "[NOTE:input bed must be 12-column] skipped this line: " + line,
+                    end=" ",
+                    file=sys.stderr,
+                )
+                continue
+            yield BED12Record(
+                chrom=chrom,
+                tx_start=tx_start,
+                tx_end=tx_end,
+                gene_name=gene_name,
+                strand=strand,
+                exon_starts=exon_starts,
+                exon_ends=exon_ends,
+                fields=fields,
+            )

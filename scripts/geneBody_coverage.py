@@ -18,7 +18,14 @@ import pysam
 from numpy import mean, std
 
 from rseqc import getBamFiles, mystat
-from rseqc.cli_common import add_output_prefix_arg, add_refgene_arg, create_parser, run_rscript, validate_files_exist
+from rseqc.cli_common import (
+    add_output_prefix_arg,
+    add_refgene_arg,
+    create_parser,
+    iter_bed12,
+    run_rscript,
+    validate_files_exist,
+)
 
 
 def valid_name(s: str) -> str:
@@ -66,38 +73,21 @@ def genebody_percentile(refbed: str, mRNA_len_cut: int = 100) -> dict:
 
     g_percentiles = {}
     transcript_count = 0
-    with open(refbed, "r") as _fh:
-        for line in _fh:
-            try:
-                if line.startswith(("#", "track", "browser")):
-                    continue
-                # Parse fields from gene tabls
-                fields = line.split()
-                chrom = fields[0]
-                tx_start = int(fields[1])
-                tx_end = int(fields[2])
-                geneName = fields[3]
-                strand = fields[5]
-                geneID = "_".join([str(j) for j in (chrom, tx_start, tx_end, geneName, strand)])
-
-                exon_starts = [int(x) for x in fields[11].rstrip(",\n").split(",")]
-                exon_starts = [x + tx_start for x in exon_starts]
-                exon_ends = [int(x) for x in fields[10].rstrip(",\n").split(",")]
-                exon_ends = [x + y for x, y in zip(exon_starts, exon_ends)]
-                transcript_count += 1
-            except (IndexError, ValueError):
-                print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
-                continue
-            gene_all_base = []
-            for st, end in zip(exon_starts, exon_ends):
-                gene_all_base.extend(list(range(st + 1, end + 1)))  # 1-based coordinates on genome
-            if len(gene_all_base) < mRNA_len_cut:
-                continue
-            g_percentiles[geneID] = (
-                chrom,
-                strand,
-                mystat.percentile_list(gene_all_base),
-            )  # get 100 points from each gene's coordinates
+    for record in iter_bed12(refbed):
+        geneID = "_".join(
+            [str(j) for j in (record.chrom, record.tx_start, record.tx_end, record.gene_name, record.strand)]
+        )
+        transcript_count += 1
+        gene_all_base = []
+        for st, end in zip(record.exon_starts, record.exon_ends):
+            gene_all_base.extend(list(range(st + 1, end + 1)))  # 1-based coordinates on genome
+        if len(gene_all_base) < mRNA_len_cut:
+            continue
+        g_percentiles[geneID] = (
+            record.chrom,
+            record.strand,
+            mystat.percentile_list(gene_all_base),
+        )  # get 100 points from each gene's coordinates
     _printlog("Total " + str(transcript_count) + " transcripts loaded")
     return g_percentiles
 
