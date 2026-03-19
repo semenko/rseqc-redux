@@ -6,10 +6,8 @@ Created on Sun Aug  2 15:43:45 2020
 
 from __future__ import annotations
 
-import bz2
 import collections
 import csv
-import gzip
 import logging
 import sys
 from collections.abc import Generator, Iterable
@@ -17,82 +15,53 @@ from typing import Any
 
 import logomaker
 import matplotlib.pyplot as plt
-
-
-def _open_file(path: str) -> Generator[str, None, None]:
-    """Open a plain, gzip, or bz2 file and yield stripped lines."""
-    fh: Any
-    if path.endswith((".gz", ".Z", ".z")):
-        fh = gzip.open(path, "rb")
-    elif path.endswith((".bz", ".bz2", ".bzip2")):
-        fh = bz2.open(path, "rb")
-    else:
-        fh = open(path, "rb")
-    try:
-        for line in fh:
-            yield line.decode("utf8").strip().replace("\r", "")
-    finally:
-        fh.close()
+import pysam
 
 
 def fasta_iter(infile: str) -> Generator[str, None, None]:
     """
-    Generate seq or qual string.
+    Generate sequence strings from a FASTA file.
 
     Parameters
     ----------
     infile : str
-            Input fasta file.
+            Input FASTA file (plain or gzip-compressed).
 
     Yields
     ------
     str
-            String of nucleotides or quality scores.
+            Nucleotide sequence for each record.
     """
     logging.info(f'Reading FASTA file "{infile}" ...')
-    for line in _open_file(infile):
-        line = line.strip()
-        if len(line) == 0:
-            continue
-        if line.startswith(">"):
-            continue
-        yield line
+    with pysam.FastxFile(infile) as fh:
+        for record in fh:
+            if record.sequence is not None:
+                yield record.sequence
 
 
 def fastq_iter(infile: str, mode: str = "seq") -> Generator[str, None, None]:
     """
-    Generate seq or qual string.
+    Generate seq or qual strings from a FASTQ file.
 
     Parameters
     ----------
     infile : str
-            Input fastq file.
+            Input FASTQ file (plain or gzip-compressed).
     mode : str
             Must be 'seq' or 'qual'.
 
     Yields
     ------
     str
-            String of nucleotides or quality scores.
+            Nucleotide sequence or quality string for each record.
     """
     logging.info(f'Reading FASTQ file "{infile}" ...')
-    count = 0
-    s = ""
-    q = ""
-    for line in _open_file(infile):
-        line = line.strip()
-        if len(line) == 0:
-            continue
-        count += 1
-        if count == 2:
-            s = line
-        if count == 4:
-            q = line
-            if mode == "seq":
-                yield s
-            elif mode == "qual":
-                yield q
-            count = 0
+    with pysam.FastxFile(infile) as fh:
+        for record in fh:
+            if mode == "seq" and record.sequence is not None:
+                yield record.sequence
+            elif mode == "qual" and record.quality is not None:
+                yield record.quality
 
 
 def qual2countMat(q_obj: Iterable[str], limit: int | None, step_size: int = 100000) -> dict[int, dict[int, int]]:

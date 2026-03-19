@@ -23,9 +23,6 @@ _RE_CLIP_RIGHT = re.compile(r"\A\d+M\d+S\Z")
 _RE_SPLICE_CLIP_RIGHT = re.compile(r"\A\d+M\d+N\d+M\d+S\Z")
 _RE_SPLICE_CLIP_LEFT = re.compile(r"\A\d+S\d+M\d+N\d+M\Z")
 
-# CIGAR operation code → character (indexed by int op code)
-_CIGAR_CHAR = ("M", "I", "D", "N", "S", "H", "P", "=", "X")
-
 
 def _write_edits_csv(mat: dict[int, dict[str, int]], outfile: str) -> None:
     """Write a nucleotide editing matrix (dict of dicts) to CSV.
@@ -84,11 +81,6 @@ def read_match_type(cigar_str: str) -> str:
     if _RE_SPLICE_CLIP_RIGHT.search(cigar_str) or _RE_SPLICE_CLIP_LEFT.search(cigar_str):
         return "Map_with_splicing_and_clipping"
     return "Others"
-
-
-def list2str(lst: list[tuple[int, int]]) -> str:
-    """Translate pysam cigar_list into a CIGAR string."""
-    return "".join(f"{size}{_CIGAR_CHAR[op]}" for op, size in lst)
 
 
 def barcode_edits(
@@ -332,8 +324,7 @@ def mapping_stat(
                         other_reads2 += 1
 
                     # map type
-                    cigar_str = list2str(aligned_read.cigar)  # type: ignore[attr-defined]
-                    tmp = read_match_type(cigar_str)
+                    tmp = read_match_type(aligned_read.cigarstring)
                     read_type[tmp] += 1
 
                     confi_alignments += 1

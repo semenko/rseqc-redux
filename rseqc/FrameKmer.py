@@ -6,6 +6,8 @@ import re
 from collections import Counter
 from collections.abc import Generator
 
+import pysam
+
 _DNA_PAT = re.compile(r"^[ACGTN]+$")
 
 
@@ -18,22 +20,14 @@ def word_generator(seq: str, word_size: int, step_size: int, frame: int = 0) -> 
 
 
 def seq_generator(fastafile: str) -> Generator[list[str], None, None]:
-    """DNA sequence only contains A,C,G,T,N. sequence with other characters will be removed"""
-    tmpseq = ""
-    name = ""
-    with open(fastafile, "r") as _fh:
-        for line in _fh:
-            line = line.strip().upper()
-            if line.startswith(("#", " ", "\n")):
+    """DNA sequence only contains A,C,G,T,N. Records with other characters will be skipped."""
+    with pysam.FastxFile(fastafile) as fh:
+        for record in fh:
+            if record.sequence is None or record.name is None:
                 continue
-            if line.startswith((">", "@")):
-                if tmpseq:
-                    yield [name, tmpseq]
-                    tmpseq = ""
-                name = line.split()[0][1:]
-            elif _DNA_PAT.match(line):
-                tmpseq += line
-    yield [name, tmpseq]
+            seq = record.sequence.upper()
+            if _DNA_PAT.match(seq):
+                yield [record.name.upper(), seq]
 
 
 def all_possible_kmer(length: int) -> Generator[str, None, None]:

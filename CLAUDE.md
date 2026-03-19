@@ -69,16 +69,27 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - `bam_cigar.fetch_exon()` soft clip bug fixed — S ops no longer advance reference coordinate (was double-counting offset for reads with leading soft clips)
 - Pre-compiled regex: `scbam.read_match_type()` (6 patterns), `FrameKmer.seq_generator()`, `SAM.mismatchProfile()` — all moved to module-level compiled constants
 - `_pysam_iter()` consolidated into `cli_common.py` (was duplicated in SAM.py and scbam.py); backward-compat re-export kept in SAM.py
-- `scbam.list2str()` O(n²) string concat → `"".join()` with int-indexed `_CIGAR_CHAR` tuple
 - `overlay_bigwig.py`: 8 trivial wrapper functions replaced with lambdas in `_ACTIONS` dict + `_apply()` wrapper
 - `geneBody_coverage._printlog()` consolidated into `cli_common.printlog(logfile=)` parameter
 - `overlap_length2()` renamed to `overlap_length()` in RNA_fragment_size.py
+- `bam_cigar.fetch_exon()` removed — all call sites replaced with pysam's `aligned_read.get_blocks()` (handles =/X CIGAR ops more correctly)
+- `scbam.mapping_stat()` temp-file + awk antipattern replaced with in-memory `set()` for unique read counting; removed `subprocess`/`glob`/`os` imports
+- `mystat.percentile_list()` manual interpolation loop replaced with `np.percentile()`
+- `heatmap.make_heatmap()` removed `install.packages("pheatmap")`, replaced manual subprocess with `run_rscript()`
+- BED.py header skipping standardized to tuple-form `startswith(("#", "track", "browser"))` in all 6 methods
+- `fastq.fasta_iter()` and `fastq.fastq_iter()` replaced with `pysam.FastxFile` (handles gzip, multiline FASTA, robust FASTQ parsing); removed hand-rolled `_open_file()` helper; bz2 support dropped (unused in practice)
+- `FrameKmer.seq_generator()` replaced with `pysam.FastxFile` (handles multiline FASTA, gzip, comment lines natively)
+- `scbam.list2str()` and `_CIGAR_CHAR` removed — replaced with pysam's native `aligned_read.cigarstring` property
+- `tests/fixtures/mini.fq` fixed: seq/qual length mismatch (was silently accepted by hand-rolled parser, caught by pysam)
 
 **What still needs work:**
 - Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels
 - More SAM.py method-level tests (many methods mix computation with file I/O)
 - Standardize logging vs `print(file=sys.stderr)` (430+ print-to-stderr calls)
-- `subprocess.check_output(..., shell=True)` in `scbam.py` (2 sites with complex awk/tee piping)
+
+**Potential future directions (lower priority):**
+- `SAM.bamTowig()` writes `.wig` then shells out to `wigToBigWig` — could write `.bw` directly via `pyBigWig` (already a dependency), eliminating the external tool dependency and intermediate file. Significant refactor, not a quick cleanup.
+- `SAM.bam2fq()` and `SAM.readsNVC()` use manual `str.maketrans()`/`[::-1]` for reverse complementing. The `readsNVC()` base-counting inner loop is already numpy-vectorized, but the reverse complement step remains manual Python.
 
 ## Commands
 

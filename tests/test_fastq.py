@@ -1,6 +1,5 @@
 """Tests for rseqc.fastq."""
 
-import bz2
 import gzip
 import importlib
 
@@ -13,46 +12,6 @@ def test_import():
     """Verify that rseqc.fastq can be imported."""
     mod = importlib.import_module("rseqc.fastq")
     assert mod is not None
-
-
-# --- _open_file ---
-
-
-def test_open_file_plain_text(tmp_path):
-    f = tmp_path / "test.txt"
-    f.write_text("line1\nline2\nline3\n")
-    lines = list(fastq._open_file(str(f)))
-    assert lines == ["line1", "line2", "line3"]
-
-
-def test_open_file_plain_text_empty(tmp_path):
-    f = tmp_path / "empty.txt"
-    f.write_text("")
-    lines = list(fastq._open_file(str(f)))
-    assert lines == []
-
-
-def test_open_file_strips_carriage_return(tmp_path):
-    f = tmp_path / "crlf.txt"
-    f.write_bytes(b"line1\r\nline2\r\n")
-    lines = list(fastq._open_file(str(f)))
-    assert lines == ["line1", "line2"]
-
-
-def test_open_file_gzip(tmp_path):
-    f = tmp_path / "test.gz"
-    with gzip.open(str(f), "wb") as gz:
-        gz.write(b"gzline1\ngzline2\n")
-    lines = list(fastq._open_file(str(f)))
-    assert lines == ["gzline1", "gzline2"]
-
-
-def test_open_file_bz2(tmp_path):
-    f = tmp_path / "test.bz2"
-    with bz2.open(str(f), "wb") as bz:
-        bz.write(b"line1\nline2\n")
-    lines = list(fastq._open_file(str(f)))
-    assert lines == ["line1", "line2"]
 
 
 # --- fasta_iter ---
@@ -69,7 +28,40 @@ def test_fasta_iter_empty_lines(tmp_path):
     fa = tmp_path / "test.fa"
     fa.write_text(">seq1\n\nACGT\n\n")
     seqs = list(fastq.fasta_iter(str(fa)))
+    assert len(seqs) == 1
+    assert seqs[0] == "ACGT"
+
+
+def test_fasta_iter_multiline(tmp_path):
+    """Multiline FASTA sequences are concatenated into a single yield."""
+    fa = tmp_path / "test.fa"
+    fa.write_text(">seq1\nACGT\nTGCA\n>seq2\nAAAA\n")
+    seqs = list(fastq.fasta_iter(str(fa)))
+    assert seqs == ["ACGTTGCA", "AAAA"]
+
+
+def test_fasta_iter_gzip(tmp_path):
+    """fasta_iter handles gzip-compressed files transparently."""
+    fa = tmp_path / "test.fa.gz"
+    with gzip.open(str(fa), "wt") as gz:
+        gz.write(">seq1\nACGT\n>seq2\nTGCA\n")
+    seqs = list(fastq.fasta_iter(str(fa)))
+    assert seqs == ["ACGT", "TGCA"]
+
+
+def test_fasta_iter_comment_lines(tmp_path):
+    """Comment lines (starting with #) are skipped."""
+    fa = tmp_path / "test.fa"
+    fa.write_text("# comment\n>seq1\nACGT\n")
+    seqs = list(fastq.fasta_iter(str(fa)))
     assert seqs == ["ACGT"]
+
+
+def test_fasta_iter_empty_file(tmp_path):
+    fa = tmp_path / "empty.fa"
+    fa.write_text("")
+    seqs = list(fastq.fasta_iter(str(fa)))
+    assert seqs == []
 
 
 # --- fastq_iter ---
@@ -87,6 +79,40 @@ def test_fastq_iter_qual(tmp_path):
     fq.write_text("@read1\nACGTACGT\n+\nIIIIIIII\n@read2\nTTTTAAAA\n+\nJJJJJJJJ\n")
     quals = list(fastq.fastq_iter(str(fq), mode="qual"))
     assert quals == ["IIIIIIII", "JJJJJJJJ"]
+
+
+def test_fastq_iter_gzip(tmp_path):
+    """fastq_iter handles gzip-compressed files transparently."""
+    fq = tmp_path / "test.fq.gz"
+    with gzip.open(str(fq), "wt") as gz:
+        gz.write("@read1\nACGT\n+\nIIII\n@read2\nTGCA\n+\nJJJJ\n")
+    seqs = list(fastq.fastq_iter(str(fq), mode="seq"))
+    assert seqs == ["ACGT", "TGCA"]
+
+
+def test_fastq_iter_gzip_qual(tmp_path):
+    """fastq_iter handles gzip-compressed quality mode."""
+    fq = tmp_path / "test.fq.gz"
+    with gzip.open(str(fq), "wt") as gz:
+        gz.write("@read1\nACGT\n+\nIIII\n")
+    quals = list(fastq.fastq_iter(str(fq), mode="qual"))
+    assert quals == ["IIII"]
+
+
+def test_fastq_iter_empty_file(tmp_path):
+    fq = tmp_path / "empty.fq"
+    fq.write_text("")
+    seqs = list(fastq.fastq_iter(str(fq), mode="seq"))
+    assert seqs == []
+
+
+def test_fastq_iter_single_record(tmp_path):
+    fq = tmp_path / "single.fq"
+    fq.write_text("@read1\nACGT\n+\nIIII\n")
+    seqs = list(fastq.fastq_iter(str(fq), mode="seq"))
+    assert seqs == ["ACGT"]
+    quals = list(fastq.fastq_iter(str(fq), mode="qual"))
+    assert quals == ["IIII"]
 
 
 # --- seq2countMat ---

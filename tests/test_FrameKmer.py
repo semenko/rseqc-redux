@@ -1,5 +1,6 @@
 """Tests for rseqc.FrameKmer."""
 
+import gzip
 import importlib
 
 from rseqc import FrameKmer
@@ -67,7 +68,6 @@ def test_seq_generator_fasta(tmp_path):
     fa.write_text(">seq1\nACGTACGT\n>seq2\nTTTTAAAA\n")
     results = list(FrameKmer.seq_generator(str(fa)))
     assert len(results) == 2
-    # seq_generator uppercases the entire line including headers
     assert results[0] == ["SEQ1", "ACGTACGT"]
     assert results[1] == ["SEQ2", "TTTTAAAA"]
 
@@ -75,10 +75,10 @@ def test_seq_generator_fasta(tmp_path):
 def test_seq_generator_fastq_header(tmp_path):
     """seq_generator also supports @ headers (FASTQ-style)."""
     fa = tmp_path / "test.fa"
-    fa.write_text("@read1\nACGT\n@read2\nTGCA\n")
+    fa.write_text("@read1\nACGT\n+\nIIII\n@read2\nTGCA\n+\nIIII\n")
     results = list(FrameKmer.seq_generator(str(fa)))
     assert len(results) == 2
-    assert results[0][0] == "READ1"  # uppercased
+    assert results[0][0] == "READ1"
 
 
 def test_seq_generator_skips_comments(tmp_path):
@@ -86,17 +86,17 @@ def test_seq_generator_skips_comments(tmp_path):
     fa.write_text("# comment\n>seq1\nACGT\n")
     results = list(FrameKmer.seq_generator(str(fa)))
     assert len(results) == 1
-    assert results[0][0] == "SEQ1"  # uppercased
+    assert results[0][0] == "SEQ1"
 
 
 def test_seq_generator_filters_non_dna(tmp_path):
-    """Lines with non-ACGTN characters are not appended to sequence."""
+    """Records with non-ACGTN characters in the sequence are skipped."""
     fa = tmp_path / "test.fa"
-    fa.write_text(">seq1\nACGT\n+\nIIII\n>seq2\nTTTT\n")
+    fa.write_text(">seq1\nACGTXYZ\n>seq2\nTTTT\n")
     results = list(FrameKmer.seq_generator(str(fa)))
-    # '+' line starts with special char but not '>' or '@' — not a header
-    # 'IIII' doesn't match DNA_pat, so not appended
-    assert any(r[0] == "SEQ1" for r in results)
+    # seq1 has non-DNA characters, should be filtered
+    assert len(results) == 1
+    assert results[0] == ["SEQ2", "TTTT"]
 
 
 def test_seq_generator_multiline(tmp_path):
@@ -104,6 +104,41 @@ def test_seq_generator_multiline(tmp_path):
     fa.write_text(">seq1\nACGT\nTGCA\n")
     results = list(FrameKmer.seq_generator(str(fa)))
     assert results[0][1] == "ACGTTGCA"
+
+
+def test_seq_generator_lowercase(tmp_path):
+    """Lowercase sequences are uppercased."""
+    fa = tmp_path / "test.fa"
+    fa.write_text(">seq1\nacgtacgt\n")
+    results = list(FrameKmer.seq_generator(str(fa)))
+    assert results[0][1] == "ACGTACGT"
+
+
+def test_seq_generator_gzip(tmp_path):
+    """seq_generator handles gzip-compressed FASTA."""
+    fa = tmp_path / "test.fa.gz"
+    with gzip.open(str(fa), "wt") as gz:
+        gz.write(">seq1\nACGT\n>seq2\nTGCA\n")
+    results = list(FrameKmer.seq_generator(str(fa)))
+    assert len(results) == 2
+    assert results[0][1] == "ACGT"
+    assert results[1][1] == "TGCA"
+
+
+def test_seq_generator_empty_file(tmp_path):
+    fa = tmp_path / "empty.fa"
+    fa.write_text("")
+    results = list(FrameKmer.seq_generator(str(fa)))
+    assert results == []
+
+
+def test_seq_generator_n_bases(tmp_path):
+    """Sequences with N bases are valid DNA and should be kept."""
+    fa = tmp_path / "test.fa"
+    fa.write_text(">seq1\nACGNTGCA\n")
+    results = list(FrameKmer.seq_generator(str(fa)))
+    assert len(results) == 1
+    assert results[0][1] == "ACGNTGCA"
 
 
 # --- kmer_freq_file ---

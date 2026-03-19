@@ -132,48 +132,6 @@ def test_read_match_type_hard_clip():
     assert scbam.read_match_type("5H45M") == "Others"
 
 
-# --- list2str ---
-
-
-def test_list2str_simple():
-    assert scbam.list2str([(0, 50)]) == "50M"
-
-
-def test_list2str_splice():
-    assert scbam.list2str([(0, 25), (3, 1000), (0, 25)]) == "25M1000N25M"
-
-
-def test_list2str_clip():
-    assert scbam.list2str([(4, 5), (0, 45)]) == "5S45M"
-
-
-def test_list2str_insertion():
-    assert scbam.list2str([(0, 30), (1, 5), (0, 20)]) == "30M5I20M"
-
-
-def test_list2str_deletion():
-    assert scbam.list2str([(0, 30), (2, 5), (0, 20)]) == "30M5D20M"
-
-
-def test_list2str_all_ops():
-    # Test all CIGAR operation codes
-    ops = [(0, 10), (1, 2), (2, 3), (3, 100), (4, 5), (5, 1), (6, 1), (7, 10), (8, 2)]
-    result = scbam.list2str(ops)
-    assert result == "10M2I3D100N5S1H1P10=2X"
-
-
-def test_list2str_empty():
-    assert scbam.list2str([]) == ""
-
-
-def test_list2str_single_base():
-    assert scbam.list2str([(0, 1)]) == "1M"
-
-
-def test_list2str_hard_clip_both_ends():
-    assert scbam.list2str([(5, 10), (0, 50), (5, 10)]) == "10H50M10H"
-
-
 # --- _pysam_iter ---
 
 
@@ -409,39 +367,55 @@ class TestBarcodeEdits:
         assert "G:T" in data_rows
 
 
-# --- Integration: roundtrip list2str -> read_match_type ---
+# --- Integration: pysam cigarstring -> read_match_type ---
 
 
-class TestCigarRoundtrip:
-    """Verify list2str output feeds correctly into read_match_type."""
+class TestCigarstringIntegration:
+    """Verify pysam's cigarstring property feeds correctly into read_match_type."""
+
+    _header = pysam.AlignmentHeader.from_dict(
+        {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": [{"SN": "chr1", "LN": 10000}]}
+    )
+
+    def _make_read(self, cigar):
+        a = pysam.AlignedSegment(self._header)
+        a.query_name = "test"
+        a.reference_id = 0
+        a.reference_start = 100
+        a.mapping_quality = 60
+        a.cigar = cigar
+        seq_len = sum(s for op, s in cigar if op in (0, 1, 4, 7, 8))
+        a.query_sequence = "A" * seq_len
+        a.query_qualities = pysam.qualitystring_to_array("I" * seq_len)
+        return a
 
     def test_consecutive(self):
-        cigar = scbam.list2str([(0, 100)])
-        assert scbam.read_match_type(cigar) == "Map_consecutively"
+        read = self._make_read([(0, 100)])
+        assert scbam.read_match_type(read.cigarstring) == "Map_consecutively"
 
     def test_spliced(self):
-        cigar = scbam.list2str([(0, 50), (3, 500), (0, 50)])
-        assert scbam.read_match_type(cigar) == "Map_with_splicing"
+        read = self._make_read([(0, 50), (3, 500), (0, 50)])
+        assert scbam.read_match_type(read.cigarstring) == "Map_with_splicing"
 
     def test_clipped_left(self):
-        cigar = scbam.list2str([(4, 10), (0, 90)])
-        assert scbam.read_match_type(cigar) == "Map_with_clipping"
+        read = self._make_read([(4, 10), (0, 90)])
+        assert scbam.read_match_type(read.cigarstring) == "Map_with_clipping"
 
     def test_clipped_right(self):
-        cigar = scbam.list2str([(0, 90), (4, 10)])
-        assert scbam.read_match_type(cigar) == "Map_with_clipping"
+        read = self._make_read([(0, 90), (4, 10)])
+        assert scbam.read_match_type(read.cigarstring) == "Map_with_clipping"
 
     def test_splice_and_clip_right(self):
-        cigar = scbam.list2str([(0, 40), (3, 200), (0, 50), (4, 10)])
-        assert scbam.read_match_type(cigar) == "Map_with_splicing_and_clipping"
+        read = self._make_read([(0, 40), (3, 200), (0, 50), (4, 10)])
+        assert scbam.read_match_type(read.cigarstring) == "Map_with_splicing_and_clipping"
 
     def test_splice_and_clip_left(self):
-        cigar = scbam.list2str([(4, 10), (0, 40), (3, 200), (0, 50)])
-        assert scbam.read_match_type(cigar) == "Map_with_splicing_and_clipping"
+        read = self._make_read([(4, 10), (0, 40), (3, 200), (0, 50)])
+        assert scbam.read_match_type(read.cigarstring) == "Map_with_splicing_and_clipping"
 
     def test_insertion_is_others(self):
-        cigar = scbam.list2str([(0, 40), (1, 5), (0, 55)])
-        assert scbam.read_match_type(cigar) == "Others"
+        read = self._make_read([(0, 40), (1, 5), (0, 55)])
+        assert scbam.read_match_type(read.cigarstring) == "Others"
 
 
 # --- _write_edits_csv ---
