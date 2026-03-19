@@ -17,6 +17,8 @@ import logomaker
 import matplotlib.pyplot as plt
 import pysam
 
+from rseqc.cli_common import _pysam_fastx_iter
+
 
 def fasta_iter(infile: str) -> Generator[str, None, None]:
     """
@@ -34,7 +36,7 @@ def fasta_iter(infile: str) -> Generator[str, None, None]:
     """
     logging.info(f'Reading FASTA file "{infile}" ...')
     with pysam.FastxFile(infile) as fh:
-        for record in fh:
+        for record in _pysam_fastx_iter(fh):
             if record.sequence is not None:
                 yield record.sequence
 
@@ -57,7 +59,7 @@ def fastq_iter(infile: str, mode: str = "seq") -> Generator[str, None, None]:
     """
     logging.info(f'Reading FASTQ file "{infile}" ...')
     with pysam.FastxFile(infile) as fh:
-        for record in fh:
+        for record in _pysam_fastx_iter(fh):
             if mode == "seq" and record.sequence is not None:
                 yield record.sequence
             elif mode == "qual" and record.quality is not None:

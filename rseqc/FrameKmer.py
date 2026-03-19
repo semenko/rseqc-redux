@@ -8,6 +8,8 @@ from collections.abc import Generator
 
 import pysam
 
+from rseqc.cli_common import _pysam_fastx_iter
+
 _DNA_PAT = re.compile(r"^[ACGTN]+$")
 
 
@@ -22,7 +24,7 @@ def word_generator(seq: str, word_size: int, step_size: int, frame: int = 0) -> 
 def seq_generator(fastafile: str) -> Generator[list[str], None, None]:
     """DNA sequence only contains A,C,G,T,N. Records with other characters will be skipped."""
     with pysam.FastxFile(fastafile) as fh:
-        for record in fh:
+        for record in _pysam_fastx_iter(fh):
             if record.sequence is None or record.name is None:
                 continue
             seq = record.sequence.upper()

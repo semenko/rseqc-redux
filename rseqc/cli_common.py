@@ -21,10 +21,18 @@ def _pysam_iter(samfile: pysam.AlignmentFile | pysam.IteratorRow) -> Generator[A
     """Iterate over pysam AlignmentFile, handling the ValueError bug on Python 3.13+.
 
     pysam raises ValueError ("Firing event 10 with no exception set") instead of
-    StopIteration when a BAM iterator is exhausted under coverage instrumentation
+    StopIteration when a BAM/FASTX iterator is exhausted under coverage instrumentation
     or certain CPython builds (PEP 745). This wrapper catches both."""
     try:
         yield from samfile
+    except ValueError:
+        return
+
+
+def _pysam_fastx_iter(fh: pysam.FastxFile) -> Generator[Any, None, None]:
+    """Iterate over pysam FastxFile, handling the same ValueError bug as _pysam_iter."""
+    try:
+        yield from fh
     except ValueError:
         return
 
