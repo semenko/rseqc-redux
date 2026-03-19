@@ -10,11 +10,10 @@ from collections.abc import Generator
 
 import numpy as np
 import pysam
-from bx.intervals import Intersecter, Interval
 from numpy import mean, median, std
 
 from rseqc import getBamFiles
-from rseqc.cli_common import add_refgene_arg, create_parser, printlog, validate_files_exist
+from rseqc.cli_common import add_refgene_arg, build_bitsets, create_parser, printlog, validate_files_exist
 from rseqc.SAM import _pysam_iter
 
 
@@ -39,21 +38,6 @@ def shannon_entropy(arg: list[float]) -> float:
         return 0.0
     p = arr / total
     return -float(np.sum(p * np.log(p)))
-
-
-def build_bitsets(list: list) -> dict:
-    """
-    build intevalTree from list
-    """
-    ranges = {}
-    for entry in list:
-        chrom = entry[0]
-        st = entry[1]
-        end = entry[2]
-        if chrom not in ranges:
-            ranges[chrom] = Intersecter()
-        ranges[chrom].add_interval(Interval(st, end))
-    return ranges
 
 
 def union_exons(refbed: str) -> dict:
@@ -88,7 +72,7 @@ def estimate_bg_noise(chrom: str, tx_st: int, tx_end: int, samfile: pysam.Alignm
         if read_start >= tx_end:
             continue
         read_len = aligned_read.qlen
-        if len(e_ranges[chrom].find(read_start, read_start + read_len)) > 0:
+        if len(e_ranges[chrom.upper()].find(read_start, read_start + read_len)) > 0:
             continue
         intron_sig += read_len
     return intron_sig

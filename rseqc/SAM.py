@@ -211,7 +211,6 @@ class ParseBAM:
         print("Done", file=sys.stderr)
 
         # read SAM/BAM file
-        # current_pos = self.samfile.tell()
         print("Loading SAM/BAM file ... ", end=" ", file=sys.stderr)
         for aligned_read in _pysam_iter(self.samfile):
             if count >= sample_size:
@@ -223,7 +222,7 @@ class ParseBAM:
             if aligned_read.is_paired:
                 if aligned_read.is_read1:
                     read_id = "1"
-                if aligned_read.is_read2:
+                elif aligned_read.is_read2:
                     read_id = "2"
                 if aligned_read.is_reverse:
                     map_strand = "-"
@@ -898,7 +897,7 @@ class ParseBAM:
                             pos += s
                 print("Done", file=sys.stderr)
 
-                print("Totoal reads used: %d" % int(total_read), file=sys.stderr)
+                print("Total reads used: %d" % int(total_read), file=sys.stderr)
                 read_pos = list(range(0, last_read_len))
                 clip_count = []
                 for i in read_pos:
@@ -967,8 +966,8 @@ class ParseBAM:
                 r1_clip_count = []
                 r2_clip_count = []
 
-                print("Totoal read-1 used: %d" % int(total_read1), file=sys.stderr)
-                print("Totoal read-2 used: %d" % int(total_read2), file=sys.stderr)
+                print("Total read-1 used: %d" % int(total_read1), file=sys.stderr)
+                print("Total read-2 used: %d" % int(total_read2), file=sys.stderr)
                 print("Read-1:", file=OUT)
                 for i in read_pos:
                     print(
@@ -1073,7 +1072,7 @@ class ParseBAM:
                             pos += s
                 print("Done", file=sys.stderr)
 
-                print("Totoal reads used: %d" % int(total_read), file=sys.stderr)
+                print("Total reads used: %d" % int(total_read), file=sys.stderr)
                 read_pos = list(range(0, last_read_len))
                 clip_count = []
                 for i in read_pos:
@@ -1142,8 +1141,8 @@ class ParseBAM:
                 r1_clip_count = []
                 r2_clip_count = []
 
-                print("Totoal read-1 used: %d" % int(total_read1), file=sys.stderr)
-                print("Totoal read-2 used: %d" % int(total_read2), file=sys.stderr)
+                print("Total read-1 used: %d" % int(total_read1), file=sys.stderr)
+                print("Total read-2 used: %d" % int(total_read2), file=sys.stderr)
                 print("Read-1:", file=OUT)
                 for i in read_pos:
                     print(
@@ -1703,12 +1702,12 @@ class ParseBAM:
             print("w=c(" + ",".join(unknown_junc) + ")", file=OUT)
             print(
                 "m=max(%d,%d,%d)"
-                % (int(int(known_junc[-1]) / 1000), int(int(all_junc[-1]) / 1000), int(int(unknown_junc[-1]) / 1000)),
+                % (int(known_junc[-1]) // 1000, int(all_junc[-1]) // 1000, int(unknown_junc[-1]) // 1000),
                 file=OUT,
             )
             print(
                 "n=min(%d,%d,%d)"
-                % (int(int(known_junc[0]) / 1000), int(int(all_junc[0]) / 1000), int(int(unknown_junc[0]) / 1000)),
+                % (int(known_junc[0]) // 1000, int(all_junc[0]) // 1000, int(unknown_junc[0]) // 1000),
                 file=OUT,
             )
             print(
@@ -1724,7 +1723,7 @@ class ParseBAM:
                 "legend(5,%d, "
                 'legend=c("All junctions","known junctions",'
                 ' "novel junctions"),'
-                'col=c("blue","red","green"),lwd=1,pch=1)' % int(int(all_junc[-1]) / 1000),
+                'col=c("blue","red","green"),lwd=1,pch=1)' % (int(all_junc[-1]) // 1000),
                 file=OUT,
             )
             print("dev.off()", file=OUT)

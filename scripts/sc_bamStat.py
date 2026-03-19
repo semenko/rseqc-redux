@@ -92,13 +92,12 @@ def main() -> None:
             format="%(asctime)s [%(levelname)s]  %(message)s", datefmt="%Y-%m-%d %I:%M:%S", level=logging.INFO
         )
 
-    for file in [args.bam_file]:
-        if not (file):
-            parser.print_help()
-            sys.exit(1)
-        if not os.path.exists(file + ".bai"):
-            logging.error("Cannot find the BAM index file.")
-            sys.exit(1)
+    if not args.bam_file:
+        parser.print_help()
+        sys.exit(1)
+    if not os.path.exists(args.bam_file + ".bai"):
+        logging.error("Cannot find the BAM index file.")
+        sys.exit(1)
 
     scbam.mapping_stat(
         infile=args.bam_file,

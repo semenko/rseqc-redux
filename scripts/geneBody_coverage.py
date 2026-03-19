@@ -37,8 +37,8 @@ def valid_name(s: str) -> str:
     return tmp
 
 
-def printlog(mesg: str) -> None:
-    """print progress into stderr and log file"""
+def _printlog(mesg: str) -> None:
+    """Print progress to stderr and append to log.txt (geneBody_coverage-specific)."""
     mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
     print(mesg, file=sys.stderr)
     with open("log.txt", "a") as LOG:
@@ -98,7 +98,7 @@ def genebody_percentile(refbed: str, mRNA_len_cut: int = 100) -> dict:
                 strand,
                 mystat.percentile_list(gene_all_base),
             )  # get 100 points from each gene's coordinates
-    printlog("Total " + str(transcript_count) + " transcripts loaded")
+    _printlog("Total " + str(transcript_count) + " transcripts loaded")
     return g_percentiles
 
 
@@ -110,44 +110,47 @@ def genebody_coverage(bam: str, position_list: dict) -> dict:
     Uses pysam's C-level count_coverage() instead of Python-level pileup iteration.
     """
     samfile = pysam.AlignmentFile(bam, "rb")
-    aggreagated_cvg = collections.defaultdict(int)
+    try:
+        aggreagated_cvg = collections.defaultdict(int)
 
-    gene_finished = 0
-    for chrom, strand, positions in position_list.values():
-        chrom_start = positions[0] - 1
-        if chrom_start < 0:
-            chrom_start = 0
-        chrom_end = positions[-1]
-        try:
-            # count_coverage returns 4 array.array objects (A, C, G, T per-base counts)
-            # quality_threshold=0: no base quality filtering (matches original behavior)
-            # read_callback='all': skip unmapped, qcfail, secondary, duplicate
-            a_arr, c_arr, g_arr, t_arr = samfile.count_coverage(
-                chrom, chrom_start, chrom_end, quality_threshold=0, read_callback="all"
-            )
-        except (KeyError, ValueError):
-            continue
+        gene_finished = 0
+        for chrom, strand, positions in position_list.values():
+            chrom_start = positions[0] - 1
+            if chrom_start < 0:
+                chrom_start = 0
+            chrom_end = positions[-1]
+            try:
+                # count_coverage returns 4 array.array objects (A, C, G, T per-base counts)
+                # quality_threshold=0: no base quality filtering (matches original behavior)
+                # read_callback='all': skip unmapped, qcfail, secondary, duplicate
+                a_arr, c_arr, g_arr, t_arr = samfile.count_coverage(
+                    chrom, chrom_start, chrom_end, quality_threshold=0, read_callback="all"
+                )
+            except (KeyError, ValueError):
+                continue
 
-        total = np.array(a_arr) + np.array(c_arr) + np.array(g_arr) + np.array(t_arr)
+            total = np.array(a_arr) + np.array(c_arr) + np.array(g_arr) + np.array(t_arr)
 
-        # Extract coverage at the selected percentile positions
-        tmp = []
-        for pos in positions:
-            idx = pos - 1 - chrom_start
-            if 0 <= idx < len(total):
-                tmp.append(int(total[idx]))
-            else:
-                tmp.append(0)
+            # Extract coverage at the selected percentile positions
+            tmp = []
+            for pos in positions:
+                idx = pos - 1 - chrom_start
+                if 0 <= idx < len(total):
+                    tmp.append(int(total[idx]))
+                else:
+                    tmp.append(0)
 
-        if strand == "-":
-            tmp = tmp[::-1]
-        for i in range(len(tmp)):
-            aggreagated_cvg[i] += tmp[i]
-        gene_finished += 1
+            if strand == "-":
+                tmp = tmp[::-1]
+            for i in range(len(tmp)):
+                aggreagated_cvg[i] += tmp[i]
+            gene_finished += 1
 
-        if gene_finished % 100 == 0:
-            print("\t%d transcripts finished\r" % (gene_finished), end=" ", file=sys.stderr)
-    return aggreagated_cvg
+            if gene_finished % 100 == 0:
+                print("\t%d transcripts finished\r" % (gene_finished), end=" ", file=sys.stderr)
+        return aggreagated_cvg
+    finally:
+        samfile.close()
 
 
 def Rcode_write(dataset: list, file_prefix: str, format: str = "pdf", colNum: int = 100) -> None:
@@ -288,17 +291,17 @@ def main() -> None:
     with open(args.output_prefix + ".geneBodyCoverage.txt", "w") as OUT1:
         print("Percentile\t" + "\t".join([str(i) for i in range(1, 101)]), file=OUT1)
 
-        printlog("Read BED file (reference gene model) ...")
+        _printlog("Read BED file (reference gene model) ...")
         gene_percentiles = genebody_percentile(refbed=args.ref_gene_model, mRNA_len_cut=args.min_mRNA_length)
 
-        printlog("Get BAM file(s) ...")
+        _printlog("Get BAM file(s) ...")
         bamfiles = getBamFiles.get_bam_files(args.input_files)
         for f in bamfiles:
             print("\t" + f, file=sys.stderr)
 
         file_container = []
         for bamfile in bamfiles:
-            printlog("Processing " + basename(bamfile) + " ...")
+            _printlog("Processing " + basename(bamfile) + " ...")
             cvg = genebody_coverage(bamfile, gene_percentiles)
             if len(cvg) == 0:
                 print("\nCannot get coverage signal from " + basename(bamfile) + " ! Skip", file=sys.stderr)
@@ -332,7 +335,7 @@ def main() -> None:
         print("\t" + a + "\t" + str(c), file=sys.stderr)
     Rcode_write(dataset, args.output_prefix + ".geneBodyCoverage", format=args.output_format)
 
-    printlog("Running R script ...")
+    _printlog("Running R script ...")
     run_rscript(args.output_prefix + ".geneBodyCoverage.r")
 
 

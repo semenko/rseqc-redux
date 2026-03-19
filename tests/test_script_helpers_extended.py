@@ -160,14 +160,15 @@ class TestUnionExons:
         from scripts.tin import union_exons
 
         result = union_exons(MINI_BED)
-        assert "chr1" in result
+        # build_bitsets (from cli_common) uppercases chrom names
+        assert "CHR1" in result
 
     def test_finds_exonic_position(self):
         """Gene1 first exon: 1000-1500 — position 1250 should be in exon ranges."""
         from scripts.tin import union_exons
 
         result = union_exons(MINI_BED)
-        hits = result["chr1"].find(1250, 1251)
+        hits = result["CHR1"].find(1250, 1251)
         assert len(hits) > 0
 
     def test_does_not_find_intronic_position(self):
@@ -175,7 +176,7 @@ class TestUnionExons:
         from scripts.tin import union_exons
 
         result = union_exons(MINI_BED)
-        hits = result["chr1"].find(2000, 2001)
+        hits = result["CHR1"].find(2000, 2001)
         assert len(hits) == 0
 
 
@@ -658,7 +659,7 @@ class TestFragmentSize:
 
 
 # ---------------------------------------------------------------------------
-# scripts.tin: build_bitsets (tin's local copy, not cli_common)
+# scripts.tin: build_bitsets (now imported from cli_common)
 # ---------------------------------------------------------------------------
 
 
@@ -678,11 +679,12 @@ class TestTinBuildBitsets:
             ["chr2", 500, 600],
         ]
         result = build_bitsets(entries)
-        assert "chr1" in result
-        assert "chr2" in result
-        assert len(result["chr1"].find(150, 151)) > 0
-        assert len(result["chr1"].find(250, 251)) == 0
-        assert len(result["chr2"].find(550, 551)) > 0
+        # cli_common's build_bitsets uppercases chrom names
+        assert "CHR1" in result
+        assert "CHR2" in result
+        assert len(result["CHR1"].find(150, 151)) > 0
+        assert len(result["CHR1"].find(250, 251)) == 0
+        assert len(result["CHR2"].find(550, 551)) > 0
 
 
 # ---------------------------------------------------------------------------

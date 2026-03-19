@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [6.0.1] - 2026-03-19
+
 ### Fixed
 
 - **SAM.py**: Fix `int(fields[9] == 1)` operator-precedence bug in `annotate_junction()` and `saturation_junction()` — single-exon genes were never excluded from junction analysis, corrupting known/novel classification (same Bug #3 already fixed in BED.py).
@@ -18,6 +20,8 @@ All notable changes to this project will be documented in this file.
 - **split_paired_bam.py**: Replace deprecated `pysam.AlignedRead()` with `pysam.AlignedSegment(header)`.
 - **junction_saturation.py**, **RPKM_saturation.py**: Fix typo "samller" → "smaller" in error messages.
 - **twoList.py**: Fix `Min()` docstring that incorrectly said "max".
+- **SAM.py**: Fix typo "Totoal" → "Total" in 6 user-facing stderr messages (`clipping_profile`, `insertion_profile`).
+- **SAM.py**: Fix `if`/`if` → `if`/`elif` for `is_read1`/`is_read2` in `configure_experiment()` — both flags set on a malformed read could silently overwrite `read_id`.
 
 ### Changed
 
@@ -25,6 +29,15 @@ All notable changes to this project will be documented in this file.
 - **divide_bam.py**, **split_paired_bam.py**: Wrap BAM file handles in try/finally to prevent resource leaks.
 - **scbam.py**: Close BAM file handles in `barcode_edits()` and `mapping_stat()` via try/finally blocks.
 - **scbam.py**: Replace `defaultdict(dict)` + try/except KeyError with `defaultdict(lambda: defaultdict(int))` in `barcode_edits()`.
+- **geneBody_coverage.py**: Close pysam.AlignmentFile in `genebody_coverage()` via try/finally.
+- **RNA_fragment_size.py**: Close pysam.AlignmentFile in `main()` via try/finally.
+- **normalize_bigwig.py**: Close pyBigWig file handle via try/finally.
+- **overlay_bigwig.py**: Close two pyBigWig file handles via try/finally.
+- **tin.py**: Remove duplicate `build_bitsets()` — now imports from `cli_common`.
+- **geneBody_coverage.py**: Rename local `printlog()` → `_printlog()` to distinguish from `cli_common.printlog` (local version also writes to log.txt).
+- **sc_bamStat.py**: Replace single-item `for file in [args.bam_file]` loop with direct validation.
+- **SAM.py**: Simplify `int(int(x) / 1000)` → `int(x) // 1000` in `saturation_junction()` R output (7 sites).
+- **SAM.py**: Remove dead commented-out `current_pos = self.samfile.tell()` in `configure_experiment()`.
 
 ### Performance
 

@@ -372,3 +372,104 @@ class TestAlignedSegment:
         source = inspect.getsource(mod)
         assert "AlignedRead" not in source
         assert "AlignedSegment" in source
+
+
+# ---------------------------------------------------------------------------
+# Round 2: Bug fixes, duplication reduction, simplification
+# ---------------------------------------------------------------------------
+
+
+class TestTotoalTypoFixed:
+    """'Totoal' was misspelled in 6 user-facing stderr messages in SAM.py."""
+
+    def test_no_totoal_in_sam_source(self):
+        import inspect
+
+        from rseqc import SAM
+
+        source = inspect.getsource(SAM)
+        assert "Totoal" not in source
+        assert "Total reads used" in source or "Total read-1 used" in source
+
+
+class TestConfigureExperimentElif:
+    """configure_experiment used if/if for is_read1/is_read2 — should be if/elif."""
+
+    def test_elif_for_is_read2(self):
+        import inspect
+
+        from rseqc import SAM
+
+        source = inspect.getsource(SAM.ParseBAM.configure_experiment)
+        # Find the is_read1/is_read2 block and verify elif
+        assert "elif aligned_read.is_read2:" in source
+
+
+class TestTinNoDuplicateBuildBitsets:
+    """tin.py should not define its own build_bitsets — it should use cli_common's."""
+
+    def test_no_local_build_bitsets(self):
+        import inspect
+
+        import scripts.tin as mod
+
+        source = inspect.getsource(mod)
+        # The function definition should not exist locally
+        assert "def build_bitsets" not in source
+
+    def test_imports_from_cli_common(self):
+        import scripts.tin as mod
+
+        # The module should use cli_common's build_bitsets (via import)
+        assert mod.build_bitsets is not None
+
+
+class TestScBamStatNoSingleItemLoop:
+    """sc_bamStat.py should not use 'for file in [args.bam_file]' pattern."""
+
+    def test_no_single_item_loop(self):
+        import inspect
+
+        import scripts.sc_bamStat as mod
+
+        source = inspect.getsource(mod.main)
+        assert "for file in [args.bam_file]" not in source
+
+
+class TestGeneBodyCoveragePrintlogRenamed:
+    """geneBody_coverage.py's printlog is renamed to _printlog to avoid confusion
+    with cli_common.printlog (which doesn't write to log.txt)."""
+
+    def test_no_public_printlog_function(self):
+        import inspect
+
+        import scripts.geneBody_coverage as mod
+
+        source = inspect.getsource(mod)
+        # Should have _printlog (private), not a public printlog that shadows cli_common
+        assert "def _printlog" in source
+        assert "def printlog" not in source
+
+
+class TestSaturationJunctionNoDoubleInt:
+    """saturation_junction R output should use int() // 1000, not int(int() / 1000)."""
+
+    def test_no_double_int(self):
+        import inspect
+
+        from rseqc import SAM
+
+        source = inspect.getsource(SAM.ParseBAM.saturation_junction)
+        assert "int(int(" not in source
+
+
+class TestNoDeadCommentedCode:
+    """Dead commented-out code should be removed from configure_experiment."""
+
+    def test_no_current_pos_comment(self):
+        import inspect
+
+        from rseqc import SAM
+
+        source = inspect.getsource(SAM.ParseBAM.configure_experiment)
+        assert "current_pos" not in source
