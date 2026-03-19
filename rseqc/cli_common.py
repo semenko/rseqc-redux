@@ -11,9 +11,22 @@ from os.path import abspath, getsize, join
 from time import strftime
 from typing import Any, NamedTuple
 
+import pysam
 from bx.intervals import Intersecter, Interval
 
 import rseqc
+
+
+def _pysam_iter(samfile: pysam.AlignmentFile | pysam.IteratorRow) -> Generator[Any, None, None]:
+    """Iterate over pysam AlignmentFile, handling the ValueError bug on Python 3.13+.
+
+    pysam raises ValueError ("Firing event 10 with no exception set") instead of
+    StopIteration when a BAM iterator is exhausted under coverage instrumentation
+    or certain CPython builds (PEP 745). This wrapper catches both."""
+    try:
+        yield from samfile
+    except ValueError:
+        return
 
 
 def create_parser(description: str | None = None) -> argparse.ArgumentParser:
@@ -134,10 +147,13 @@ def get_bam_files(input: str, printit: bool = False) -> list[str]:
     return bam_files
 
 
-def printlog(mesg: str) -> None:
-    """Print progress message to stderr with timestamp."""
+def printlog(mesg: str, logfile: str | None = None) -> None:
+    """Print progress message to stderr with timestamp, optionally appending to *logfile*."""
     mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
     print(mesg, file=sys.stderr)
+    if logfile:
+        with open(logfile, "a") as fh:
+            print(mesg, file=fh)
 
 
 def build_bitsets(entries: list[list[Any]]) -> dict[str, Intersecter]:

@@ -5,8 +5,7 @@ import sys
 
 import pysam
 
-from rseqc.cli_common import add_input_bam_arg, create_parser, validate_files_exist
-from rseqc.SAM import _pysam_iter
+from rseqc.cli_common import _pysam_iter, add_input_bam_arg, create_parser, validate_files_exist
 
 
 def main() -> None:

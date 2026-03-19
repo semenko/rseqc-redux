@@ -13,6 +13,7 @@ import pysam
 from numpy import mean, median, std
 
 from rseqc.cli_common import (
+    _pysam_iter,
     add_refgene_arg,
     build_bitsets,
     create_parser,
@@ -21,7 +22,6 @@ from rseqc.cli_common import (
     printlog,
     validate_files_exist,
 )
-from rseqc.SAM import _pysam_iter
 
 
 def shannon_entropy(arg: list[float]) -> float:

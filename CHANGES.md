@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **bam_cigar.py**: Fix `fetch_exon()` soft clipping bug — soft clip CIGAR ops (S/4) incorrectly advanced the reference coordinate, shifting exon boundaries for reads with leading soft clips. In the BAM specification, soft clips consume query sequence but **not** reference positions; pysam's `reference_start` already points past leading soft clips, so the S op was double-counting the offset. The sibling function `fetch_intron()` already handled this correctly (the equivalent line was commented out). In typical RNA-seq data, 5–15% of reads have soft clips. Soft clipping occurs when the aligner (e.g. STAR, HISAT2) trims the ends of a read that don't match the reference — often due to adapter contamination, low-quality bases at read ends, or reads spanning exon–exon junctions where the short overhang doesn't map uniquely. For affected reads, exon coordinates were shifted rightward by the clip length, subtly distorting per-base coverage profiles (`bam2wig`), duplicate detection (`read_duplication`), read distribution counts, and RPKM/FPKM quantification.
+
+### Changed
+
+- **scbam.py**: Pre-compile 6 regex patterns in `read_match_type()` at module level instead of calling `re.search()` with literal patterns per read; simplify `list2str()` from O(n²) string concatenation to `"".join()` with int-indexed `_CIGAR_CHAR` tuple
+- **FrameKmer.py**: Move `DNA_pat` regex to module-level `_DNA_PAT` (was re-compiled every call to `seq_generator()`)
+- **SAM.py**: Move MD-tag regex to module-level `_MD_PAT` (was re-compiled every call to `mismatchProfile()`)
+- Consolidate `_pysam_iter()` into `cli_common.py` — was duplicated identically in `SAM.py` and `scbam.py`; 7 scripts updated to import from `cli_common` (backward-compat re-export kept in `SAM.py`)
+- **overlay_bigwig.py**: Replace 8 trivial wrapper functions (Add, Subtract, Product, Division, Average, geometricMean, Max, Min) and `_check_list` with inline lambdas in `_ACTIONS` dict + single `_apply()` validation wrapper (~40 lines removed)
+- **geneBody_coverage.py**: Delete local `_printlog()`, use `cli_common.printlog()` with new `logfile=` parameter; simplify `pearson_moment_coefficient()` to list comprehension and fix `int(len/2)` → `len//2`
+- **RNA_fragment_size.py**: Rename `overlap_length2()` → `overlap_length()` (the `2` suffix was a historical artifact from a deleted predecessor)
+
 ## [6.1.0] - 2026-03-19
 
 ### Fixed
@@ -76,7 +90,7 @@ All notable changes to this project will be documented in this file.
 - **saturation_junction()**: Replaced O(n) rescan of all unique junctions at each percentile step with incremental counters. Known/unknown counts updated as each splice site observation is added.
 - **configure_experiment()**: Fast-path the common single-hit case (read overlaps one gene) to avoid `set()` + `':'.join()` allocation per read.
 - **mRNA_inner_distance()**: Replace O(n) list of every exon position with O(k) range-overlap arithmetic for overlapping read pairs.
-- **RNA_fragment_size.py**: Replace `len(list(range(...)))` O(n) with `max(0, min(...) - max(...))` O(1) in `overlap_length2()`.
+- **RNA_fragment_size.py**: Replace `len(list(range(...)))` O(n) with `max(0, min(...) - max(...))` O(1) in `overlap_length()`.
 
 ## [6.0.0] - 2026-03-12
 

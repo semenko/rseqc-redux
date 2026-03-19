@@ -11,7 +11,6 @@ import collections
 import operator
 import sys
 from os.path import basename
-from time import strftime
 
 import numpy as np
 import pysam
@@ -24,6 +23,7 @@ from rseqc.cli_common import (
     create_parser,
     get_bam_files,
     iter_bed12,
+    printlog,
     run_rscript,
     validate_files_exist,
 )
@@ -45,22 +45,11 @@ def valid_name(s: str) -> str:
     return tmp
 
 
-def _printlog(mesg: str) -> None:
-    """Print progress to stderr and append to log.txt (geneBody_coverage-specific)."""
-    mesg = "@ " + strftime("%Y-%m-%d %H:%M:%S") + ": " + mesg
-    print(mesg, file=sys.stderr)
-    with open("log.txt", "a") as LOG:
-        print(mesg, file=LOG)
-
-
 def pearson_moment_coefficient(lst: list[float]) -> float:
     """measure skewness"""
-    mid_value = lst[int(len(lst) / 2)]
+    mid_value = lst[len(lst) // 2]
     sigma = std(lst, ddof=1)
-    tmp = []
-    for i in lst:
-        tmp.append(((i - mid_value) / sigma) ** 3)
-    return mean(tmp)
+    return mean([((i - mid_value) / sigma) ** 3 for i in lst])
 
 
 def genebody_percentile(refbed: str, mRNA_len_cut: int = 100) -> dict:
@@ -89,7 +78,7 @@ def genebody_percentile(refbed: str, mRNA_len_cut: int = 100) -> dict:
             record.strand,
             mystat.percentile_list(gene_all_base),
         )  # get 100 points from each gene's coordinates
-    _printlog("Total " + str(transcript_count) + " transcripts loaded")
+    printlog("Total " + str(transcript_count) + " transcripts loaded", logfile="log.txt")
     return g_percentiles
 
 
@@ -272,17 +261,17 @@ def main() -> None:
     with open(args.output_prefix + ".geneBodyCoverage.txt", "w") as OUT1:
         print("Percentile\t" + "\t".join([str(i) for i in range(1, 101)]), file=OUT1)
 
-        _printlog("Read BED file (reference gene model) ...")
+        printlog("Read BED file (reference gene model) ...", logfile="log.txt")
         gene_percentiles = genebody_percentile(refbed=args.ref_gene_model, mRNA_len_cut=args.min_mRNA_length)
 
-        _printlog("Get BAM file(s) ...")
+        printlog("Get BAM file(s) ...", logfile="log.txt")
         bamfiles = get_bam_files(args.input_files)
         for f in bamfiles:
             print("\t" + f, file=sys.stderr)
 
         file_container = []
         for bamfile in bamfiles:
-            _printlog("Processing " + basename(bamfile) + " ...")
+            printlog("Processing " + basename(bamfile) + " ...", logfile="log.txt")
             cvg = genebody_coverage(bamfile, gene_percentiles)
             if len(cvg) == 0:
                 print("\nCannot get coverage signal from " + basename(bamfile) + " ! Skip", file=sys.stderr)
@@ -316,7 +305,7 @@ def main() -> None:
         print("\t" + a + "\t" + str(c), file=sys.stderr)
     Rcode_write(dataset, args.output_prefix + ".geneBodyCoverage", format=args.output_format)
 
-    _printlog("Running R script ...")
+    printlog("Running R script ...", logfile="log.txt")
     run_rscript(args.output_prefix + ".geneBodyCoverage.r")
 
 

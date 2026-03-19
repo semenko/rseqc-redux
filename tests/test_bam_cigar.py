@@ -35,8 +35,29 @@ def test_fetch_exon_with_deletion():
 
 
 def test_fetch_exon_with_soft_clip():
+    # Soft clips do NOT consume reference positions (BAM spec).
+    # pysam's reference_start already points past leading soft clips,
+    # so the S op must not advance the reference coordinate.
     result = bam_cigar.fetch_exon(100, [(4, 5), (0, 45)])
-    assert result == [(105, 150)]
+    assert result == [(100, 145)]
+
+
+def test_fetch_exon_trailing_soft_clip():
+    """Trailing soft clip should not affect exon boundaries."""
+    result = bam_cigar.fetch_exon(100, [(0, 45), (4, 5)])
+    assert result == [(100, 145)]
+
+
+def test_fetch_exon_both_soft_clips():
+    """Leading + trailing soft clips should not shift exon boundaries."""
+    result = bam_cigar.fetch_exon(100, [(4, 5), (0, 40), (4, 5)])
+    assert result == [(100, 140)]
+
+
+def test_fetch_exon_soft_clip_with_splice():
+    """Leading soft clip with a spliced alignment."""
+    result = bam_cigar.fetch_exon(100, [(4, 5), (0, 10), (3, 500), (0, 10)])
+    assert result == [(100, 110), (610, 620)]
 
 
 def test_fetch_exon_insertion_only():

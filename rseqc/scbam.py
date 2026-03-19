@@ -12,20 +12,22 @@ import os
 import re
 import subprocess
 import sys
-from collections.abc import Generator
 from typing import Any
 
 import pysam
 
+from rseqc.cli_common import _pysam_iter  # noqa: F401
 
-def _pysam_iter(
-    samfile: pysam.AlignmentFile | pysam.IteratorRow,
-) -> Generator[pysam.AlignedSegment, None, None]:
-    """Iterate over pysam AlignmentFile or fetch iterator, handling ValueError on Python 3.13+."""
-    try:
-        yield from samfile
-    except ValueError:
-        return
+# Pre-compiled CIGAR classification patterns for read_match_type()
+_RE_CONSECUTIVE = re.compile(r"\A\d+M\Z")
+_RE_SPLICING = re.compile(r"\A\d+M\d+N\d+M\Z")
+_RE_CLIP_LEFT = re.compile(r"\A\d+S\d+M\Z")
+_RE_CLIP_RIGHT = re.compile(r"\A\d+M\d+S\Z")
+_RE_SPLICE_CLIP_RIGHT = re.compile(r"\A\d+M\d+N\d+M\d+S\Z")
+_RE_SPLICE_CLIP_LEFT = re.compile(r"\A\d+S\d+M\d+N\d+M\Z")
+
+# CIGAR operation code → character (indexed by int op code)
+_CIGAR_CHAR = ("M", "I", "D", "N", "S", "H", "P", "=", "X")
 
 
 def _write_edits_csv(mat: dict[int, dict[str, int]], outfile: str) -> None:
@@ -76,33 +78,20 @@ def diff_str(s1: str, s2: str) -> list[list[Any]]:
 
 def read_match_type(cigar_str: str) -> str:
     """return the matching type between read and ref"""
-    match_type = ""
-    if bool(re.search(r"\A\d+M\Z", cigar_str)):
-        match_type = "Map_consecutively"
-    elif bool(re.search(r"\A\d+M\d+N\d+M\Z", cigar_str)):
-        match_type = "Map_with_splicing"
-    elif bool(re.search(r"\A\d+S\d+M\Z", cigar_str)):
-        match_type = "Map_with_clipping"
-    elif bool(re.search(r"\A\d+M\d+S\Z", cigar_str)):
-        match_type = "Map_with_clipping"
-    elif bool(re.search(r"\A\d+M\d+N\d+M\d+S\Z", cigar_str)):
-        match_type = "Map_with_splicing_and_clipping"
-    elif bool(re.search(r"\A\d+S\d+M\d+N\d+M\Z", cigar_str)):
-        match_type = "Map_with_splicing_and_clipping"
-    else:
-        match_type = "Others"
-    return match_type
+    if _RE_CONSECUTIVE.search(cigar_str):
+        return "Map_consecutively"
+    if _RE_SPLICING.search(cigar_str):
+        return "Map_with_splicing"
+    if _RE_CLIP_LEFT.search(cigar_str) or _RE_CLIP_RIGHT.search(cigar_str):
+        return "Map_with_clipping"
+    if _RE_SPLICE_CLIP_RIGHT.search(cigar_str) or _RE_SPLICE_CLIP_LEFT.search(cigar_str):
+        return "Map_with_splicing_and_clipping"
+    return "Others"
 
 
 def list2str(lst: list[tuple[int, int]]) -> str:
-    """
-    translate samtools returned cigar_list into cigar_string
-    """
-    code2Char = {"0": "M", "1": "I", "2": "D", "3": "N", "4": "S", "5": "H", "6": "P", "7": "=", "8": "X"}
-    cigar_str = ""
-    for i in lst:
-        cigar_str += str(i[1]) + code2Char[str(i[0])]
-    return cigar_str
+    """Translate pysam cigar_list into a CIGAR string."""
+    return "".join(f"{size}{_CIGAR_CHAR[op]}" for op, size in lst)
 
 
 def barcode_edits(

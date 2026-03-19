@@ -7,13 +7,13 @@ import pysam
 
 from rseqc import BED
 from rseqc.cli_common import (
+    _pysam_iter,
     add_input_bam_arg,
     add_output_prefix_arg,
     build_bitsets,
     create_parser,
     validate_files_exist,
 )
-from rseqc.SAM import _pysam_iter
 
 
 def main() -> None:

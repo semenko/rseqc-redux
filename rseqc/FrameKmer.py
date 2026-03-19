@@ -6,6 +6,8 @@ import re
 from collections import Counter
 from collections.abc import Generator
 
+_DNA_PAT = re.compile(r"^[ACGTN]+$")
+
 
 def word_generator(seq: str, word_size: int, step_size: int, frame: int = 0) -> Generator[str, None, None]:
     """generate DNA word from sequence using word_size and step_size. Frame is 0, 1 or2"""
@@ -19,7 +21,6 @@ def seq_generator(fastafile: str) -> Generator[list[str], None, None]:
     """DNA sequence only contains A,C,G,T,N. sequence with other characters will be removed"""
     tmpseq = ""
     name = ""
-    DNA_pat = re.compile(r"^[ACGTN]+$")
     with open(fastafile, "r") as _fh:
         for line in _fh:
             line = line.strip().upper()
@@ -30,7 +31,7 @@ def seq_generator(fastafile: str) -> Generator[list[str], None, None]:
                     yield [name, tmpseq]
                     tmpseq = ""
                 name = line.split()[0][1:]
-            elif DNA_pat.match(line):
+            elif _DNA_PAT.match(line):
                 tmpseq += line
     yield [name, tmpseq]
 

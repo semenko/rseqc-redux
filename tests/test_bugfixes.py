@@ -283,48 +283,48 @@ class TestFPKMUQDefaults:
 
 
 # ---------------------------------------------------------------------------
-# Step 9: Performance — overlap_length2 O(1)
+# Step 9: Performance — overlap_length O(1)
 # ---------------------------------------------------------------------------
 
 
-class TestOverlapLength2:
-    """Verify overlap_length2() returns correct results after O(1) optimization."""
+class TestOverlapLength:
+    """Verify overlap_length() returns correct results after O(1) optimization."""
 
     def test_no_overlap(self):
-        from scripts.RNA_fragment_size import overlap_length2
+        from scripts.RNA_fragment_size import overlap_length
 
-        assert overlap_length2([[10, 20]], [[30, 40]]) == 0
+        assert overlap_length([[10, 20]], [[30, 40]]) == 0
 
     def test_full_overlap(self):
-        from scripts.RNA_fragment_size import overlap_length2
+        from scripts.RNA_fragment_size import overlap_length
 
-        assert overlap_length2([[10, 20]], [[10, 20]]) == 11
+        assert overlap_length([[10, 20]], [[10, 20]]) == 11
 
     def test_partial_overlap(self):
-        from scripts.RNA_fragment_size import overlap_length2
+        from scripts.RNA_fragment_size import overlap_length
 
-        assert overlap_length2([[10, 20]], [[15, 25]]) == 6
+        assert overlap_length([[10, 20]], [[15, 25]]) == 6
 
     def test_contained(self):
-        from scripts.RNA_fragment_size import overlap_length2
+        from scripts.RNA_fragment_size import overlap_length
 
-        assert overlap_length2([[10, 30]], [[15, 20]]) == 6
+        assert overlap_length([[10, 30]], [[15, 20]]) == 6
 
     def test_single_point(self):
-        from scripts.RNA_fragment_size import overlap_length2
+        from scripts.RNA_fragment_size import overlap_length
 
-        assert overlap_length2([[10, 10]], [[10, 10]]) == 1
+        assert overlap_length([[10, 10]], [[10, 10]]) == 1
 
     def test_multiple_intervals(self):
-        from scripts.RNA_fragment_size import overlap_length2
+        from scripts.RNA_fragment_size import overlap_length
 
-        assert overlap_length2([[10, 20], [30, 40]], [[15, 35]]) == 12
+        assert overlap_length([[10, 20], [30, 40]], [[15, 35]]) == 12
 
     def test_empty(self):
-        from scripts.RNA_fragment_size import overlap_length2
+        from scripts.RNA_fragment_size import overlap_length
 
-        assert overlap_length2([], [[10, 20]]) == 0
-        assert overlap_length2([[10, 20]], []) == 0
+        assert overlap_length([], [[10, 20]]) == 0
+        assert overlap_length([[10, 20]], []) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -351,10 +351,10 @@ class TestTypoFixes:
         assert "samller" not in source
         assert "smaller" in source
 
-    def test_twolist_min_docstring(self):
-        from scripts.overlay_bigwig import Min
+    def test_twolist_min_action_exists(self):
+        from scripts.overlay_bigwig import _ACTIONS
 
-        assert "min" in Min.__doc__
+        assert "Min" in _ACTIONS
 
 
 # ---------------------------------------------------------------------------
@@ -436,19 +436,19 @@ class TestScBamStatNoSingleItemLoop:
         assert "for file in [args.bam_file]" not in source
 
 
-class TestGeneBodyCoveragePrintlogRenamed:
-    """geneBody_coverage.py's printlog is renamed to _printlog to avoid confusion
-    with cli_common.printlog (which doesn't write to log.txt)."""
+class TestGeneBodyCoveragePrintlogConsolidated:
+    """geneBody_coverage.py uses cli_common.printlog (with logfile= param)
+    instead of a local _printlog function."""
 
-    def test_no_public_printlog_function(self):
+    def test_no_local_printlog_function(self):
         import inspect
 
         import scripts.geneBody_coverage as mod
 
         source = inspect.getsource(mod)
-        # Should have _printlog (private), not a public printlog that shadows cli_common
-        assert "def _printlog" in source
-        assert "def printlog" not in source
+        # Should NOT define its own _printlog; uses cli_common.printlog with logfile=
+        assert "def _printlog" not in source
+        assert 'logfile="log.txt"' in source
 
 
 class TestSaturationJunctionNoDoubleInt:

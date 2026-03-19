@@ -7,7 +7,6 @@ import random
 import re
 import subprocess
 import sys
-from collections.abc import Generator
 from typing import Any
 
 import numpy as np
@@ -17,6 +16,10 @@ from bx.bitset_builders import binned_bitsets_from_list
 from bx.intervals import Intersecter, Interval
 
 from rseqc import BED, bam_cigar
+from rseqc.cli_common import _pysam_iter  # noqa: F401 — re-exported for backward compat
+
+# Pre-compiled regex for parsing MD tags in mismatchProfile()
+_MD_PAT = re.compile(r"(\d+)([A-Z]+)")
 
 # Lookup table mapping ASCII byte values to NVC column indices (A=0, C=1, G=2, T=3, N=4, X=5)
 _NVC_ASCII_MAP = np.full(256, 5, dtype=np.intp)
@@ -25,18 +28,6 @@ _NVC_ASCII_MAP[ord("C")] = 1
 _NVC_ASCII_MAP[ord("G")] = 2
 _NVC_ASCII_MAP[ord("T")] = 3
 _NVC_ASCII_MAP[ord("N")] = 4
-
-
-def _pysam_iter(samfile: pysam.AlignmentFile | pysam.IteratorRow) -> Generator[Any, None, None]:
-    """Iterate over pysam AlignmentFile, handling the ValueError bug on Python 3.13+.
-
-    pysam raises ValueError ("Firing event 10 with no exception set") instead of
-    StopIteration when a BAM iterator is exhausted under coverage instrumentation
-    or certain CPython builds (PEP 745). This wrapper catches both."""
-    try:
-        yield from samfile
-    except ValueError:
-        return
 
 
 def _passes_qc(read: Any, q_cut: int) -> bool:
@@ -1896,7 +1887,7 @@ class ParseBAM:
             else:
                 print("Process SAM file ... ", end=" ", file=sys.stderr)
 
-            MD_pat = re.compile(r"(\d+)([A-Z]+)")
+            MD_pat = _MD_PAT
 
             count = 0
             # data[read_coord][genotype] = geno_type_number

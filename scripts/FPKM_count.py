@@ -11,6 +11,7 @@ from bx.intervals import Intersecter, Interval
 
 from rseqc import SAM
 from rseqc.cli_common import (
+    _pysam_iter,
     add_input_bam_arg,
     add_mapq_arg,
     add_output_prefix_arg,
@@ -20,7 +21,7 @@ from rseqc.cli_common import (
     validate_bam_index,
     validate_files_exist,
 )
-from rseqc.SAM import _parse_strand_rule, _pysam_iter
+from rseqc.SAM import _parse_strand_rule
 
 
 def build_range(refgene: str) -> dict:

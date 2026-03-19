@@ -10,8 +10,7 @@ from random import randrange
 
 import pysam
 
-from rseqc.cli_common import create_parser, validate_files_exist
-from rseqc.SAM import _pysam_iter
+from rseqc.cli_common import _pysam_iter, create_parser, validate_files_exist
 
 
 def main() -> None:

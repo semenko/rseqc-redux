@@ -16,6 +16,7 @@ import pysam
 from numpy import mean, median, std
 
 from rseqc.cli_common import (
+    _pysam_iter,
     add_mapq_arg,
     add_refgene_arg,
     create_parser,
@@ -23,10 +24,9 @@ from rseqc.cli_common import (
     validate_bam_index,
     validate_files_exist,
 )
-from rseqc.SAM import _pysam_iter
 
 
-def overlap_length2(lst1: list[list[int]], lst2: list[list[int]]) -> int:
+def overlap_length(lst1: list[list[int]], lst2: list[list[int]]) -> int:
     overlap_len = 0
     for x in lst1:
         for y in lst2:
@@ -79,7 +79,7 @@ def fragment_size(
                 continue
             read_len = aligned_read.qlen
             map_range = [[read_st + 1, mate_st]]
-            frag_len = overlap_length2(exon_range, map_range) + read_len
+            frag_len = overlap_length(exon_range, map_range) + read_len
             frag_sizes.append(frag_len)
         if len(frag_sizes) < ncut:
             yield "\t".join([str(i) for i in (geneID, len(frag_sizes), 0, 0, 0)])

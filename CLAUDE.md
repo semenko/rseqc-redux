@@ -66,6 +66,13 @@ rseqc-redux is a modernization of RSeQC 5.0.1 (RNA-seq Quality Control), origina
 - `from __future__ import annotations` added to `tin.py`, `RNA_fragment_size.py`
 - Performance: `tin.py` and `geneBody_coverage.py` pileup loops replaced with pysam `count_coverage()` (C-level, ~50-100x faster); `readsNVC()` per-character Python loop replaced with numpy vectorized lookup; `calWigSum()` redundant double-fetch removed; `deletionProfile()` list comprehension → `any()` generator; `shannon_entropy()` vectorized with numpy
 - `%`-formatting (~92 sites) and string concatenation (~77 sites) converted to f-strings across all `rseqc/` and `scripts/`; ruff rules `UP031`/`UP032` enabled to prevent regression
+- `bam_cigar.fetch_exon()` soft clip bug fixed — S ops no longer advance reference coordinate (was double-counting offset for reads with leading soft clips)
+- Pre-compiled regex: `scbam.read_match_type()` (6 patterns), `FrameKmer.seq_generator()`, `SAM.mismatchProfile()` — all moved to module-level compiled constants
+- `_pysam_iter()` consolidated into `cli_common.py` (was duplicated in SAM.py and scbam.py); backward-compat re-export kept in SAM.py
+- `scbam.list2str()` O(n²) string concat → `"".join()` with int-indexed `_CIGAR_CHAR` tuple
+- `overlay_bigwig.py`: 8 trivial wrapper functions replaced with lambdas in `_ACTIONS` dict + `_apply()` wrapper
+- `geneBody_coverage._printlog()` consolidated into `cli_common.printlog(logfile=)` parameter
+- `overlap_length2()` renamed to `overlap_length()` in RNA_fragment_size.py
 
 **What still needs work:**
 - Python 3.14 blocked on pysam and pyBigWig releasing 3.14 wheels
@@ -105,7 +112,7 @@ Core modules imported by the CLI scripts (12 modules):
 - **SAM.py** (~2,121 lines) — BAM/SAM parsing via pysam, QC metrics computation, gene model overlap. Most scripts depend on this. Contains `ParseBAM` class.
 - **BED.py** (~267 lines) — BED format parsing: `ParseBED` class (7 public methods: `getUTR`, `getExon`, `getTranscriptRanges`, `getCDSExon`, `getIntron`, `getIntergenic`, plus context manager support), and module-level functions `unionBed3`, `subtractBed3`, `tillingBed`.
 - **scbam.py** — single-cell BAM utilities (cell barcode demux, UMI handling).
-- **cli_common.py** — shared CLI utilities: `printlog`, `build_bitsets`, `load_chromsize`, `run_rscript`.
+- **cli_common.py** — shared CLI utilities: `_pysam_iter`, `printlog`, `build_bitsets`, `load_chromsize`, `run_rscript`.
 - Smaller utilities: `bam_cigar.py`, `fastq.py`, `FrameKmer.py`, `getBamFiles.py`, `heatmap.py`, `ireader.py` (transparent gz/bz2 reader), `mystat.py`, `twoList.py`.
 
 ### CLI Scripts (`scripts/`)

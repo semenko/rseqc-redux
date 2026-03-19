@@ -35,8 +35,8 @@ def fetch_exon(st: int, cigar: list[tuple[int, int]]) -> list[tuple[int, int]]:
             chrom_st += s
         elif c == 3:  # gap or intron
             chrom_st += s
-        elif c == 4:  # soft clipping. We do NOT include soft clip as part of exon
-            chrom_st += s
+        elif c == 4:  # soft clipping — does NOT consume reference positions
+            continue
         else:
             continue
     return exon_bound

@@ -23,6 +23,18 @@ def test_printlog(capsys):
     assert "@" in captured.err
 
 
+def test_printlog_with_logfile(capsys, tmp_path):
+    """printlog with logfile writes to both stderr and the file."""
+    logfile = str(tmp_path / "test.log")
+    printlog("logged message", logfile=logfile)
+    captured = capsys.readouterr()
+    assert "logged message" in captured.err
+    with open(logfile) as fh:
+        content = fh.read()
+    assert "logged message" in content
+    assert "@" in content
+
+
 def test_build_bitsets_basic():
     """build_bitsets creates interval trees from entries."""
     entries = [["chr1", 100, 200], ["chr1", 300, 400], ["chr2", 500, 600]]

@@ -6,7 +6,7 @@ from scripts.FPKM_count import build_range
 from scripts.geneBody_coverage import pearson_moment_coefficient, valid_name
 from scripts.junction_annotation import generate_bed12, generate_interact
 from scripts.read_distribution import cal_size
-from scripts.RNA_fragment_size import overlap_length2
+from scripts.RNA_fragment_size import overlap_length
 from scripts.RPKM_saturation import square_error
 from scripts.tin import shannon_entropy, tin_score
 
@@ -105,34 +105,34 @@ def test_cal_size_single():
     assert cal_size([["chr1", 0, 1000]]) == 1000
 
 
-# --- scripts.RNA_fragment_size: overlap_length2 ---
+# --- scripts.RNA_fragment_size: overlap_length ---
 
 
-def test_overlap_length2_full_overlap():
+def test_overlap_length_full_overlap():
     lst1 = [[100, 200]]
     lst2 = [[100, 200]]
-    result = overlap_length2(lst1, lst2)
+    result = overlap_length(lst1, lst2)
     assert result == 101  # range(100, 201) = 101 positions
 
 
-def test_overlap_length2_partial_overlap():
+def test_overlap_length_partial_overlap():
     lst1 = [[100, 200]]
     lst2 = [[150, 250]]
-    result = overlap_length2(lst1, lst2)
+    result = overlap_length(lst1, lst2)
     assert result == 51  # range(150, 201) = 51 positions
 
 
-def test_overlap_length2_no_overlap():
+def test_overlap_length_no_overlap():
     lst1 = [[100, 200]]
     lst2 = [[300, 400]]
-    result = overlap_length2(lst1, lst2)
+    result = overlap_length(lst1, lst2)
     assert result == 0
 
 
-def test_overlap_length2_multiple_exons():
+def test_overlap_length_multiple_exons():
     lst1 = [[100, 200], [300, 400]]
     lst2 = [[150, 350]]
-    result = overlap_length2(lst1, lst2)
+    result = overlap_length(lst1, lst2)
     # exon1 overlaps [150,200]: 51 positions
     # exon2 overlaps [300,350]: 51 positions
     assert result == 51 + 51
