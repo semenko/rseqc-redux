@@ -22,7 +22,7 @@ import sys
 
 import numpy as np
 
-from rseqc.cli_common import create_parser, printlog
+from rseqc.cli_common import create_parser, printlog, validate_files_exist
 
 
 def run_HTseq(bam_file: str, gtf_file: str, out_file: str, print_cmd: bool = False) -> str | None:
@@ -40,12 +40,7 @@ def run_HTseq(bam_file: str, gtf_file: str, out_file: str, print_cmd: bool = Fal
             run the "htseq-count" command line.
     """
     # processing and checking
-    if not os.path.exists(bam_file):
-        print("%s does not exist!" % bam_file)
-        sys.exit(1)
-    if not os.path.exists(gtf_file):
-        print("%s does not exist!" % gtf_file)
-        sys.exit(1)
+    validate_files_exist(bam_file, gtf_file)
 
     # find htseq-count command
     htseq_cmd = shutil.which("htseq-count")

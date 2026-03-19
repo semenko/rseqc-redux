@@ -6,7 +6,6 @@ This module uses bigwig file as input.
 
 import sys
 from collections import defaultdict
-from os import path
 
 from numpy import nan_to_num
 from pyBigWig import open as openBigWig
@@ -130,14 +129,10 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
 
-    validate_files_exist(args.ref_gene_model)
+    validate_files_exist(args.ref_gene_model, args.input_file)
 
-    if path.exists(args.input_file):
-        coverageGeneBody_bigwig(args.input_file, args.ref_gene_model, args.output_prefix, gtype=args.graph_type)
-        run_rscript(args.output_prefix + ".geneBodyCoverage_plot.r")
-    else:
-        print("\n\n" + args.input_file + " does NOT exists", end="\n", file=sys.stderr)
-        sys.exit(1)
+    coverageGeneBody_bigwig(args.input_file, args.ref_gene_model, args.output_prefix, gtype=args.graph_type)
+    run_rscript(args.output_prefix + ".geneBodyCoverage_plot.r")
 
 
 if __name__ == "__main__":
