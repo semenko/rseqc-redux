@@ -115,14 +115,7 @@ def main() -> None:
     validate_files_exist(args.input_file, args.refgene_bed)
     validate_bam_index(args.input_file)
 
-    print(
-        "\t".join(
-            [
-                str(i)
-                for i in ("chrom", "tx_start", "tx_end", "symbol", "frag_count", "frag_mean", "frag_median", "frag_std")
-            ]
-        )
-    )
+    print("\t".join(("chrom", "tx_start", "tx_end", "symbol", "frag_count", "frag_mean", "frag_median", "frag_std")))
     with pysam.AlignmentFile(args.input_file) as samfile:
         for tmp in fragment_size(args.refgene_bed, samfile, args.map_qual, args.fragment_num):
             print(tmp)
