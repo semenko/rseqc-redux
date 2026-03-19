@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """Infer RNA-seq experiment design (strandedness and layout) from a SAM/BAM file."""
 
-import os
 import sys
 
 from rseqc import SAM
-from rseqc.cli_common import add_input_bam_arg, add_mapq_arg, add_refgene_arg, create_parser
+from rseqc.cli_common import add_input_bam_arg, add_mapq_arg, add_refgene_arg, create_parser, validate_files_exist
 
 
 def main() -> None:
@@ -35,10 +34,7 @@ def main() -> None:
         parser.print_help()
         print("\n\n" + __doc__, file=sys.stderr)
         sys.exit(1)
-    for f in (args.input_file, args.refgene_bed):
-        if not os.path.exists(f):
-            print("\n\n" + f + " does NOT exists." + "\n", file=sys.stderr)
-            sys.exit(1)
+    validate_files_exist(args.input_file, args.refgene_bed)
     if args.sample_size < 1000:
         print("Warn: Sample Size too small to give a accurate estimation", file=sys.stderr)
     obj = SAM.ParseBAM(args.input_file)
