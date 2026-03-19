@@ -2,12 +2,10 @@
 
 import math
 
-from bx.intervals import Intersecter, Interval
-
 from scripts.FPKM_count import build_range
 from scripts.geneBody_coverage import pearson_moment_coefficient, valid_name
 from scripts.junction_annotation import generate_bed12, generate_interact
-from scripts.read_distribution import cal_size, foundone
+from scripts.read_distribution import cal_size
 from scripts.read_hexamer import file_exist
 from scripts.RNA_fragment_size import overlap_length2
 from scripts.RPKM_saturation import square_error
@@ -106,28 +104,6 @@ def test_cal_size_empty():
 
 def test_cal_size_single():
     assert cal_size([["chr1", 0, 1000]]) == 1000
-
-
-def test_foundone_found():
-    ranges = {"CHR1": Intersecter()}
-    ranges["CHR1"].add_interval(Interval(100, 200))
-    assert foundone("CHR1", ranges, 150, 151) > 0
-
-
-def test_foundone_not_found():
-    ranges = {"CHR1": Intersecter()}
-    ranges["CHR1"].add_interval(Interval(100, 200))
-    assert foundone("CHR1", ranges, 300, 301) == 0
-
-
-def test_foundone_missing_chrom():
-    ranges = {"CHR1": Intersecter()}
-    ranges["CHR1"].add_interval(Interval(100, 200))
-    assert foundone("CHR2", ranges, 150, 151) == 0
-
-
-def test_foundone_empty_ranges():
-    assert foundone("CHR1", {}, 100, 200) == 0
 
 
 # --- scripts.RNA_fragment_size: overlap_length2 ---

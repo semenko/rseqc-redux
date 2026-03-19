@@ -18,55 +18,50 @@ MINI_BED = str(FIXTURES_DIR / "mini.bed")
 class TestProcessGeneModel:
     """Test read_distribution.process_gene_model with the mini.bed fixture."""
 
-    def test_returns_21_element_tuple(self):
+    def test_returns_gene_model_result(self):
+        from scripts.read_distribution import GeneModelResult, process_gene_model
+
+        result = process_gene_model(MINI_BED)
+        assert isinstance(result, GeneModelResult)
+        assert len(result) == 11
+
+    def test_unified_tree_populated(self):
         from scripts.read_distribution import process_gene_model
 
         result = process_gene_model(MINI_BED)
-        assert isinstance(result, tuple)
-        assert len(result) == 21
-
-    def test_cds_exon_ranges_populated(self):
-        from scripts.read_distribution import process_gene_model
-
-        result = process_gene_model(MINI_BED)
-        cds_exon_ranges = result[0]
-        # mini.bed has genes on chr1 — CDS exons should be present
-        assert "CHR1" in cds_exon_ranges
-
-    def test_intron_ranges_populated(self):
-        from scripts.read_distribution import process_gene_model
-
-        result = process_gene_model(MINI_BED)
-        intron_ranges = result[1]
-        # gene1 (3 exons) and gene2 (2 exons) have introns
-        assert "CHR1" in intron_ranges
+        # mini.bed has genes on chr1 — unified tree should have CHR1
+        assert "CHR1" in result.unified
 
     def test_sizes_are_positive(self):
         from scripts.read_distribution import process_gene_model
 
         result = process_gene_model(MINI_BED)
-        exon_size = result[10]
-        intron_size = result[11]
-        assert exon_size > 0
-        assert intron_size > 0
+        assert result.exon_size > 0
+        assert result.intron_size > 0
 
     def test_intergenic_sizes(self):
         from scripts.read_distribution import process_gene_model
 
         result = process_gene_model(MINI_BED)
-        # intergenic sizes are at indices 14-19
-        for i in range(14, 20):
-            assert isinstance(result[i], int)
+        for size in (
+            result.int_up1k_size,
+            result.int_up5k_size,
+            result.int_up10k_size,
+            result.int_down1k_size,
+            result.int_down5k_size,
+            result.int_down10k_size,
+        ):
+            assert isinstance(size, int)
 
-    def test_cds_exon_finds_known_position(self):
+    def test_unified_finds_cds_exon(self):
         """Gene1 CDS exon: thickStart=1200, first exon block 1000-1500, so CDS region ~1200-1500."""
         from scripts.read_distribution import process_gene_model
 
         result = process_gene_model(MINI_BED)
-        cds_exon_ranges = result[0]
-        # Position 1300 should be in CDS exon of gene1
-        hits = cds_exon_ranges["CHR1"].find(1300, 1301)
-        assert len(hits) > 0
+        # Position 1300 should be in CDS exon of gene1 via the unified tree
+        hits = result.unified["CHR1"].find(1300, 1301)
+        labels = {h.value for h in hits}
+        assert "cds_exon" in labels
 
     def test_empty_bed_file(self, tmp_path):
         from scripts.read_distribution import process_gene_model
@@ -74,11 +69,10 @@ class TestProcessGeneModel:
         bed = tmp_path / "empty.bed"
         bed.write_text("")
         result = process_gene_model(str(bed))
-        # All ranges should be empty dicts, all sizes 0
-        for i in range(10):
-            assert result[i] == {} or len(result[i]) == 0
-        for i in range(10, 20):
-            assert result[i] == 0
+        # All sizes should be 0, unified should be empty
+        assert result.exon_size == 0
+        assert result.intron_size == 0
+        assert result.unified == {} or len(result.unified) == 0
 
 
 # ---------------------------------------------------------------------------

@@ -9,11 +9,12 @@ The following reads will be skipped:
 """
 
 import sys
+from typing import NamedTuple
 
 from bx.intervals import Intersecter, Interval
 
 from rseqc import BED, SAM, bam_cigar
-from rseqc.cli_common import add_input_bam_arg, add_refgene_arg, build_bitsets, create_parser, validate_files_exist
+from rseqc.cli_common import add_input_bam_arg, add_refgene_arg, create_parser, validate_files_exist
 from rseqc.SAM import _pysam_iter
 
 
@@ -23,13 +24,6 @@ def cal_size(list: list[list]) -> int:
     for entry in list:
         size += entry[2] - entry[1]
     return size
-
-
-def foundone(chrom: str, ranges: dict, st: int, end: int) -> int:
-    found = 0
-    if chrom in ranges:
-        found = len(ranges[chrom].find(st, end))
-    return found
 
 
 def build_unified_tree(
@@ -52,7 +46,23 @@ def build_unified_tree(
     return tree
 
 
-def process_gene_model(gene_model: str) -> tuple:
+class GeneModelResult(NamedTuple):
+    """Result from process_gene_model()."""
+
+    exon_size: int
+    intron_size: int
+    utr5_size: int
+    utr3_size: int
+    int_up1k_size: int
+    int_up5k_size: int
+    int_up10k_size: int
+    int_down1k_size: int
+    int_down5k_size: int
+    int_down10k_size: int
+    unified: dict[str, Intersecter]
+
+
+def process_gene_model(gene_model: str) -> GeneModelResult:
     print("processing " + gene_model + " ...", end=" ", file=sys.stderr)
     obj = BED.ParseBED(gene_model)
     utr_3 = obj.getUTR(utr=3)
@@ -116,18 +126,6 @@ def process_gene_model(gene_model: str) -> tuple:
     intergenic_down_10kb = BED.subtractBed3(intergenic_down_10kb, utr_3)
     intergenic_down_10kb = BED.subtractBed3(intergenic_down_10kb, intron)
 
-    # build intervalTree
-    cds_exon_ranges = build_bitsets(cds_exon)
-    utr_5_ranges = build_bitsets(utr_5)
-    utr_3_ranges = build_bitsets(utr_3)
-    intron_ranges = build_bitsets(intron)
-    interg_ranges_up_1kb_ranges = build_bitsets(intergenic_up_1kb)
-    interg_ranges_up_5kb_ranges = build_bitsets(intergenic_up_5kb)
-    interg_ranges_up_10kb_ranges = build_bitsets(intergenic_up_10kb)
-    interg_ranges_down_1kb_ranges = build_bitsets(intergenic_down_1kb)
-    interg_ranges_down_5kb_ranges = build_bitsets(intergenic_down_5kb)
-    interg_ranges_down_10kb_ranges = build_bitsets(intergenic_down_10kb)
-
     # build unified labeled interval tree for single-lookup classification
     unified = build_unified_tree(
         [
@@ -156,28 +154,18 @@ def process_gene_model(gene_model: str) -> tuple:
     int_down10k_size = cal_size(intergenic_down_10kb)
 
     print("Done", file=sys.stderr)
-    return (
-        cds_exon_ranges,
-        intron_ranges,
-        utr_5_ranges,
-        utr_3_ranges,
-        interg_ranges_up_1kb_ranges,
-        interg_ranges_up_5kb_ranges,
-        interg_ranges_up_10kb_ranges,
-        interg_ranges_down_1kb_ranges,
-        interg_ranges_down_5kb_ranges,
-        interg_ranges_down_10kb_ranges,
-        exon_size,
-        intron_size,
-        utr5_size,
-        utr3_size,
-        int_up1k_size,
-        int_up5k_size,
-        int_up10k_size,
-        int_down1k_size,
-        int_down5k_size,
-        int_down10k_size,
-        unified,
+    return GeneModelResult(
+        exon_size=exon_size,
+        intron_size=intron_size,
+        utr5_size=utr5_size,
+        utr3_size=utr3_size,
+        int_up1k_size=int_up1k_size,
+        int_up5k_size=int_up5k_size,
+        int_up10k_size=int_up10k_size,
+        int_down1k_size=int_down1k_size,
+        int_down5k_size=int_down5k_size,
+        int_down10k_size=int_down10k_size,
+        unified=unified,
     )
 
 
@@ -192,30 +180,19 @@ def main() -> None:
         sys.exit(1)
     validate_files_exist(args.ref_gene_model, args.input_file)
 
-    # build bitset
-    (
-        cds_exon_r,
-        intron_r,
-        utr_5_r,
-        utr_3_r,
-        intergenic_up_1kb_r,
-        intergenic_up_5kb_r,
-        intergenic_up_10kb_r,
-        intergenic_down_1kb_r,
-        intergenic_down_5kb_r,
-        intergenic_down_10kb_r,
-        cds_exon_base,
-        intron_base,
-        utr_5_base,
-        utr_3_base,
-        intergenic_up1kb_base,
-        intergenic_up5kb_base,
-        intergenic_up10kb_base,
-        intergenic_down1kb_base,
-        intergenic_down5kb_base,
-        intergenic_down10kb_base,
-        unified,
-    ) = process_gene_model(args.ref_gene_model)
+    # build gene model
+    model = process_gene_model(args.ref_gene_model)
+    unified = model.unified
+    cds_exon_base = model.exon_size
+    intron_base = model.intron_size
+    utr_5_base = model.utr5_size
+    utr_3_base = model.utr3_size
+    intergenic_up1kb_base = model.int_up1k_size
+    intergenic_up5kb_base = model.int_up5k_size
+    intergenic_up10kb_base = model.int_up10k_size
+    intergenic_down1kb_base = model.int_down1k_size
+    intergenic_down5kb_base = model.int_down5k_size
+    intergenic_down10kb_base = model.int_down10k_size
 
     intron_read = 0
     cds_exon_read = 0
