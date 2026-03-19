@@ -1,5 +1,7 @@
 """Tests for rseqc.fastq."""
 
+import bz2
+import gzip
 import importlib
 
 import pandas as pd
@@ -11,6 +13,46 @@ def test_import():
     """Verify that rseqc.fastq can be imported."""
     mod = importlib.import_module("rseqc.fastq")
     assert mod is not None
+
+
+# --- _open_file ---
+
+
+def test_open_file_plain_text(tmp_path):
+    f = tmp_path / "test.txt"
+    f.write_text("line1\nline2\nline3\n")
+    lines = list(fastq._open_file(str(f)))
+    assert lines == ["line1", "line2", "line3"]
+
+
+def test_open_file_plain_text_empty(tmp_path):
+    f = tmp_path / "empty.txt"
+    f.write_text("")
+    lines = list(fastq._open_file(str(f)))
+    assert lines == []
+
+
+def test_open_file_strips_carriage_return(tmp_path):
+    f = tmp_path / "crlf.txt"
+    f.write_bytes(b"line1\r\nline2\r\n")
+    lines = list(fastq._open_file(str(f)))
+    assert lines == ["line1", "line2"]
+
+
+def test_open_file_gzip(tmp_path):
+    f = tmp_path / "test.gz"
+    with gzip.open(str(f), "wb") as gz:
+        gz.write(b"gzline1\ngzline2\n")
+    lines = list(fastq._open_file(str(f)))
+    assert lines == ["gzline1", "gzline2"]
+
+
+def test_open_file_bz2(tmp_path):
+    f = tmp_path / "test.bz2"
+    with bz2.open(str(f), "wb") as bz:
+        bz.write(b"line1\nline2\n")
+    lines = list(fastq._open_file(str(f)))
+    assert lines == ["line1", "line2"]
 
 
 # --- fasta_iter ---

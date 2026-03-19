@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 from collections.abc import Generator
+from os.path import abspath, getsize, join
 from time import strftime
 from typing import Any, NamedTuple
 
@@ -77,6 +78,60 @@ def validate_bam_index(bam_path: str) -> None:
         print("cannot find index file of input BAM file", file=sys.stderr)
         print(bam_path + ".bai" + " does not exists", file=sys.stderr)
         sys.exit(1)
+
+
+def isbamfile(infile: str) -> bool:
+    """Check if it is a BAM file, if it is empty, and if the .bai index exists."""
+    if os.path.isfile(infile) and infile[-4:].lower() == ".bam":
+        if getsize(infile) != 0:
+            if os.path.isfile(infile + ".bai"):
+                return True
+            else:
+                print(f"Warning: {infile}.bai does not exist! Skip it.", file=sys.stderr)
+                return False
+        else:
+            print(f"The size of {infile} is 0! Skip it.", file=sys.stderr)
+            return False
+    else:
+        return False
+
+
+def get_bam_files(input: str, printit: bool = False) -> list[str]:
+    """Get BAM files from a directory, text file, single path, or comma-separated list."""
+    bam_files = []
+
+    # dir
+    if os.path.isdir(input):
+        for root, directories, files in os.walk(input, followlinks=True):
+            full_names = [join(abspath(root), name) for name in files]
+            for fn in full_names:
+                if isbamfile(fn):
+                    bam_files.append(fn)
+    # single bam file
+    elif isbamfile(input):
+        bam_files.append(input)
+    # plain text file
+    elif os.path.isfile(input):
+        try:
+            with open(input) as _fh:
+                for line in _fh:
+                    line = line.strip()
+                    if line.startswith("#"):
+                        continue
+                    if isbamfile(line):
+                        bam_files.append(line)
+        except OSError:
+            pass
+    else:
+        tmp = input.split(",")
+        for i in tmp:
+            if isbamfile(i):
+                bam_files.append(i)
+
+    if printit:
+        for i in bam_files:
+            print(i)
+    return bam_files
 
 
 def printlog(mesg: str) -> None:

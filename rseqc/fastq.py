@@ -6,8 +6,10 @@ Created on Sun Aug  2 15:43:45 2020
 
 from __future__ import annotations
 
+import bz2
 import collections
 import csv
+import gzip
 import logging
 import sys
 from collections.abc import Generator, Iterable
@@ -16,7 +18,21 @@ from typing import Any
 import logomaker
 import matplotlib.pyplot as plt
 
-from rseqc import ireader
+
+def _open_file(path: str) -> Generator[str, None, None]:
+    """Open a plain, gzip, or bz2 file and yield stripped lines."""
+    fh: Any
+    if path.endswith((".gz", ".Z", ".z")):
+        fh = gzip.open(path, "rb")
+    elif path.endswith((".bz", ".bz2", ".bzip2")):
+        fh = bz2.open(path, "rb")
+    else:
+        fh = open(path, "rb")
+    try:
+        for line in fh:
+            yield line.decode("utf8").strip().replace("\r", "")
+    finally:
+        fh.close()
 
 
 def fasta_iter(infile: str) -> Generator[str, None, None]:
@@ -34,7 +50,7 @@ def fasta_iter(infile: str) -> Generator[str, None, None]:
             String of nucleotides or quality scores.
     """
     logging.info(f'Reading FASTA file "{infile}" ...')
-    for line in ireader.reader(infile):
+    for line in _open_file(infile):
         line = line.strip()
         if len(line) == 0:
             continue
@@ -63,7 +79,7 @@ def fastq_iter(infile: str, mode: str = "seq") -> Generator[str, None, None]:
     count = 0
     s = ""
     q = ""
-    for line in ireader.reader(infile):
+    for line in _open_file(infile):
         line = line.strip()
         if len(line) == 0:
             continue

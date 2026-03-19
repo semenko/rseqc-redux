@@ -352,9 +352,9 @@ class TestTypoFixes:
         assert "smaller" in source
 
     def test_twolist_min_docstring(self):
-        from rseqc import twoList
+        from scripts.overlay_bigwig import Min
 
-        assert "min" in twoList.Min.__doc__
+        assert "min" in Min.__doc__
 
 
 # ---------------------------------------------------------------------------

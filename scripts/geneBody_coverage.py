@@ -17,11 +17,12 @@ import numpy as np
 import pysam
 from numpy import mean, std
 
-from rseqc import getBamFiles, mystat
+from rseqc import mystat
 from rseqc.cli_common import (
     add_output_prefix_arg,
     add_refgene_arg,
     create_parser,
+    get_bam_files,
     iter_bed12,
     run_rscript,
     validate_files_exist,
@@ -274,7 +275,7 @@ def main() -> None:
         gene_percentiles = genebody_percentile(refbed=args.ref_gene_model, mRNA_len_cut=args.min_mRNA_length)
 
         _printlog("Get BAM file(s) ...")
-        bamfiles = getBamFiles.get_bam_files(args.input_files)
+        bamfiles = get_bam_files(args.input_files)
         for f in bamfiles:
             print("\t" + f, file=sys.stderr)
 

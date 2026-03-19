@@ -8,7 +8,7 @@ from scripts.junction_annotation import generate_bed12, generate_interact
 from scripts.read_distribution import cal_size
 from scripts.RNA_fragment_size import overlap_length2
 from scripts.RPKM_saturation import square_error
-from scripts.tin import shannon_entropy, tin_score, uniqify
+from scripts.tin import shannon_entropy, tin_score
 
 # --- scripts.RPKM_saturation: square_error ---
 
@@ -138,27 +138,7 @@ def test_overlap_length2_multiple_exons():
     assert result == 51 + 51
 
 
-# --- scripts.tin: uniqify, shannon_entropy, tin_score ---
-
-
-def test_uniqify_basic():
-    assert uniqify([1, 2, 2, 3, 3, 4]) == [1, 2, 3, 4]
-
-
-def test_uniqify_no_duplicates():
-    assert uniqify([1, 2, 3]) == [1, 2, 3]
-
-
-def test_uniqify_all_same():
-    assert uniqify([5, 5, 5]) == [5]
-
-
-def test_uniqify_empty():
-    assert uniqify([]) == []
-
-
-def test_uniqify_preserves_order():
-    assert uniqify([3, 1, 2, 1, 3]) == [3, 1, 2]
+# --- scripts.tin: shannon_entropy, tin_score ---
 
 
 def test_shannon_entropy_uniform():

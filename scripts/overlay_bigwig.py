@@ -2,12 +2,80 @@
 """Manipulate two bigwig files"""
 
 import sys
+from typing import Any
 
 import numpy
 import pyBigWig
+from numpy.typing import NDArray
 
-from rseqc import BED, twoList
+from rseqc import BED
 from rseqc.cli_common import create_parser
+
+
+def _check_list(v1: NDArray[Any], v2: NDArray[Any]) -> None:
+    """Check if the length of two arrays is the same."""
+    if v1.size != v2.size:
+        raise ValueError("the lenght of both arrays must be the same")
+
+
+def Add(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
+    """Add two arrays."""
+    _check_list(v1, v2)
+    return v1.__add__(v2)
+
+
+def Subtract(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
+    """Subtract v2 from v1."""
+    _check_list(v1, v2)
+    return v1.__sub__(v2)
+
+
+def Product(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
+    """Return product of two arrays."""
+    _check_list(v1, v2)
+    return v1.__mul__(v2)
+
+
+def Division(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
+    """Divide v1 by v2. Add 1 to both v1 and v2."""
+    _check_list(v1, v2)
+    return (v1 + 1) / (v2 + 1)
+
+
+def Average(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
+    """Return arithmetic mean of two arrays."""
+    _check_list(v1, v2)
+    return v1.__add__(v2) / 2
+
+
+def geometricMean(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
+    """Return geometric mean of two arrays."""
+    _check_list(v1, v2)
+    return (v1.__mul__(v2)) ** 0.5
+
+
+def Max(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
+    """Pairwise comparison of two arrays. Return the max of each pair."""
+    _check_list(v1, v2)
+    return numpy.maximum(v1, v2)
+
+
+def Min(v1: NDArray[Any], v2: NDArray[Any]) -> Any:
+    """Pairwise comparison of two arrays. Return the min of each pair."""
+    _check_list(v1, v2)
+    return numpy.minimum(v1, v2)
+
+
+_ACTIONS: dict[str, Any] = {
+    "Add": Add,
+    "Subtract": Subtract,
+    "Product": Product,
+    "Division": Division,
+    "Average": Average,
+    "geometricMean": geometricMean,
+    "Max": Max,
+    "Min": Min,
+}
 
 
 def main() -> None:
@@ -24,6 +92,7 @@ def main() -> None:
         "-a",
         "--action",
         dest="action",
+        choices=list(_ACTIONS),
         help=(
             "After pairwise align two bigwig files, perform the"
             ' follow actions (Only select one keyword): "Add" = add'
@@ -92,7 +161,7 @@ def main() -> None:
                     bw_signal1 = numpy.nan_to_num(bw_signal1)
                     bw_signal2 = numpy.nan_to_num(bw_signal2)
 
-                    call_back = getattr(twoList, args.action)
+                    call_back = _ACTIONS[args.action]
                     for v in call_back(bw_signal1, bw_signal2):
                         coord += 1
                         if v != 0:

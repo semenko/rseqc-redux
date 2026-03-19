@@ -1,39 +1,30 @@
-"""Tests for rseqc.getBamFiles."""
+"""Tests for isbamfile and get_bam_files in rseqc.cli_common."""
 
-import importlib
-
-from rseqc import getBamFiles
-
-
-def test_import():
-    """Verify that rseqc.getBamFiles can be imported."""
-    mod = importlib.import_module("rseqc.getBamFiles")
-    assert mod is not None
-
+from rseqc.cli_common import get_bam_files, isbamfile
 
 # --- isbamfile ---
 
 
 def test_isbamfile_nonexistent():
-    assert getBamFiles.isbamfile("/nonexistent/file.bam") is False
+    assert isbamfile("/nonexistent/file.bam") is False
 
 
 def test_isbamfile_not_bam(tmp_path):
     f = tmp_path / "test.txt"
     f.write_text("hello")
-    assert getBamFiles.isbamfile(str(f)) is False
+    assert isbamfile(str(f)) is False
 
 
 def test_isbamfile_empty_bam(tmp_path):
     f = tmp_path / "test.bam"
     f.write_text("")
-    assert getBamFiles.isbamfile(str(f)) is False
+    assert isbamfile(str(f)) is False
 
 
 def test_isbamfile_no_index(tmp_path):
     f = tmp_path / "test.bam"
     f.write_text("data")
-    assert getBamFiles.isbamfile(str(f)) is False
+    assert isbamfile(str(f)) is False
 
 
 def test_isbamfile_with_index(tmp_path):
@@ -41,14 +32,14 @@ def test_isbamfile_with_index(tmp_path):
     f.write_text("data")
     idx = tmp_path / "test.bam.bai"
     idx.write_text("index")
-    assert getBamFiles.isbamfile(str(f)) is True
+    assert isbamfile(str(f)) is True
 
 
 # --- get_bam_files ---
 
 
 def test_get_bam_files_empty_dir(tmp_path):
-    result = getBamFiles.get_bam_files(str(tmp_path))
+    result = get_bam_files(str(tmp_path))
     assert result == []
 
 
@@ -56,7 +47,7 @@ def test_get_bam_files_with_bams(tmp_path):
     for name in ["a.bam", "b.bam"]:
         (tmp_path / name).write_text("data")
         (tmp_path / (name + ".bai")).write_text("index")
-    result = getBamFiles.get_bam_files(str(tmp_path))
+    result = get_bam_files(str(tmp_path))
     assert len(result) == 2
 
 
@@ -66,7 +57,7 @@ def test_get_bam_files_from_text_file(tmp_path):
     (tmp_path / "test.bam.bai").write_text("index")
     listing = tmp_path / "bams.txt"
     listing.write_text(str(bam) + "\n")
-    result = getBamFiles.get_bam_files(str(listing))
+    result = get_bam_files(str(listing))
     assert len(result) == 1
 
 
@@ -75,7 +66,7 @@ def test_get_bam_files_single_bam(tmp_path):
     bam = tmp_path / "test.bam"
     bam.write_text("data")
     (tmp_path / "test.bam.bai").write_text("index")
-    result = getBamFiles.get_bam_files(str(bam))
+    result = get_bam_files(str(bam))
     assert len(result) == 1
     assert result[0] == str(bam)
 
@@ -87,7 +78,7 @@ def test_get_bam_files_text_file_with_comments(tmp_path):
     (tmp_path / "test.bam.bai").write_text("index")
     listing = tmp_path / "bams.txt"
     listing.write_text(f"# this is a comment\n{bam}\n# another comment\n")
-    result = getBamFiles.get_bam_files(str(listing))
+    result = get_bam_files(str(listing))
     assert len(result) == 1
 
 
@@ -99,13 +90,13 @@ def test_get_bam_files_comma_separated(tmp_path):
     bam2 = tmp_path / "b.bam"
     bam2.write_text("data")
     (tmp_path / "b.bam.bai").write_text("index")
-    result = getBamFiles.get_bam_files(f"{bam1},{bam2}")
+    result = get_bam_files(f"{bam1},{bam2}")
     assert len(result) == 2
 
 
 def test_get_bam_files_nonexistent():
     """Non-existent path that isn't a dir, file, or bam."""
-    result = getBamFiles.get_bam_files("/nonexistent/path/to/nothing")
+    result = get_bam_files("/nonexistent/path/to/nothing")
     assert result == []
 
 
@@ -114,6 +105,6 @@ def test_get_bam_files_printit(tmp_path, capsys):
     bam = tmp_path / "test.bam"
     bam.write_text("data")
     (tmp_path / "test.bam.bai").write_text("index")
-    getBamFiles.get_bam_files(str(bam), printit=True)
+    get_bam_files(str(bam), printit=True)
     captured = capsys.readouterr()
     assert str(bam) in captured.out

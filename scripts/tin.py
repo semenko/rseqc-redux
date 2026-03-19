@@ -12,17 +12,16 @@ import numpy as np
 import pysam
 from numpy import mean, median, std
 
-from rseqc import getBamFiles
-from rseqc.cli_common import add_refgene_arg, build_bitsets, create_parser, iter_bed12, printlog, validate_files_exist
+from rseqc.cli_common import (
+    add_refgene_arg,
+    build_bitsets,
+    create_parser,
+    get_bam_files,
+    iter_bed12,
+    printlog,
+    validate_files_exist,
+)
 from rseqc.SAM import _pysam_iter
-
-
-def uniqify(seq: list) -> list:
-    """
-    duplicated members only keep one copy. [1,2,2,3,3,4] => [1,2,3,4].
-    """
-    seen = set()
-    return [x for x in seq if x not in seen and not seen.add(x)]
 
 
 def shannon_entropy(arg: list[float]) -> float:
@@ -116,7 +115,7 @@ def genomic_positions(refbed: str, sample_size: int) -> Generator:
                 record.tx_start,
                 record.tx_end,
                 intron_size,
-                uniqify(exon_bounds + chose_bases),
+                list(dict.fromkeys(exon_bounds + chose_bases)),
             )
 
 
@@ -272,7 +271,7 @@ def main() -> None:
     validate_files_exist(args.ref_gene_model)
 
     printlog("Get BAM file(s) ...")
-    bamfiles = sorted(getBamFiles.get_bam_files(args.input_files))
+    bamfiles = sorted(get_bam_files(args.input_files))
 
     if len(bamfiles) <= 0:
         print("No BAM file found, exit.", file=sys.stderr)
