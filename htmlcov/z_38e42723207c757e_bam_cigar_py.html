@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_38e42723207c757e_cli_common_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-03-19 20:28 +0000
+            created at 2026-03-19 21:11 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -117,8 +117,8 @@
     <p class="run"><span class="n"><a id="t35" href="#t35">35</a></span><span class="t">            <span class="nam">chrom_st</span> <span class="op">+=</span> <span class="nam">s</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t36" href="#t36">36</a></span><span class="t">        <span class="key">elif</span> <span class="nam">c</span> <span class="op">==</span> <span class="num">3</span><span class="op">:</span>  <span class="com"># gap or intron</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t37" href="#t37">37</a></span><span class="t">            <span class="nam">chrom_st</span> <span class="op">+=</span> <span class="nam">s</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">        <span class="key">elif</span> <span class="nam">c</span> <span class="op">==</span> <span class="num">4</span><span class="op">:</span>  <span class="com"># soft clipping. We do NOT include soft clip as part of exon</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">            <span class="nam">chrom_st</span> <span class="op">+=</span> <span class="nam">s</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t38" href="#t38">38</a></span><span class="t">        <span class="key">elif</span> <span class="nam">c</span> <span class="op">==</span> <span class="num">4</span><span class="op">:</span>  <span class="com"># soft clipping &#8212; does NOT consume reference positions</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t39" href="#t39">39</a></span><span class="t">            <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t40" href="#t40">40</a></span><span class="t">        <span class="key">else</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t41" href="#t41">41</a></span><span class="t">            <span class="key">continue</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t42" href="#t42">42</a></span><span class="t">    <span class="key">return</span> <span class="nam">exon_bound</span>&nbsp;</span><span class="r"></span></p>
@@ -178,7 +178,7 @@
             <a class="nav" href="z_38e42723207c757e_cli_common_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-03-19 20:28 +0000
+            created at 2026-03-19 21:11 +0000
         </p>
     </div>
 </footer>
