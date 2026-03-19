@@ -31,11 +31,7 @@ class ParseBED:
 
         ret_lst = []
         for line in self.f:
-            if line.startswith("#"):
-                continue
-            if line.startswith("track"):
-                continue
-            if line.startswith("browser"):
+            if line.startswith(("#", "track", "browser")):
                 continue
             fields = line.rstrip("\r\n").split()
             chrom = fields[0]
@@ -103,11 +99,7 @@ class ParseBED:
 
         for line in self.f:
             try:
-                if line.startswith("#"):
-                    continue
-                if line.startswith("track"):
-                    continue
-                if line.startswith("browser"):
+                if line.startswith(("#", "track", "browser")):
                     continue
                 fields = line.rstrip("\r\n").split()
                 txStart = int(fields[1])
@@ -154,11 +146,7 @@ class ParseBED:
         ret_lst = []
         for line in self.f:
             try:
-                if line.startswith("#"):
-                    continue
-                if line.startswith("track"):
-                    continue
-                if line.startswith("browser"):
+                if line.startswith(("#", "track", "browser")):
                     continue
                 # Parse fields from gene tabls
                 fields = line.split()

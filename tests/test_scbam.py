@@ -1,5 +1,6 @@
 """Tests for rseqc.scbam — pure-logic functions and BAM-based integration tests."""
 
+import glob
 import importlib
 import os
 
@@ -520,3 +521,28 @@ class TestWriteEditsCsv:
         with open(outfile) as f:
             content = f.read().strip()
         assert content == "Index"
+
+
+# --- mapping_stat ---
+
+
+class TestMappingStat:
+    def test_mapping_stat_no_temp_files(self, sc_bam, capsys, tmp_path, monkeypatch):
+        """mapping_stat should not create intermediate temp files."""
+        monkeypatch.chdir(tmp_path)
+        scbam.mapping_stat(str(sc_bam), step_size=100)
+
+        # No intermediate files should be created
+        assert glob.glob(str(tmp_path / "*.all_reads_id.txt")) == []
+        assert glob.glob(str(tmp_path / "*.confident_reads_id.txt")) == []
+
+    def test_mapping_stat_counts(self, sc_bam, capsys, tmp_path, monkeypatch):
+        """mapping_stat should correctly count unique reads."""
+        monkeypatch.chdir(tmp_path)
+        scbam.mapping_stat(str(sc_bam), step_size=100)
+
+        captured = capsys.readouterr()
+        # All 6 reads have unique names → total_mapped_reads = 6
+        assert "Total_mapped_reads:\t6" in captured.out
+        # 5 reads have xf=1 (all except read_no_xf) → 5 confident reads
+        assert "Confidently_mapped_reads:\t5" in captured.out

@@ -348,8 +348,7 @@ class ParseBAM:
 
                     key = read_id + map_strand
 
-                    hit_st = aligned_read.pos
-                    for block in bam_cigar.fetch_exon(hit_st, aligned_read.cigar):
+                    for block in aligned_read.get_blocks():
                         start = block[0] + 1
                         end = block[1] + 1
                         if len(strandRule) == 0:
@@ -421,8 +420,7 @@ class ParseBAM:
                 if skip_multi and aligned_read.mapq < q_cut:
                     continue
 
-                hit_st = aligned_read.pos
-                for block in bam_cigar.fetch_exon(hit_st, aligned_read.cigar):
+                for block in aligned_read.get_blocks():
                     wigsum += block[1] - block[0]
         return wigsum
 
@@ -774,10 +772,9 @@ class ParseBAM:
                 seqDup[RNA_read] += 1  # key is read sequence
 
                 chrom = self.samfile.getrname(aligned_read.tid)  # type: ignore[attr-defined]
-                hit_st = aligned_read.pos
-                exon_blocks = bam_cigar.fetch_exon(hit_st, aligned_read.cigar)
+                exon_blocks = aligned_read.get_blocks()
                 exon_boundary = ":".join(f"{ex[0]}-{ex[1]}" for ex in exon_blocks)
-                key = f"{chrom}:{hit_st}:{exon_boundary}"
+                key = f"{chrom}:{aligned_read.pos}:{exon_boundary}"
                 posDup[key] += 1
             print("Done", file=sys.stderr)
 
@@ -1271,7 +1268,7 @@ class ParseBAM:
                     inner_distance = read2_start - read1_end
                 else:
                     overlap = 0
-                    exon_blocks = bam_cigar.fetch_exon(read1_start, aligned_read.cigar)
+                    exon_blocks = aligned_read.get_blocks()
                     for ex in exon_blocks:
                         # Count positions in (read2_start, read1_end] that fall within exon (ex[0]+1, ex[1]]
                         lo = max(ex[0] + 1, read2_start + 1)
@@ -1743,8 +1740,7 @@ class ParseBAM:
                     map_strand = "+"
                 strand_key = read_id + map_strand  # used to determine if a read should assign to gene(+) or gene(-)
 
-                hit_st = aligned_read.pos
-                exon_blocks = bam_cigar.fetch_exon(hit_st, aligned_read.cigar)
+                exon_blocks = aligned_read.get_blocks()
                 cUR_num += len(exon_blocks)
 
                 # strand specific

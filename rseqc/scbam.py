@@ -6,11 +6,8 @@ from __future__ import annotations
 
 import collections
 import csv
-import glob
 import logging
-import os
 import re
-import subprocess
 import sys
 from typing import Any
 
@@ -248,8 +245,8 @@ def mapping_stat(
     total_alignments = 0
     confi_alignments = 0
 
-    total_reads_n = 0
-    confi_reads_n = 0
+    all_read_ids: set[str] = set()
+    confi_read_ids: set[str] = set()
 
     ## for confidently mapped reads
     # PCR duplicate or not
@@ -282,98 +279,76 @@ def mapping_stat(
         for chr_id, chr_len in chrom_info:
             logging.info(f'Processing "{chr_id}" ...')
             chrom_count = 0
-            chrom_total_reads = set()  # total reads in BAM file
-            chrom_confi_reads = set()  # reads marked as confidently mapped to transcriptome by xf:i:1 tag
 
-            with open(chr_id + ".all_reads_id.txt", "w") as ALL, open(chr_id + ".confident_reads_id.txt", "w") as CONF:
-                for aligned_read in _pysam_iter(samfile.fetch(chr_id)):
-                    total_alignments += 1
-                    chrom_count += 1
-                    read_id = aligned_read.query_name
-                    tag_dict = dict(aligned_read.tags)  # type: ignore[attr-defined]  # {'NM': 1, 'RG': 'L1'}
-                    cigar_str = list2str(aligned_read.cigar)  # type: ignore[attr-defined]
-                    chrom_total_reads.add(read_id)
+            for aligned_read in _pysam_iter(samfile.fetch(chr_id)):
+                total_alignments += 1
+                chrom_count += 1
+                read_id = aligned_read.query_name
+                tag_dict = dict(aligned_read.tags)  # type: ignore[attr-defined]  # {'NM': 1, 'RG': 'L1'}
+                all_read_ids.add(read_id)
 
-                    # confident alignments
-                    if xf_tag in tag_dict and tag_dict[xf_tag] & 0x1 != 0:
-                        if chr_id == chrM_id:
-                            chrM_reads += 1
-                        # with or without CB/UMI barcode
-                        if CB_tag in tag_dict:
-                            confi_CB += 1
-                        if UMI_tag in tag_dict:
-                            confi_UB += 1
+                # confident alignments
+                if xf_tag in tag_dict and tag_dict[xf_tag] & 0x1 != 0:
+                    if chr_id == chrM_id:
+                        chrM_reads += 1
+                    # with or without CB/UMI barcode
+                    if CB_tag in tag_dict:
+                        confi_CB += 1
+                    if UMI_tag in tag_dict:
+                        confi_UB += 1
 
-                        # duplicate or not
-                        if aligned_read.is_duplicate:
-                            confi_reads_dup += 1
-                        else:
-                            confi_reads_nondup += 1
+                    # duplicate or not
+                    if aligned_read.is_duplicate:
+                        confi_reads_dup += 1
+                    else:
+                        confi_reads_nondup += 1
 
-                        # forward or reverse
-                        if aligned_read.is_reverse:
-                            confi_reads_rev += 1
-                        else:
-                            confi_reads_fwd += 1
+                    # forward or reverse
+                    if aligned_read.is_reverse:
+                        confi_reads_rev += 1
+                    else:
+                        confi_reads_fwd += 1
 
-                        # Single character indicating the region type of this alignment
-                        # (E = exonic, N = intronic, I = intergenic).
-                        if RE_tag in tag_dict:
-                            if tag_dict[RE_tag] == "E":
-                                exon_reads += 1
-                            elif tag_dict[RE_tag] == "I":
-                                intron_reads += 1
-                            elif tag_dict[RE_tag] == "N":
-                                intergenic_reads += 1
-                            else:
-                                other_reads1 += 1
+                    # Single character indicating the region type of this alignment
+                    # (E = exonic, N = intronic, I = intergenic).
+                    if RE_tag in tag_dict:
+                        if tag_dict[RE_tag] == "E":
+                            exon_reads += 1
+                        elif tag_dict[RE_tag] == "I":
+                            intron_reads += 1
+                        elif tag_dict[RE_tag] == "N":
+                            intergenic_reads += 1
                         else:
                             other_reads1 += 1
+                    else:
+                        other_reads1 += 1
 
-                        # sense or antisense
-                        if TX_tag in tag_dict:
-                            sense_reads += 1
-                        elif AN_tag in tag_dict:
-                            anti_reads += 1
-                        else:
-                            other_reads2 += 1
+                    # sense or antisense
+                    if TX_tag in tag_dict:
+                        sense_reads += 1
+                    elif AN_tag in tag_dict:
+                        anti_reads += 1
+                    else:
+                        other_reads2 += 1
 
-                        # map type
-                        cigar_str = list2str(aligned_read.cigar)  # type: ignore[attr-defined]
-                        tmp = read_match_type(cigar_str)
-                        read_type[tmp] += 1
+                    # map type
+                    cigar_str = list2str(aligned_read.cigar)  # type: ignore[attr-defined]
+                    tmp = read_match_type(cigar_str)
+                    read_type[tmp] += 1
 
-                        confi_alignments += 1
-                        chrom_confi_reads.add(read_id)
+                    confi_alignments += 1
+                    confi_read_ids.add(read_id)
 
-                    if chrom_count % step_size == 0:
-                        print(f"{chrom_count} alignments processed.\r", end=" ", file=sys.stderr)
-                logging.info(f'Processed {chrom_count} alignments from "{chr_id}"')
-                for i in chrom_total_reads:
-                    print(i, file=ALL)
-                for i in chrom_confi_reads:
-                    print(i, file=CONF)
+                if chrom_count % step_size == 0:
+                    print(f"{chrom_count} alignments processed.\r", end=" ", file=sys.stderr)
+            logging.info(f'Processed {chrom_count} alignments from "{chr_id}"')
     finally:
         samfile.close()
 
     logging.info(f"Processing total {total_alignments} alignments mapped to all chromosomes.")
 
-    logging.info("Count total mapped reads ...")
-    output1 = subprocess.check_output("awk '!a[$0]++' *.all_reads_id.txt |tee All_reads_uniqID.txt | wc -l", shell=True)
-
-    logging.info("Count confidently mapped reads ...")
-    output2 = subprocess.check_output(
-        "awk '!a[$0]++' *.confident_reads_id.txt |tee confident_reads_uniqID.txt | wc -l", shell=True
-    )
-
-    logging.info("Removing intermediate files ...")
-    for f in glob.glob("*.all_reads_id.txt"):
-        os.unlink(f)
-    for f in glob.glob("*.confident_reads_id.txt"):
-        os.unlink(f)
-
-    total_reads_n = int(output1.decode("utf-8").strip())
-    confi_reads_n = int(output2.decode("utf-8").strip())
+    total_reads_n = len(all_read_ids)
+    confi_reads_n = len(confi_read_ids)
     non_confi_reads = total_reads_n - confi_reads_n
 
     print("")

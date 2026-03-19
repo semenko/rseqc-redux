@@ -19,29 +19,6 @@ NOTE: only deal with Match, Gap, Soft Clip, Insertion, Deletion
 """
 
 
-def fetch_exon(st: int, cigar: list[tuple[int, int]]) -> list[tuple[int, int]]:
-    """fetch exon regions defined by cigar. st must be zero based
-    return list of tuple of (st, end)
-    """
-    chrom_st = st
-    exon_bound = []
-    for c, s in cigar:  # code and size
-        if c == 0:  # match
-            exon_bound.append((chrom_st, chrom_st + s))
-            chrom_st += s
-        elif c == 1:  # insertion to ref
-            continue
-        elif c == 2:  # deletion to ref
-            chrom_st += s
-        elif c == 3:  # gap or intron
-            chrom_st += s
-        elif c == 4:  # soft clipping — does NOT consume reference positions
-            continue
-        else:
-            continue
-    return exon_bound
-
-
 def fetch_intron(st: int, cigar: list[tuple[int, int]]) -> list[tuple[int, int]]:
     """fetch intron regions defined by cigar. st must be zero based
     return list of tuple of (st, end)

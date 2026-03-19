@@ -5,7 +5,8 @@ Created on Wed Aug  5 15:24:22 2020
 """
 
 import logging
-import subprocess
+
+from rseqc.cli_common import run_rscript
 
 
 def make_heatmap(
@@ -46,7 +47,6 @@ def make_heatmap(
     """
     logging.info(f'Writing R code to "{outfile}.r"')
     with open(outfile + ".r", "w") as ROUT:
-        print('if(!require(pheatmap)){install.packages("pheatmap")}', file=ROUT)
         print("library(pheatmap)", file=ROUT)
         print(f"dat = read.table(file = '{infile}',sep=',',header=T,row.names=1,check.names=FALSE)", file=ROUT)
 
@@ -91,8 +91,4 @@ def make_heatmap(
                     file=ROUT,
                 )
 
-    logging.info(f'Running R script file "{outfile}.r"')
-    try:
-        subprocess.run(["Rscript", outfile + ".r"], check=False)
-    except OSError:
-        logging.error('Failed to run Rscript file "%s"', outfile + ".r")
+    run_rscript(outfile + ".r")

@@ -13,7 +13,7 @@ from typing import NamedTuple
 
 from bx.intervals import Intersecter, Interval
 
-from rseqc import BED, SAM, bam_cigar
+from rseqc import BED, SAM
 from rseqc.cli_common import _pysam_iter, add_input_bam_arg, add_refgene_arg, create_parser, validate_files_exist
 
 
@@ -225,7 +225,7 @@ def main() -> None:
         totalReads += 1
         chrom = obj.samfile.getrname(aligned_read.tid)
         chrom = chrom.upper()
-        exons = bam_cigar.fetch_exon(aligned_read.pos, aligned_read.cigar)
+        exons = aligned_read.get_blocks()
         totalFrags += len(exons)
 
         for exn in exons:

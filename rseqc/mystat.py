@@ -1,4 +1,4 @@
-import math
+import numpy as np
 
 
 def percentile_list(N: list[int | float]) -> list[int | float] | None:
@@ -11,15 +11,5 @@ def percentile_list(N: list[int | float]) -> list[int | float] | None:
         return None
     if len(N) < 100:
         return N
-    per_list: list[int | float] = []
-    for i in range(1, 101):
-        k = (len(N) - 1) * i / 100.0
-        f = math.floor(k)
-        c = math.ceil(k)
-        if f == c:
-            per_list.append(int(N[int(k)]))
-        else:
-            d0 = N[int(f)] * (c - k)
-            d1 = N[int(c)] * (k - f)
-            per_list.append(int(round(d0 + d1)))
-    return per_list
+    result = np.percentile(N, range(1, 101), method="linear")
+    return [int(round(x)) for x in result]

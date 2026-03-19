@@ -32,6 +32,7 @@ def test_make_heatmap_basic(tmp_path):
     )
     content = _read_r_script(outfile)
     assert "library(pheatmap)" in content
+    assert "install.packages" not in content
     assert "input.csv" in content
     assert "display_numbers = TRUE" in content
     assert "number_color='black'" in content
