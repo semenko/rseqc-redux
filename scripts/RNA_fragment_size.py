@@ -24,7 +24,7 @@ def overlap_length2(lst1: list[list[int]], lst2: list[list[int]]) -> int:
     overlap_len = 0
     for x in lst1:
         for y in lst2:
-            overlap_len += len(list(range(max(x[0], y[0]), min(x[-1], y[-1]) + 1)))
+            overlap_len += max(0, min(x[-1], y[-1]) - max(x[0], y[0]) + 1)
     return overlap_len
 
 

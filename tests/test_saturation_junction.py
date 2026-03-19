@@ -309,7 +309,7 @@ class TestSaturationJunction:
                 chrom = fields[0].upper()
                 chrom_list.add(chrom)
                 tx_start = int(fields[1])
-                if int(fields[9] == 1):
+                if int(fields[9]) == 1:
                     continue
                 exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
                 exon_starts = [x + tx_start for x in exon_starts]

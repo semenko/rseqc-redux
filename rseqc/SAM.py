@@ -1267,7 +1267,6 @@ class ParseBAM:
                 if read2_start < read1_start:
                     continue  # because BAM file is sorted, mate_read is already processed if its coordinate is smaller
                 if read2_start == read1_start and aligned_read.is_read1:
-                    inner_distance = 0
                     continue
 
                 pair_num += 1
@@ -1290,12 +1289,15 @@ class ParseBAM:
                 if read2_start >= read1_end:
                     inner_distance = read2_start - read1_end
                 else:
-                    exon_positions = []
+                    overlap = 0
                     exon_blocks = bam_cigar.fetch_exon(read1_start, aligned_read.cigar)
                     for ex in exon_blocks:
-                        for i in range(ex[0] + 1, ex[1] + 1):
-                            exon_positions.append(i)
-                    inner_distance = -len([i for i in exon_positions if i > read2_start and i <= read1_end])
+                        # Count positions in (read2_start, read1_end] that fall within exon (ex[0]+1, ex[1]]
+                        lo = max(ex[0] + 1, read2_start + 1)
+                        hi = min(ex[1], read1_end)
+                        if hi >= lo:
+                            overlap += hi - lo + 1
+                    inner_distance = -overlap
 
                 read1_gene_names = set()  # read1_end
                 try:
@@ -1355,7 +1357,7 @@ class ParseBAM:
                             )
                             ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
                     else:
-                        FO.write(aligned_read.qname + "\t" + str(inner_distance) + "\tunknownChromosome,dist=genomic")
+                        FO.write(aligned_read.qname + "\t" + str(inner_distance) + "\tunknownChromosome,dist=genomic\n")
                         ranges[fchrom].add_interval(Interval(inner_distance - 1, inner_distance))
                 else:
                     FO.write(aligned_read.qname + "\t" + str(inner_distance) + "\treadPairOverlap\n")
@@ -1424,7 +1426,7 @@ class ParseBAM:
                         continue
                     chrom = fields[0].upper()
                     tx_start = int(fields[1])
-                    if int(fields[9] == 1):
+                    if int(fields[9]) == 1:
                         continue
 
                     exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -1602,7 +1604,7 @@ class ParseBAM:
                     chrom = fields[0].upper()
                     chrom_list.add(chrom)
                     tx_start = int(fields[1])
-                    if int(fields[9] == 1):
+                    if int(fields[9]) == 1:
                         continue
 
                     exon_starts = list(map(int, fields[11].rstrip(",\n").split(",")))
@@ -1995,9 +1997,7 @@ class ParseBAM:
                             else:
                                 data[idx][genotype] += 1
                             read_coord += 1
-            else:
-                print("Total reads used: " + str(count), file=DOUT)
-            print("\n")
+            print("Total reads used: " + str(count), file=sys.stderr)
 
             if len(data) == 0:
                 print("No mismatches found", file=sys.stderr)
@@ -2110,9 +2110,7 @@ class ParseBAM:
                     if is_reverse:
                         p = read_length - p
                     del_postns[p] += 1
-            else:
-                print("Total reads used: " + str(count), file=sys.stderr)
-            print("\n")
+            print("Total reads used: " + str(count), file=sys.stderr)
 
             del_count = []
             print("read_position\tdeletion_count", file=DOUT)

@@ -40,21 +40,26 @@ def main() -> None:
 
     sub_bam = {}
     count_bam = {}
-    for i in range(0, args.subset_num):
-        sub_bam[i] = pysam.AlignmentFile(args.output_prefix + "_" + str(i) + ".bam", "wb", template=samfile)
-        count_bam[i] = 0
+    try:
+        for i in range(0, args.subset_num):
+            sub_bam[i] = pysam.AlignmentFile(args.output_prefix + "_" + str(i) + ".bam", "wb", template=samfile)
+            count_bam[i] = 0
 
-    total_alignment = 0
-    print("Dividing " + args.input_file + " ...", end=" ", file=sys.stderr)
-    for aligned_read in _pysam_iter(samfile):
-        if aligned_read.is_unmapped and args.skip_unmap is True:
-            continue
-        total_alignment += 1
-        tmp = randrange(0, args.subset_num)
-        sub_bam[tmp].write(aligned_read)
-        count_bam[tmp] += 1
+        total_alignment = 0
+        print("Dividing " + args.input_file + " ...", end=" ", file=sys.stderr)
+        for aligned_read in _pysam_iter(samfile):
+            if aligned_read.is_unmapped and args.skip_unmap is True:
+                continue
+            total_alignment += 1
+            tmp = randrange(0, args.subset_num)
+            sub_bam[tmp].write(aligned_read)
+            count_bam[tmp] += 1
 
-    print("Done", file=sys.stderr)
+        print("Done", file=sys.stderr)
+    finally:
+        for bam in sub_bam.values():
+            bam.close()
+        samfile.close()
 
     for i in range(0, args.subset_num):
         print("%-55s%d" % (args.output_prefix + "_" + str(i) + ".bam", count_bam[i]))

@@ -198,7 +198,7 @@ def main() -> None:
         ),
     )
     parser.add_argument("--gtf", dest="GTF_file", help="Gene model in GTF format.")
-    parser.add_argument("--info", dest="infor_file", default=5, help="Gene model information file.")
+    parser.add_argument("--info", dest="infor_file", default=None, help="Gene model information file.")
     parser.add_argument("-o", "--output", dest="out_file", help="The prefix of the output file.")
     parser.add_argument(
         "--log2",

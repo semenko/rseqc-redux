@@ -54,6 +54,6 @@ def Max(v1: NDArray[Any], v2: NDArray[Any]) -> map:
 
 
 def Min(v1: NDArray[Any], v2: NDArray[Any]) -> map:
-    """pairwise comparison two list. return  the max one between two paried number"""
+    """pairwise comparison two list. return  the min one between two paried number"""
     check_list(v1, v2)
     return map(min, zip(v1, v2))

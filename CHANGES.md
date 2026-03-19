@@ -4,14 +4,34 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **SAM.py**: Fix `int(fields[9] == 1)` operator-precedence bug in `annotate_junction()` and `saturation_junction()` — single-exon genes were never excluded from junction analysis, corrupting known/novel classification (same Bug #3 already fixed in BED.py).
+- **scbam.py**: Fix `KeyError` crash in `mapping_stat()` when read lacks `RE` tag — `elif tag_dict[RE_tag]` was outside the `if RE_tag in tag_dict` block.
+- **SAM.py**: Fix missing `\n` in `mRNA_inner_distance()` output for unknownChromosome case.
+- **sc_bamStat.py**: Fix BAM index validation no-op — `if not (file + ".bai")` always evaluated to False; now uses `os.path.exists()`.
+- **BED.py**: Fix `getExon()` and `getCDSExon()` crash (IndexError) on BED files with `#`/`track`/`browser` header lines.
+- **SAM.py**: Fix `mismatchProfile()` and `deletionProfile()` for-else bug — "Total reads used" message was written to data file instead of stderr when loop completed without break.
+- **SAM.py**: Remove dead `inner_distance = 0` assignment before `continue` in `mRNA_inner_distance()`.
+- **BED.py**: Remove identical if/else branches in `getIntron()` (strand check had no effect).
+- **FPKM_UQ.py**: Fix `--info` argument `default=5` (int for filename) → `default=None`.
+- **split_paired_bam.py**: Replace deprecated `pysam.AlignedRead()` with `pysam.AlignedSegment(header)`.
+- **junction_saturation.py**, **RPKM_saturation.py**: Fix typo "samller" → "smaller" in error messages.
+- **twoList.py**: Fix `Min()` docstring that incorrectly said "max".
+
 ### Changed
 
 - CI: auto-create GitHub releases on tag push.
+- **divide_bam.py**, **split_paired_bam.py**: Wrap BAM file handles in try/finally to prevent resource leaks.
+- **scbam.py**: Close BAM file handles in `barcode_edits()` and `mapping_stat()` via try/finally blocks.
+- **scbam.py**: Replace `defaultdict(dict)` + try/except KeyError with `defaultdict(lambda: defaultdict(int))` in `barcode_edits()`.
 
 ### Performance
 
 - **saturation_junction()**: Replaced O(n) rescan of all unique junctions at each percentile step with incremental counters. Known/unknown counts updated as each splice site observation is added.
 - **configure_experiment()**: Fast-path the common single-hit case (read overlaps one gene) to avoid `set()` + `':'.join()` allocation per read.
+- **mRNA_inner_distance()**: Replace O(n) list of every exon position with O(k) range-overlap arithmetic for overlapping read pairs.
+- **RNA_fragment_size.py**: Replace `len(list(range(...)))` O(n) with `max(0, min(...) - max(...))` O(1) in `overlap_length2()`.
 
 ## [6.0.0] - 2026-03-12
 

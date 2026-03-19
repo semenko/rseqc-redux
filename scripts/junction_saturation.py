@@ -83,16 +83,16 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
     if args.percentile_low_bound < 0 or args.percentile_low_bound > 100:
-        print("percentile_low_bound must be larger than 0 and samller than 100", file=sys.stderr)
+        print("percentile_low_bound must be larger than 0 and smaller than 100", file=sys.stderr)
         sys.exit(1)
     if args.percentile_up_bound < 0 or args.percentile_up_bound > 100:
-        print("percentile_up_bound must be larger than 0 and samller than 100", file=sys.stderr)
+        print("percentile_up_bound must be larger than 0 and smaller than 100", file=sys.stderr)
         sys.exit(1)
     if args.percentile_up_bound < args.percentile_low_bound:
         print("percentile_up_bound must be larger than percentile_low_bound", file=sys.stderr)
         sys.exit(1)
     if args.percentile_step < 0 or args.percentile_step > args.percentile_up_bound:
-        print("percentile_step must be larger than 0 and samller than percentile_up_bound", file=sys.stderr)
+        print("percentile_step must be larger than 0 and smaller than percentile_up_bound", file=sys.stderr)
         sys.exit(1)
     validate_files_exist(args.input_file)
     obj = SAM.ParseBAM(args.input_file)

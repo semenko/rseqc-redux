@@ -85,6 +85,8 @@ class ParseBED:
 
         ret_lst = []
         for f in self.f:
+            if f.startswith(("#", "track", "browser")):
+                continue
             f = f.strip().split()
             chrom = f[0]
             chrom_start = int(f[1])
@@ -123,6 +125,8 @@ class ParseBED:
         """Extract CDS exon regions from input bed file (must be 12-column)."""
         ret_lst = []
         for f in self.f:
+            if f.startswith(("#", "track", "browser")):
+                continue
             f = f.strip().split()
             chrom = f[0]
             chrom_start = int(f[1])
@@ -160,7 +164,6 @@ class ParseBED:
                 fields = line.split()
                 chrom = fields[0]
                 tx_start = int(fields[1])
-                strand = fields[5].replace(" ", "_")
                 if int(fields[9]) == 1:
                     continue
 
@@ -171,12 +174,8 @@ class ParseBED:
                 intron_start = exon_ends[:-1]
                 intron_end = exon_starts[1:]
 
-                if strand == "-":
-                    for st, end in zip(intron_start, intron_end):
-                        ret_lst.append([chrom, st, end])
-                else:
-                    for st, end in zip(intron_start, intron_end):
-                        ret_lst.append([chrom, st, end])
+                for st, end in zip(intron_start, intron_end):
+                    ret_lst.append([chrom, st, end])
             except (IndexError, ValueError):
                 print("[NOTE:input bed must be 12-column] skipped this line: " + line, end=" ", file=sys.stderr)
                 continue
