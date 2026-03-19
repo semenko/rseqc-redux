@@ -115,6 +115,22 @@ junction_annotation -r gene_model.bed -i sample.bam -o output
 | `sc_seqLogo` | DNA sequence logo from FASTQ/FASTA |
 | `sc_seqQual` | Sequencing quality heatmap from FASTQ |
 
+## Performance
+
+Benchmarked against RSeQC 5.0.4 on the official RSeQC test data (chr22 subset, ~430K paired-end reads). See [`benchmark-data/BENCHMARK_REPORT.md`](benchmark-data/BENCHMARK_REPORT.md) for the full report with profiling details.
+
+| Script | Original | Redux | Speedup |
+|--------|----------|-------|---------|
+| `tin` | 23.7s | 3.4s | **7.1x** |
+| `geneBody_coverage` | 19.8s | 3.5s | **5.7x** |
+| `bam_stat` | 3.5s | 0.8s | **4.2x** |
+| `RPKM_saturation` | 3.9s | 1.4s | **2.8x** |
+| `read_NVC` | 2.7s | 1.5s | **1.8x** |
+| `clipping_profile` | 1.0s | 0.7s | **1.5x** |
+| All other scripts | | | ~1.0x |
+
+Key optimizations: pysam `count_coverage()` replacing manual pileup iteration (tin, geneBody_coverage), numpy vectorization (read_NVC, RPKM_saturation), single-pass CIGAR loops (clipping/insertion profiles), and dead code removal (bam_stat).
+
 ## Upgrading from RSeQC 5.x or earlier rseqc-redux releases
 
 ### Soft clipping bug fix (post-6.1.0)

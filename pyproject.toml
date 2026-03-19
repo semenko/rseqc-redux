@@ -127,6 +127,9 @@ tin = "scripts.tin:main"
 [tool.hatch.build.targets.wheel]
 packages = ["rseqc", "scripts"]
 
+[tool.hatch.build.targets.sdist]
+exclude = ["benchmark-data", "test-data"]
+
 [tool.coverage.run]
 source = ["rseqc", "scripts"]
 relative_files = true
