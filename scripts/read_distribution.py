@@ -96,35 +96,28 @@ def process_gene_model(gene_model: str) -> GeneModelResult:
     intergenic_down_5kb = BED.unionBed3(intergenic_down_5kb)
     intergenic_down_10kb = BED.unionBed3(intergenic_down_10kb)
 
-    # purify intergenic region
-    intergenic_up_1kb = BED.subtractBed3(intergenic_up_1kb, cds_exon)
-    intergenic_up_1kb = BED.subtractBed3(intergenic_up_1kb, utr_5)
-    intergenic_up_1kb = BED.subtractBed3(intergenic_up_1kb, utr_3)
-    intergenic_up_1kb = BED.subtractBed3(intergenic_up_1kb, intron)
-    intergenic_down_1kb = BED.subtractBed3(intergenic_down_1kb, cds_exon)
-    intergenic_down_1kb = BED.subtractBed3(intergenic_down_1kb, utr_5)
-    intergenic_down_1kb = BED.subtractBed3(intergenic_down_1kb, utr_3)
-    intergenic_down_1kb = BED.subtractBed3(intergenic_down_1kb, intron)
-
-    # purify intergenic region
-    intergenic_up_5kb = BED.subtractBed3(intergenic_up_5kb, cds_exon)
-    intergenic_up_5kb = BED.subtractBed3(intergenic_up_5kb, utr_5)
-    intergenic_up_5kb = BED.subtractBed3(intergenic_up_5kb, utr_3)
-    intergenic_up_5kb = BED.subtractBed3(intergenic_up_5kb, intron)
-    intergenic_down_5kb = BED.subtractBed3(intergenic_down_5kb, cds_exon)
-    intergenic_down_5kb = BED.subtractBed3(intergenic_down_5kb, utr_5)
-    intergenic_down_5kb = BED.subtractBed3(intergenic_down_5kb, utr_3)
-    intergenic_down_5kb = BED.subtractBed3(intergenic_down_5kb, intron)
-
-    # purify intergenic region
-    intergenic_up_10kb = BED.subtractBed3(intergenic_up_10kb, cds_exon)
-    intergenic_up_10kb = BED.subtractBed3(intergenic_up_10kb, utr_5)
-    intergenic_up_10kb = BED.subtractBed3(intergenic_up_10kb, utr_3)
-    intergenic_up_10kb = BED.subtractBed3(intergenic_up_10kb, intron)
-    intergenic_down_10kb = BED.subtractBed3(intergenic_down_10kb, cds_exon)
-    intergenic_down_10kb = BED.subtractBed3(intergenic_down_10kb, utr_5)
-    intergenic_down_10kb = BED.subtractBed3(intergenic_down_10kb, utr_3)
-    intergenic_down_10kb = BED.subtractBed3(intergenic_down_10kb, intron)
+    # purify intergenic regions by subtracting genic regions
+    genic_regions = [cds_exon, utr_5, utr_3, intron]
+    intergenic_list = [
+        intergenic_up_1kb,
+        intergenic_down_1kb,
+        intergenic_up_5kb,
+        intergenic_down_5kb,
+        intergenic_up_10kb,
+        intergenic_down_10kb,
+    ]
+    for i, ig in enumerate(intergenic_list):
+        for genic in genic_regions:
+            ig = BED.subtractBed3(ig, genic)
+        intergenic_list[i] = ig
+    (
+        intergenic_up_1kb,
+        intergenic_down_1kb,
+        intergenic_up_5kb,
+        intergenic_down_5kb,
+        intergenic_up_10kb,
+        intergenic_down_10kb,
+    ) = intergenic_list
 
     # build unified labeled interval tree for single-lookup classification
     unified = build_unified_tree(
