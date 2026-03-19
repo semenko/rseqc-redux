@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Extract shared `iter_bed12()` BED12 parser into `cli_common.py`, replacing 6 duplicated parsing loops across 5 scripts
+- Extract `validate_bam_index()` into `cli_common.py`, consolidating 3 duplicate BAM index checks
+- Replace manual file existence checks with `validate_files_exist()` in `geneBody_coverage2.py` and `FPKM_UQ.py`
+- **read_distribution.py**: Remove dead `foundone()` function, 10 unused `build_bitsets()` calls, and replace 21-element return tuple with `GeneModelResult` NamedTuple
+- **read_distribution.py**: Replace 24 repetitive `subtractBed3()` calls with a loop over intergenic regions
+- Convert pysam try/finally to context managers in 5 scripts (`split_paired_bam.py`, `RNA_fragment_size.py`, `geneBody_coverage.py`, `divide_bam.py`, `tin.py`)
+
 ## [6.0.1] - 2026-03-19
 
 ### Fixed
