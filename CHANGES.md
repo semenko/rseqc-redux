@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- **FPKM_count.py**: Replace inline strand rule parsing with shared `_parse_strand_rule()`, deduplicate triple print block, use truthiness checks, simplify `elif`→`else`
+- **read_hexamer.py**: Remove custom `file_exist()` function, use `os.path.exists()` directly
+- **infer_experiment.py**: Replace manual file existence loop with `validate_files_exist()`
+- **RNA_fragment_size.py**: Remove redundant `str()` calls on string literals in header output
 - Extract shared `iter_bed12()` BED12 parser into `cli_common.py`, replacing 6 duplicated parsing loops across 5 scripts
 - Extract `validate_bam_index()` into `cli_common.py`, consolidating 3 duplicate BAM index checks
 - Replace manual file existence checks with `validate_files_exist()` in `geneBody_coverage2.py` and `FPKM_UQ.py`
