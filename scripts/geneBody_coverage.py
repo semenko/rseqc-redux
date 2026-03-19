@@ -190,36 +190,37 @@ def Rcode_write(dataset: list, file_prefix: str, format: str = "pdf", colNum: in
             file=ROUT,
         )
 
-        plot_cmd = (
-            f"plot(x,{names[0]},type='l',xlab=\"Gene body percentile (5'->3')\","
-            ' ylab="Coverage",lwd=0.8,col=icolor[1])'
-        )
-
-        if len(names) == 1:
-            print(plot_cmd, file=ROUT)
-
-        elif len(names) >= 2 and len(names) <= 6:
-            print(plot_cmd, file=ROUT)
-            for i in range(1, len(names)):
-                print(f"lines(x,{names[i]},type='l',col=icolor[{i + 1}])", file=ROUT)
-            legend_names = ",".join(["'" + str(n) + "'" for n in names])
-            print(
-                f"legend(0,1,fill=icolor[{1}:{len(names)}], legend=c({legend_names}))",
-                file=ROUT,
+        if names:
+            plot_cmd = (
+                f"plot(x,{names[0]},type='l',xlab=\"Gene body percentile (5'->3')\","
+                ' ylab="Coverage",lwd=0.8,col=icolor[1])'
             )
 
-        elif len(names) > 6:
-            print("layout(matrix(c(1,1,1,2,1,1,1,2,1,1,1,2), 4, 4, byrow = TRUE))", file=ROUT)
-            print(plot_cmd, file=ROUT)
-            for i in range(1, len(names)):
-                print(f"lines(x,{names[i]},type='l',col=icolor[{i + 1}])", file=ROUT)
-            print("par(mar=c(1,0,2,1))", file=ROUT)
-            print("plot.new()", file=ROUT)
-            legend_names = ",".join(["'" + str(n) + "'" for n in names])
-            print(
-                f"legend(0,1,fill=icolor[{1}:{len(names)}],legend=c({legend_names}))",
-                file=ROUT,
-            )
+            if len(names) == 1:
+                print(plot_cmd, file=ROUT)
+
+            elif len(names) >= 2 and len(names) <= 6:
+                print(plot_cmd, file=ROUT)
+                for i in range(1, len(names)):
+                    print(f"lines(x,{names[i]},type='l',col=icolor[{i + 1}])", file=ROUT)
+                legend_names = ",".join(["'" + str(n) + "'" for n in names])
+                print(
+                    f"legend(0,1,fill=icolor[{1}:{len(names)}], legend=c({legend_names}))",
+                    file=ROUT,
+                )
+
+            elif len(names) > 6:
+                print("layout(matrix(c(1,1,1,2,1,1,1,2,1,1,1,2), 4, 4, byrow = TRUE))", file=ROUT)
+                print(plot_cmd, file=ROUT)
+                for i in range(1, len(names)):
+                    print(f"lines(x,{names[i]},type='l',col=icolor[{i + 1}])", file=ROUT)
+                print("par(mar=c(1,0,2,1))", file=ROUT)
+                print("plot.new()", file=ROUT)
+                legend_names = ",".join(["'" + str(n) + "'" for n in names])
+                print(
+                    f"legend(0,1,fill=icolor[{1}:{len(names)}],legend=c({legend_names}))",
+                    file=ROUT,
+                )
 
         print("dev.off()", file=ROUT)
 
