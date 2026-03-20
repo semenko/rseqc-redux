@@ -532,7 +532,11 @@ def test_parsebam_stat_splice_counts(mini_bam, capsys):
 
 
 class _FakeRead:
-    """Minimal mock of a pysam AlignedSegment for _passes_qc tests."""
+    """Minimal mock of a pysam AlignedSegment for _passes_qc tests.
+
+    Builds a BAM-spec ``flag`` integer from boolean keyword arguments,
+    matching how real pysam AlignedSegment objects expose the flag field.
+    """
 
     def __init__(
         self,
@@ -542,11 +546,17 @@ class _FakeRead:
         is_unmapped: bool = False,
         mapq: int = 60,
     ):
-        self.is_qcfail = is_qcfail
-        self.is_duplicate = is_duplicate
-        self.is_secondary = is_secondary
-        self.is_unmapped = is_unmapped
         self.mapq = mapq
+        # Build BAM flag from booleans (SAM spec §1.4 bit positions)
+        self.flag = 0
+        if is_unmapped:
+            self.flag |= 0x4
+        if is_secondary:
+            self.flag |= 0x100
+        if is_qcfail:
+            self.flag |= 0x200
+        if is_duplicate:
+            self.flag |= 0x400
 
 
 def test_passes_qc_good_read():

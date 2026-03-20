@@ -27,11 +27,17 @@ from rseqc.cli_common import (
 
 
 def overlap_length(lst1: list[list[int]], lst2: list[list[int]]) -> int:
-    overlap_len = 0
-    for x in lst1:
-        for y in lst2:
-            overlap_len += max(0, min(x[-1], y[-1]) - max(x[0], y[0]) + 1)
-    return overlap_len
+    total = 0
+    for y in lst2:
+        y0, y1 = y[0], y[-1]
+        for x in lst1:
+            x0, x1 = x[0], x[-1]
+            hi = x1 if x1 < y1 else y1
+            lo = x0 if x0 > y0 else y0
+            diff = hi - lo + 1
+            if diff > 0:
+                total += diff
+    return total
 
 
 def fragment_size(

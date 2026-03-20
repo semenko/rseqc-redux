@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import collections
 import math
 import os
 import sys
@@ -281,6 +282,8 @@ def main() -> None:
         for f in bamfiles:
             print("\t" + f, file=sys.stderr)
 
+    _CHUNK_SIZE = 5_000_000  # max bases per batched count_coverage() call
+
     for f in bamfiles:
         printlog("Processing " + f)
 
@@ -292,35 +295,94 @@ def main() -> None:
             print("\t".join(["Bam_file", "TIN(mean)", "TIN(median)", "TIN(stdev)"]), file=SUM)
             print("\t".join(["geneID", "chrom", "tx_start", "tx_end", "TIN"]), file=OUT)
 
-            sample_TINs = []  # sample level TIN, values are from different genes
+            # --- Pass 1: collect gene data and check min reads ---
+            gene_data = list(genomic_positions(refbed=args.ref_gene_model, sample_size=args.sample_size))
+
+            eligible = []  # True if gene passes min_reads
+            noise_levels = []
+            for gname, i_chr, i_tx_start, i_tx_end, intron_size, pick_positions in gene_data:
+                if check_min_reads(samfile, i_chr, i_tx_start, i_tx_end, args.minimum_coverage):
+                    eligible.append(True)
+                    noise_level = 0.0
+                    if args.subtract_bg:
+                        intron_signals = estimate_bg_noise(i_chr, i_tx_start, i_tx_end, samfile, exon_ranges)
+                        if intron_size > 0:
+                            noise_level = intron_signals / intron_size
+                    noise_levels.append(noise_level)
+                else:
+                    eligible.append(False)
+                    noise_levels.append(0.0)
+
+            # --- Pass 2: batch count_coverage per chromosome ---
+            by_chrom: dict[str, list[tuple[int, list[int]]]] = collections.defaultdict(list)
+            for i, (gname, i_chr, i_tx_start, i_tx_end, intron_size, pick_positions) in enumerate(gene_data):
+                if eligible[i]:
+                    by_chrom[i_chr].append((i, sorted(pick_positions)))
+
+            coverages: list[list[float] | None] = [None] * len(gene_data)
+            for chrom, gene_batch in by_chrom.items():
+                gene_batch.sort(key=lambda x: x[1][0])
+
+                batch_i = 0
+                while batch_i < len(gene_batch):
+                    range_start = gene_batch[batch_i][1][0] - 1
+                    if range_start < 0:
+                        range_start = 0
+                    range_end = gene_batch[batch_i][1][-1]
+
+                    batch_j = batch_i + 1
+                    while batch_j < len(gene_batch):
+                        candidate_end = gene_batch[batch_j][1][-1]
+                        if candidate_end - range_start > _CHUNK_SIZE:
+                            break
+                        range_end = max(range_end, candidate_end)
+                        batch_j += 1
+
+                    try:
+                        a_arr, c_arr, g_arr, t_arr = samfile.count_coverage(
+                            chrom, range_start, range_end, quality_threshold=0, read_callback="all"
+                        )
+                        total = np.array(a_arr, dtype=np.float64)
+                        total += np.array(c_arr, dtype=np.float64)
+                        total += np.array(g_arr, dtype=np.float64)
+                        total += np.array(t_arr, dtype=np.float64)
+                        del a_arr, c_arr, g_arr, t_arr
+
+                        region_len = len(total)
+                        for gene_idx, positions in gene_batch[batch_i:batch_j]:
+                            bg = noise_levels[gene_idx]
+                            cvg: list[float] = []
+                            for pos in positions:
+                                idx = pos - 1 - range_start
+                                if 0 <= idx < region_len:
+                                    cvg.append(float(total[idx]))
+                            if bg > 0:
+                                cvg = [max(0, int(c - bg)) for c in cvg]
+                            coverages[gene_idx] = cvg
+                    except (KeyError, ValueError):
+                        pass
+
+                    batch_i = batch_j
+
+            # --- Pass 3: output in BED file order ---
+            sample_TINs = []
             finish = 0
-            noise_level = 0.0
-            for gname, i_chr, i_tx_start, i_tx_end, intron_size, pick_positions in genomic_positions(
-                refbed=args.ref_gene_model, sample_size=args.sample_size
-            ):
+            for i, (gname, i_chr, i_tx_start, i_tx_end, intron_size, pick_positions) in enumerate(gene_data):
                 finish += 1
 
-                # check minimum reads coverage
-                if check_min_reads(samfile, i_chr, i_tx_start, i_tx_end, args.minimum_coverage) is not True:
-                    print("\t".join([str(i) for i in (gname, i_chr, i_tx_start, i_tx_end, 0.0)]), file=OUT)
+                if not eligible[i]:
+                    print("\t".join([str(j) for j in (gname, i_chr, i_tx_start, i_tx_end, 0.0)]), file=OUT)
                     continue
 
-                # estimate background noise if '-s' was specified
-                if args.subtract_bg:
-                    intron_signals = estimate_bg_noise(i_chr, i_tx_start, i_tx_end, samfile, exon_ranges)
-                    if intron_size > 0:
-                        noise_level = intron_signals / intron_size
-
-                coverage = genebody_coverage(samfile, i_chr, sorted(pick_positions), noise_level)
-
-                tin1 = tin_score(cvg=coverage, length=len(pick_positions))
+                cvg = coverages[i] if coverages[i] is not None else []
+                tin1 = tin_score(cvg=cvg, length=len(pick_positions))
                 sample_TINs.append(tin1)
-                print("\t".join([str(i) for i in (gname, i_chr, i_tx_start, i_tx_end, tin1)]), file=OUT)
+                print("\t".join([str(j) for j in (gname, i_chr, i_tx_start, i_tx_end, tin1)]), file=OUT)
                 print(f" {finish} transcripts finished\r", end=" ", file=sys.stderr)
 
             print(
                 "\t".join(
-                    [str(i) for i in (os.path.basename(f), mean(sample_TINs), median(sample_TINs), std(sample_TINs))]
+                    [str(j) for j in (os.path.basename(f), mean(sample_TINs), median(sample_TINs), std(sample_TINs))]
                 ),
                 file=SUM,
             )

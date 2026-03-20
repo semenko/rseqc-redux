@@ -82,51 +82,82 @@ def genebody_percentile(refbed: str, mRNA_len_cut: int = 100) -> dict:
     return g_percentiles
 
 
+_CHUNK_SIZE = 5_000_000  # max bases per batched count_coverage() call
+
+
 def genebody_coverage(bam: str, position_list: dict) -> dict:
     """
     position_list is dict returned from genebody_percentile
     position is 1-based genome coordinate
 
-    Uses pysam's C-level count_coverage() instead of Python-level pileup iteration.
+    Batches count_coverage() calls per chromosome to avoid redundant BAM iteration.
+    Instead of one count_coverage() per gene (each of which internally iterates all
+    overlapping reads), nearby genes share a single call.
     """
     with pysam.AlignmentFile(bam, "rb") as samfile:
         aggreagated_cvg = collections.defaultdict(int)
 
-        gene_finished = 0
+        # Group genes by chromosome for batched count_coverage
+        by_chrom: dict[str, list[tuple[str, list[int]]]] = collections.defaultdict(list)
         for chrom, strand, positions in position_list.values():
-            chrom_start = positions[0] - 1
-            if chrom_start < 0:
-                chrom_start = 0
-            chrom_end = positions[-1]
-            try:
-                # count_coverage returns 4 array.array objects (A, C, G, T per-base counts)
-                # quality_threshold=0: no base quality filtering (matches original behavior)
-                # read_callback='all': skip unmapped, qcfail, secondary, duplicate
-                a_arr, c_arr, g_arr, t_arr = samfile.count_coverage(
-                    chrom, chrom_start, chrom_end, quality_threshold=0, read_callback="all"
-                )
-            except (KeyError, ValueError):
-                continue
+            by_chrom[chrom].append((strand, positions))
 
-            total = np.array(a_arr) + np.array(c_arr) + np.array(g_arr) + np.array(t_arr)
+        gene_finished = 0
+        for chrom, genes in by_chrom.items():
+            # Sort genes by start position so we can batch nearby ones
+            genes.sort(key=lambda g: g[1][0])
 
-            # Extract coverage at the selected percentile positions
-            tmp = []
-            for pos in positions:
-                idx = pos - 1 - chrom_start
-                if 0 <= idx < len(total):
-                    tmp.append(int(total[idx]))
-                else:
-                    tmp.append(0)
+            batch_start_idx = 0
+            while batch_start_idx < len(genes):
+                # Start a new chunk from this gene
+                range_start = genes[batch_start_idx][1][0] - 1
+                if range_start < 0:
+                    range_start = 0
+                range_end = genes[batch_start_idx][1][-1]
 
-            if strand == "-":
-                tmp = tmp[::-1]
-            for i in range(len(tmp)):
-                aggreagated_cvg[i] += tmp[i]
-            gene_finished += 1
+                # Extend chunk to include nearby genes within _CHUNK_SIZE
+                batch_end_idx = batch_start_idx + 1
+                while batch_end_idx < len(genes):
+                    candidate_end = genes[batch_end_idx][1][-1]
+                    if candidate_end - range_start > _CHUNK_SIZE:
+                        break
+                    range_end = max(range_end, candidate_end)
+                    batch_end_idx += 1
 
-            if gene_finished % 100 == 0:
-                print(f"\t{gene_finished} transcripts finished\r", end=" ", file=sys.stderr)
+                try:
+                    a_arr, c_arr, g_arr, t_arr = samfile.count_coverage(
+                        chrom, range_start, range_end, quality_threshold=0, read_callback="all"
+                    )
+                except (KeyError, ValueError):
+                    batch_start_idx = batch_end_idx
+                    continue
+
+                total = np.array(a_arr, dtype=np.int32)
+                total += np.array(c_arr, dtype=np.int32)
+                total += np.array(g_arr, dtype=np.int32)
+                total += np.array(t_arr, dtype=np.int32)
+                del a_arr, c_arr, g_arr, t_arr
+
+                for strand, positions in genes[batch_start_idx:batch_end_idx]:
+                    tmp = []
+                    for pos in positions:
+                        idx = pos - 1 - range_start
+                        if 0 <= idx < len(total):
+                            tmp.append(int(total[idx]))
+                        else:
+                            tmp.append(0)
+
+                    if strand == "-":
+                        tmp = tmp[::-1]
+                    for i in range(len(tmp)):
+                        aggreagated_cvg[i] += tmp[i]
+                    gene_finished += 1
+
+                    if gene_finished % 100 == 0:
+                        print(f"\t{gene_finished} transcripts finished\r", end=" ", file=sys.stderr)
+
+                batch_start_idx = batch_end_idx
+
         return aggreagated_cvg
 
 

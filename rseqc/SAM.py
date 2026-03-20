@@ -71,22 +71,19 @@ def _write_bigwig_chrom(
     bw.addEntries([chr_name] * len(starts), starts, ends=ends, values=vals)
 
 
+# BAM flag bits for QC filtering (SAM spec §1.4)
+_QC_FAIL_FLAGS = 0x4 | 0x100 | 0x200 | 0x400  # unmapped | secondary | qcfail | duplicate
+
+
 def _passes_qc(read: Any, q_cut: int) -> bool:
     """Return True if a read passes standard QC filters.
 
     Filters out: QC-failed, duplicate, secondary, unmapped, and low-MAPQ reads.
+    Uses a single flag bitmask check instead of multiple property accesses.
     """
-    if read.is_qcfail:
+    if read.flag & _QC_FAIL_FLAGS:
         return False
-    if read.is_duplicate:
-        return False
-    if read.is_secondary:
-        return False
-    if read.is_unmapped:
-        return False
-    if read.mapq < q_cut:
-        return False
-    return True
+    return bool(read.mapq >= q_cut)
 
 
 def _parse_strand_rule(strand_rule: str | None) -> dict[str, str]:
@@ -1299,14 +1296,14 @@ class ParseBAM:
 
                 pair_num += 1
 
-                # check if reads were mapped to diff chromsomes
-                R_read1_ref = self.samfile.getrname(aligned_read.tid)  # type: ignore[attr-defined]
-                R_read2_ref = self.samfile.getrname(aligned_read.rnext)  # type: ignore[attr-defined]
+                # check if reads were mapped to diff chromosomes
+                R_read1_ref = self.samfile.get_reference_name(aligned_read.tid)  # type: ignore[attr-defined]
+                R_read2_ref = self.samfile.get_reference_name(aligned_read.rnext)  # type: ignore[attr-defined]
                 if R_read1_ref != R_read2_ref:
                     FO.write(f"{aligned_read.qname}\tNA\tsameChrom=No\n")  # reads mapped to different chromosomes
                     continue
 
-                chrom = self.samfile.getrname(aligned_read.tid).upper()  # type: ignore[attr-defined]
+                chrom = R_read1_ref.upper()
                 intron_blocks = bam_cigar.fetch_intron(read1_start, aligned_read.cigar)
                 for intron in intron_blocks:
                     splice_intron_size += intron[1] - intron[0]
