@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [6.3.0] — 2026-03-19
+
 ### Fixed
 
 - **read_hexamer.py**: Remove spurious blank lines before header — `\n\n` in print statement produced two empty lines before the `Hexamer` header row.
