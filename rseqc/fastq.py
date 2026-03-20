@@ -87,8 +87,9 @@ def qual2countMat(q_obj: Iterable[str], limit: int | None, step_size: int = 1000
     count = 0
     for qstr in q_obj:
         count += 1
-        for i, q in enumerate(qstr):
-            q_score = ord(q) - 33
+        # Iterate over bytes directly — yields ints, avoids 14M+ ord() calls
+        for i, q_byte in enumerate(qstr.encode()):
+            q_score = q_byte - 33
             if q_score not in dat[i]:
                 dat[i][q_score] = 1
             else:

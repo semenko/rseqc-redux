@@ -88,7 +88,7 @@ def coverageGeneBody_bigwig(bigFile: str, refbed: str, outfile: str, gtype: str 
         for i in coverage:
             x_coord.append(str(i))
             y_coord.append(str(coverage[i]))
-            handle.write(f"{i}\t{coverage[i]}\n")
+            handle.write(f"{i}\t{int(coverage[i])}\n")
 
     with open(outfile + ".geneBodyCoverage_plot.r", "w") as handle:
         gbc_path = f"{outfile}.geneBodyCoverage.{gtype}"

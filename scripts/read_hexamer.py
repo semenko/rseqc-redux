@@ -76,7 +76,7 @@ def main() -> None:
         )
         print("Done.", file=sys.stderr)
 
-    print("\n\nHexamer" + "\t" + "\t".join(read_file_names))
+    print("Hexamer" + "\t" + "\t".join(read_file_names))
 
     for kmer in FrameKmer.all_possible_kmer(6):
         if "N" in kmer:
