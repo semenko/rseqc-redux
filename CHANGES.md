@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- **read_hexamer.py**: Remove spurious blank lines before header — `\n\n` in print statement produced two empty lines before the `Hexamer` header row.
+- **mystat.py**: Restore original `percentile_list()` linear interpolation algorithm — the `np.percentile(range(1,101))` replacement (from v6.2.0) returned different positions than the original's floor/ceil interpolation, causing `geneBody_coverage` and `geneBody_coverage2` to compute coverage at wrong percentile positions.
+- **geneBody_coverage2.py**: Truncate float coverage values to int in output (matching original `%i` format). Output now identical to original RSeQC 5.0.4.
+
 ### Changed
 
 - **SAM.py**: `_passes_qc()` uses single bitmask check (`flag & 0x704`) instead of 5 separate property accesses — affects 10 call sites across all scripts that filter reads.
@@ -11,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - **RNA_fragment_size.py**: `overlap_length()` replaces 13.4M builtin `min()`/`max()` calls per run with inline comparisons and tuple unpacking.
 - **geneBody_coverage.py**: Batch `count_coverage()` calls per 5MB chromosome chunk instead of per-gene — eliminates redundant BAM re-iteration (1216 calls → ~7 chunked calls on chr22). 3.50s → 1.49s (2.3x).
 - **tin.py**: Batch `count_coverage()` calls per 5MB chromosome chunk using a two-pass approach (collect genes, batch coverage, output in BED order). 3.35s → 1.50s (2.2x).
+- **fastq.py**: `qual2countMat()` iterates over `bytes` instead of calling `ord()` per character — eliminates 14.3M function calls per run. sc_seqQual 1.84s → 1.51s (18% faster).
 
 ### Added
 
