@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **SAM.py**: `_passes_qc()` uses single bitmask check (`flag & 0x704`) instead of 5 separate property accesses — affects 10 call sites across all scripts that filter reads.
+- **SAM.py**: `mRNA_inner_distance()` caches `get_reference_name()` result to avoid redundant double-lookup per read; uses modern pysam `get_reference_name()` API instead of deprecated `getrname()`.
+- **RNA_fragment_size.py**: `overlap_length()` replaces 13.4M builtin `min()`/`max()` calls per run with inline comparisons and tuple unpacking.
+- **geneBody_coverage.py**: Batch `count_coverage()` calls per 5MB chromosome chunk instead of per-gene — eliminates redundant BAM re-iteration (1216 calls → ~7 chunked calls on chr22). 3.50s → 1.49s (2.3x).
+- **tin.py**: Batch `count_coverage()` calls per 5MB chromosome chunk using a two-pass approach (collect genes, batch coverage, output in BED order). 3.35s → 1.50s (2.2x).
+
+### Added
+
+- **benchmark-data/**: Benchmark suite comparing rseqc-redux vs original RSeQC 5.0.4 — `run_benchmark.sh` runs 24 scripts with timing and cProfile profiling; chr22 subset of official test data included (20MB BAM, 1262-gene BED).
+
 ## [6.2.1] — 2026-03-19
 
 ### Fixed
